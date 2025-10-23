@@ -26,11 +26,22 @@ jobs:
       - name: Install dependencies (fixed list)
         run: |
           python -m pip install --upgrade pip
-          pip install fastapi uvicorn sqlalchemy "pydantic>=2" "pydantic-settings>=2.3" python-dotenv pytest httpx
+          pip install \
+            fastapi \
+            uvicorn \
+            sqlalchemy \
+            "pydantic>=2" \
+            "pydantic-settings>=2.3" \
+            python-dotenv \
+            pytest \
+            httpx \
+            requests
           pip show pydantic-settings || true
+          pip show requests || true
           python - << 'PY'
           import pkgutil
           print("pydantic_settings loader:", pkgutil.find_loader("pydantic_settings"))
+          print("requests loader:", pkgutil.find_loader("requests"))
           PY
 
       - name: Debug repo state (show database.py on runner)
@@ -44,13 +55,11 @@ jobs:
       - name: Which app/database.py actually gets imported?
         run: |
           python - << 'PY'
-          import importlib, inspect
+          import importlib, inspect, itertools
           m = importlib.import_module("app")
           print("app module file:", inspect.getfile(m))
           md = importlib.import_module("app.database")
           print("app.database file:", inspect.getfile(md))
-          # Print first 40 lines of the imported file to ensure content
-          import itertools
           with open(inspect.getfile(md), "r", encoding="utf-8", errors="ignore") as f:
               print("== imported app.database head ==")
               print("".join(list(itertools.islice(f, 40))))
