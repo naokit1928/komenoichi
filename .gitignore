@@ -1,0 +1,31 @@
+# Python / venv / caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+.venv*/
+
+# SQLite / local artifacts
+*.db
+*.db-shm
+*.db-wal
+
+# Env / secrets
+.env
+.env.*
+
+# Build / coverage
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
