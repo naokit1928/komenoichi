@@ -1,24 +1,18 @@
-# app/database.py
 from __future__ import annotations
 
 import os
 from typing import Iterator, Optional
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-# ------------------------------------------------------------
-# Settings: pydantic-settings があれば使う / 無ければ環境変数で代替
-# ------------------------------------------------------------
+
 def _load_database_url() -> str:
     """
-    優先順:
-      1) pydantic-settings が利用可能なら .env を読みつつ DATABASE_URL を解決
-      2) 環境変数 DATABASE_URL
-      3) 既定値: sqlite:///./app.db
+    優先: 1) pydantic-settings（あれば） 2) 環境変数 3) 既定 sqlite
     """
     try:
-        # optional import（CIや最小構成で未インストールでもOK）
+        # 任意依存。CIや本番で未インストールでも動くようにする。
         from pydantic_settings import BaseSettings  # type: ignore
 
         class Settings(BaseSettings):
@@ -29,30 +23,24 @@ def _load_database_url() -> str:
                 env_prefix = ""
                 case_sensitive = False
 
-        settings = Settings()
-        return settings.database_url
+        return Settings().database_url
     except Exception:
-        # モジュール未導入 or 解析失敗時は環境変数→既定値
         return os.getenv("DATABASE_URL", "sqlite:///./app.db")
 
 
-SQLALCHEMY_DATABASE_URL: str = _load_database_url()
+SQLALCHEMY_DATABASE_URL = _load_database_url()
 
-# ------------------------------------------------------------
-# SQLAlchemy (SQLite なら connect_args を付ける)
-# ------------------------------------------------------------
-connect_args = {}
-if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+connect_args = (
+    {"check_same_thread": False}
+    if SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+    else {}
+)
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
 
-# ------------------------------------------------------------
-# FastAPI 依存性: DBセッション
-# ------------------------------------------------------------
+
 def get_db() -> Iterator[Session]:
     db: Optional[Session] = None
     try:
