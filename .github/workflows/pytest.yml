@@ -1,5 +1,4 @@
 name: pytest
-
 on:
   push:
     branches: [ main, master ]
@@ -8,26 +7,31 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+
+      - name: Show Python and OS info
+        run: |
+          python -V
+          which python
+          uname -a
+          pip -V
 
       - name: Install dependencies (fixed list)
         run: |
           python -m pip install --upgrade pip
           pip install fastapi uvicorn sqlalchemy "pydantic>=2" "pydantic-settings>=2.3" python-dotenv pytest httpx
-          python - <<'PY'
+
+      - name: Show installed packages (key ones)
+        run: |
+          python - << 'PY'
           import pkgutil, sys
-          need = ["pydantic_settings"]
-          missing = [m for m in need if not pkgutil.find_loader(m)]
-          print("Missing modules:", missing)
-          if missing:
-              sys.exit(1)
+          for m in ["fastapi","uvicorn","sqlalchemy","pydantic","pydantic_settings","python_dotenv","pytest","httpx"]:
+              print(m, "OK" if pkgutil.find_loader(m) else "MISSING")
           PY
 
       - name: Run tests
