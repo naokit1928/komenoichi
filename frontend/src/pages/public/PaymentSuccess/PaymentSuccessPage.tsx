@@ -21,10 +21,7 @@ export default function PaymentSuccessPage() {
   const location = useLocation();
   const state = (location.state as SuccessState | null) ?? readFromSession();
 
-  const farmName = state?.farmName ?? "";
-  const pickupAt = state?.pickupAt ?? "";
-  const items = state?.items ?? [];
-  const amount = formatYen(state?.amountYen);
+
 
   return (
     <div style={sx.container}>
