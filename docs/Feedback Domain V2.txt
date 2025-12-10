@@ -1,0 +1,238 @@
+📘 Feedback Domain V2 ― 仕様書（保存版）
+
+作成日：2025/12/04
+対象モジュール：app_v2/feedback/
+対象フェーズ：フェーズ1（Slack転送のみ）
+今後フェーズ：DB保存・AI分類（フェーズ2〜）にも拡張可能
+
+0. 目的（Purpose）
+
+ユーザー／農家からの フィードバック（意見・不具合報告） を受け取り、
+Slack に安全に転送するための専用ドメイン。
+
+フェーズ1では Slack 転送のみ を実装し、DB保存やAI分類は行わない。
+
+将来的な拡張（DB化・分類・検索UI）のため、
+API / Service / utils のレイヤー分離を最初から採用している。
+
+1. 機能要件（Requirements）
+✔ ユーザーのフィードバックを Slack に転送する
+
+送信ページ（React） → /api/feedback → Slack
+
+Slack Webhook は .env で読み込む
+
+成功時は { ok: true } を返す
+
+失敗時は { ok: false, error: ... } を返す
+
+✔ リクエストのバリデーション
+
+FeedbackRequest（Pydantic）にて行う：
+
+フィールド	説明
+source	"customer_web"（将来 "farmer_portal" なども追加予定）
+message	本文（20〜500文字に検証）
+email	任意（空欄可）。不具合時の連絡手段用
+✔ UIは任意のページから再利用可能
+
+React 側では FeedbackForm を切り出すことを想定（共通利用）。
+
+2. レスポンス仕様（Response Spec）
+
+成功時：
+
+{ "ok": true }
+
+
+Slack送信エラー時：
+
+{
+  "ok": false,
+  "error": "Slack webhook returned 404" 
+}
+
+3. API 仕様（/api/feedback）
+POST /api/feedback
+
+内容：Slack に流す（フェーズ1の最終目的）
+
+認証：不要（誰でも送信可）
+
+Rate-limiting：未導入（フェーズ2で導入予定）
+
+4. モジュール構成（Folder Structure）
+
+あなたの実際の app_v2/feedback/ に完全準拠した構成です：
+
+app_v2/
+  feedback/
+    api/
+      feedback_api.py        ← /api/feedback のエンドポイント
+    services/
+      feedback_service.py    ← SlackNotifier を呼ぶDomainサービス
+    utils/
+      slack_notifier.py      ← Slack送信専用ユーティリティ
+    dtos.py                  ← Pydantic Request/Response
+    __init__.py
+
+
+V2思想の原則：
+
+API → Service → Utils の方向に依存する
+
+逆方向は絶対に禁止（循環参照を防ぐ）
+
+5. ファイル別仕様
+5-1. api/feedback_api.py
+役割
+
+HTTPエンドポイント /api/feedback のみ担当
+
+バリデーションは DTO
+
+ロジックは FeedbackService に丸投げ
+
+主な動作
+
+リクエスト受信
+
+DTO バリデーション
+
+FeedbackService.send_feedback() を呼ぶ
+
+Slack送信結果を返す
+
+5-2. services/feedback_service.py
+役割
+
+APIとSlackの間の中間層
+
+将来の DB 保存・AI分類をここに組み込む
+
+主な動作
+
+SlackNotifier へ送信依頼
+
+source 情報をSlackへ引き渡す
+
+結果をAPIへ返す
+
+5-3. utils/slack_notifier.py
+役割
+
+Slack Webhook へのPOSTだけを担当（単機能）
+
+失敗時のログ出力・例外処理
+
+成功/失敗を dict で返す
+
+主な動作
+
+.env から Webhook URL 読込み
+
+urllib.request で送信（外部ライブラリ不可）
+
+ステータスコード・body をログに出す
+
+5-4. dtos.py
+役割
+
+入力（FeedbackRequest）
+
+出力（FeedbackResponse）
+
+フィードバックのバリデーションを全部ここに集約
+
+6. フロントエンド仕様（FeedbackPage.tsx）
+URL
+http://localhost:5173/feedback
+
+送信先
+POST http://localhost:8000/api/feedback
+
+UIの構造
+
+本文 textarea（20〜500文字）
+
+メール任意
+
+送信後は Thank you ページへ
+
+技術ポイント
+
+vite.config.ts に以下を追加（この設定がないと404になる）
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8000',
+    }
+  }
+})
+
+7. バックエンド main.py の組み込み位置
+
+あなたの main.py と同じ構成：
+
+# Feedback V2
+from app_v2.feedback.api.feedback_api import router as feedback_router
+app.include_router(feedback_router)
+
+
+prefix は feedback_api 内で /api を付けているため main.py では不要。
+
+8. フェーズ2に向けた拡張性（非常に重要）
+
+この設計により、次のフェーズ2を「最小の追加」で実現できる：
+
+DB保存（feedbacks テーブル）
+
+AI分類（不具合 / 機能要望 / 苦情 / バグの種類）
+
+管理画面フィードバック一覧（Admin Portal）
+
+農家ポータルへの再利用（source="farmer_portal"）
+
+根拠：API→Service→Utils の分離が完了しているから。
+
+9. V2思想に基づくポリシー
+
+UI は複製しない（FeedbackForm を共通化する）
+
+Backend ロジックは 1 箇所のみ（FeedbackService）
+
+SlackNotifier は純粋関数として維持
+
+APIは絶対にロジックを持たない
+
+他ドメイン（予約系・通知系）に影響しない独立構造
+
+拡張時は必ず Service に追加する
+
+utils にビジネスロジックを書かない
+
+10. 現在のステータス（達成状況）
+項目	状態
+Slack 送信	✔ 完了
+バリデーション	✔ 完了
+フロントエンド接続	✔ 完了
+V2ドメイン構成	✔ 完全準拠
+main.py 組み込み	✔ 完了
+農家向け流用	△ 未実装だが容易（共通フォームを作ればOK）
+11. 添付すべきファイル一覧（次スレッド用）
+
+app_v2/feedback/api/feedback_api.py
+
+app_v2/feedback/services/feedback_service.py
+
+app_v2/feedback/utils/slack_notifier.py
+
+app_v2/feedback/dtos.py
+
+フロント：FeedbackPage.tsx
+
+vite.config.ts
+
+main.py（router の組み込み箇所）

@@ -1,0 +1,106 @@
+📘 Komet プロジェクト — 基本インフラ仕様書（確定版）
+1. プロダクト名
+
+Komet（コメット）
+
+2. バックエンド構成
+言語 / フレームワーク
+
+Python + FastAPI
+
+データベース
+
+SQLite（本番も SQLite を使用）
+
+Render の Persistent Disk に永続化
+
+ディスク名：komet-db
+
+理由（要点のみ）
+
+アクセス規模・同時操作の少なさから最適
+
+運用コスト最小
+
+メンテナンス容易
+
+必要であれば将来 PostgreSQL へ移行可能（構造は維持）
+
+3. バックエンドのデプロイ環境
+サービス
+
+Render（Render Web Service）
+
+サービス名
+
+komet-api
+
+初期の本番 API URL
+https://komet-api.onrender.com
+
+
+※ 後で独自ドメイン（api.komet.jp）に差し替える。
+
+4. フロントエンド構成
+技術
+
+React + Vite + TypeScript + Tailwind CSS
+
+デプロイ環境
+
+Vercel
+
+プロジェクト名
+
+komet-frontend
+
+本番フロントURL（独自ドメイン）
+https://komet.jp
+
+5. 本番 API（独自ドメイン運用）
+
+Render の API を独自サブドメインにマッピングする。
+
+API URL（最終形）
+https://api.komet.jp
+
+Webhook（LINE / Stripe）
+https://api.komet.jp/api/line/webhook
+https://api.komet.jp/api/stripe/webhook
+
+6. 環境変数の命名ポリシー
+
+環境変数はすべて KOMET_ プレフィックスで統一。
+
+例：
+
+KOMET_OPENAI_KEY
+KOMET_LINE_SECRET
+KOMET_STRIPE_SECRET
+KOMET_DB_PATH
+
+7. 劣後で決める項目（後回しOK）
+
+独自ドメイン購入（komet.jp / api.komet.jp）
+
+DNS設定（Cloudflare推奨）
+
+バックアップ自動化の実装
+
+監視ツール（必要なら Render または Slack 通知追加）
+
+☑️ この仕様書で決まった核心ポイント
+
+バックエンドは SQLite
+
+APIは Render
+
+フロントは Vercel
+
+独自ドメインは komet.jp / api.komet.jp
+
+サービス名は komet-api / komet-frontend
+
+環境変数は KOMET_ で統一
+
+これで インフラの土台が完全に決定しました。

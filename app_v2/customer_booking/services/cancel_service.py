@@ -1,0 +1,167 @@
+# app_v2/customer_booking/services/cancel_service.py
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Tuple
+
+from app_v2.customer_booking.repository.reservation_repo import (
+    get_reservation_by_id,
+    cancel_reservation_db,
+)
+from app_v2.customer_booking.utils.cancel_token import CancelTokenPayload
+
+from app_v2.customer_booking.services.reservation_expanded_service import (
+    _parse_db_datetime,
+    _calc_event_for_booking,
+    _format_event_display_label,
+)
+
+# ★★ 追加：REMINDER 削除に必要
+from app_v2.notifications.repository.line_notification_job_repo import (
+    LineNotificationJobRepository,
+)
+from app_v2.notifications.services.line_notification_service import (
+    LineNotificationService,
+)
+
+JST = timezone(timedelta(hours=9))
+
+
+class CancelDomainError(Exception):
+    pass
+
+class InvalidTokenError(CancelDomainError):
+    pass
+
+class ReservationNotFoundError(CancelDomainError):
+    pass
+
+class AlreadyCancelledError(CancelDomainError):
+    pass
+
+class NotCancellableError(CancelDomainError):
+    pass
+
+
+@dataclass
+class CancelPageData:
+    reservation_id: int
+    pickup_display: str
+    qty_5: int
+    qty_10: int
+    qty_25: int
+    rice_subtotal: int
+    is_cancellable: bool
+
+
+class CancelService:
+
+    def __init__(self) -> None:
+        self.job_repo = LineNotificationJobRepository()
+        self.notification_service = LineNotificationService()
+
+    # -----------------------------------------------------
+    # items_json → qty_系（既存）
+    # -----------------------------------------------------
+    def _parse_items_json(self, items_json: str) -> Tuple[int, int, int]:
+        try:
+            items = json.loads(items_json) if items_json else []
+        except Exception:
+            items = []
+
+        qty_5 = qty_10 = qty_25 = 0
+        for item in items:
+            try:
+                size = int(item.get("size_kg"))
+                quantity = int(item.get("quantity", 0) or 0)
+            except Exception:
+                continue
+
+            if size == 5:
+                qty_5 += quantity
+            elif size == 10:
+                qty_10 += quantity
+            elif size == 25:
+                qty_25 += quantity
+
+        return qty_5, qty_10, qty_25
+
+    # -----------------------------------------------------
+    # pickup_display（既存）
+    # -----------------------------------------------------
+    def _calc_pickup_info(self, reservation_row: dict) -> Tuple[str, bool]:
+        created_at_raw = reservation_row.get("created_at")
+        pickup_slot_code = reservation_row.get("pickup_slot_code")
+
+        if not created_at_raw or not pickup_slot_code:
+            raise CancelDomainError("INVALID_RESERVATION_DATA")
+
+        created_at_dt = _parse_db_datetime(created_at_raw)
+        event_start, event_end = _calc_event_for_booking(created_at_dt, pickup_slot_code)
+        pickup_display = _format_event_display_label(event_start, event_end)
+
+        now_jst = datetime.now(JST)
+        cancel_limit = event_start - timedelta(hours=3)
+
+        return pickup_display, now_jst < cancel_limit
+
+    def _verify_token_user(self, payload: CancelTokenPayload, row: dict) -> None:
+        db_line_user_id = row.get("line_user_id")
+        if not db_line_user_id or db_line_user_id != payload.line_user_id:
+            raise InvalidTokenError("LINE_USER_ID_MISMATCH")
+
+    # -----------------------------------------------------
+    # GET 用（既存）
+    # -----------------------------------------------------
+    def build_cancel_page_data(self, payload: CancelTokenPayload) -> CancelPageData:
+        row = get_reservation_by_id(int(payload.reservation_id))
+        if not row:
+            raise ReservationNotFoundError("NOT_FOUND")
+
+        if row["status"] == "cancelled":
+            raise AlreadyCancelledError("ALREADY_CANCELLED")
+
+        self._verify_token_user(payload, row)
+
+        qty_5, qty_10, qty_25 = self._parse_items_json(row.get("items_json", ""))
+        rice_subtotal = int(row.get("rice_subtotal", 0))
+        pickup_display, is_cancellable = self._calc_pickup_info(row)
+
+        return CancelPageData(
+            reservation_id=int(payload.reservation_id),
+            pickup_display=pickup_display,
+            qty_5=qty_5,
+            qty_10=qty_10,
+            qty_25=qty_25,
+            rice_subtotal=rice_subtotal,
+            is_cancellable=is_cancellable,
+        )
+
+    # -----------------------------------------------------
+    # POST /cancel（実際のキャンセル）
+    # -----------------------------------------------------
+    def cancel_reservation(self, payload: CancelTokenPayload) -> CancelPageData:
+        data = self.build_cancel_page_data(payload)
+
+        if not data.is_cancellable:
+            raise NotCancellableError("CANCEL_LIMIT_PASSED")
+
+        # ---- 状態更新
+        cancel_reservation_db(data.reservation_id)
+
+        # ----------------------------------------------------------
+        # ★ 追加：REMINDER(PENDING) をここで削除（最小ロジック）
+        # ----------------------------------------------------------
+        deleted = self.job_repo.delete_pending_reminder_jobs(data.reservation_id)
+        print(f"[CancelService] deleted pending REMINDER jobs: {deleted}")
+
+        # ----------------------------------------------------------
+        # ★ 追加：キャンセル完了通知（CANCEL_COMPLETED）
+        # ----------------------------------------------------------
+        job_id = self.notification_service.schedule_cancel_completed(data.reservation_id)
+        if job_id:
+            self.notification_service.send_single_job(job_id, dry_run=False)
+
+        return data
