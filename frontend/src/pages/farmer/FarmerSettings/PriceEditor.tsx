@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -132,7 +132,7 @@ function Toast({ kind, text }: { kind: "ok" | "ng"; text: string }) {
 function PriceEditModal({
   open,
   onClose,
-  value,
+  value: _value,
   setValue,
   onSave,
   busy,

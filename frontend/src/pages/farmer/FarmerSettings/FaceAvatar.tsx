@@ -30,11 +30,12 @@ const SPACER_BELOW_BTN_PX = 44;
 export default function FaceAvatar({
   faceImageUrl,
   onUpload,
-  onDelete,
+  onDelete: _onDelete,   // ← unused 回避
   uploading,
   deleting,
   className = "",
 }: Props) {
+
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [preview, setPreview] = useState<string | null>(faceImageUrl ?? null);

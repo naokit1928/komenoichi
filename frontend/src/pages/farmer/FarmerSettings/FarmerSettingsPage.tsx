@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FarmerSettingsHeader from "./FarmerSettingsHeader";
 import FaceAvatar from "./FaceAvatar";
 import PrGallery from "./PrGallery";
@@ -482,7 +482,6 @@ export default function FarmerSettingsPage() {
         <section className="mb-6 px-4 sm:px-6">
           <TitleEditor
             value={title}
-            maxLength={30}
             saving={busy}
             onChange={setTitle}
             onSave={saveTitle}
@@ -498,7 +497,6 @@ export default function FarmerSettingsPage() {
         <section className="mb-16 px-4 sm:px-6">
           <PrTextEditor
             value={text}
-            maxLength={800}
             saving={busy}
             onChange={setText}
             onSave={savePrText}
