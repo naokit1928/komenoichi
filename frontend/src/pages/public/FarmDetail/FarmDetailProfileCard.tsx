@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { PublicFarmDetailDTO } from "../types/publicFarmDetail";
+import type { PublicFarmDetailDTO } from "../../../types/publicFarmDetail";
 
 type Props = {
   farm: PublicFarmDetailDTO | null;

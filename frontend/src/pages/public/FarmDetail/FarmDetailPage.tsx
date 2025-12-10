@@ -1,7 +1,7 @@
-// src/pages/FarmDetailPage.tsx
+// src/pages/public/FarmDetail/FarmDetailPage.tsx
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import type { PublicFarmDetailDTO } from "../types/publicFarm";
+import type { PublicFarmDetailDTO } from "../../../types/publicFarmDetail";
 
 // 追加：カード用コンポーネント
 import FarmDetailPriceCard from "./FarmDetailPriceCard";
@@ -23,19 +23,19 @@ function calcHarvestYear(): number {
 
 // 住所から「都道府県＋市区町村」だけ抜き出す（例：徳島県徳島市）
 // ※ 現在は owner_address_label（例: "徳島県徳島市伊月町の農家"）をそのまま表示に利用。
-function extractPrefCity(address?: string | null): string | null {
-  if (!address) return null;
-  const marks = ["市", "区", "郡", "町", "村"];
-  let cut = -1;
-  for (const ch of marks) {
-    const idx = address.indexOf(ch);
-    if (idx !== -1 && (cut === -1 || idx < cut)) {
-      cut = idx;
-    }
-  }
-  if (cut === -1) return address;
-  return address.slice(0, cut + 1);
-}
+// function extractPrefCity(address?: string | null): string | null {
+//   if (!address) return null;
+//   const marks = ["市", "区", "郡", "町", "村"];
+//   let cut = -1;
+//   for (const ch of marks) {
+//     const idx = address.indexOf(ch);
+//     if (idx !== -1 && (cut === -1 || idx < cut)) {
+//       cut = idx;
+//     }
+//   }
+//   if (cut === -1) return address;
+//   return address.slice(0, cut + 1);
+// }
 
 // ---- LocalStorage: お気に入り ----
 const FAVORITES_KEY = "favoriteFarms";

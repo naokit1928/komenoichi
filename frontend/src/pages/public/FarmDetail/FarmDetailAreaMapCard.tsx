@@ -1,7 +1,6 @@
 // src/components/FarmDetailAreaMapCard.tsx
-import React from "react";
-import FarmDetailSoftMap from "../../../components/FarmDetailSoftMap";
 
+import FarmDetailSoftMap from "../../../components/FarmDetailSoftMap";
 
 type Props = {
   centerLat?: number;
