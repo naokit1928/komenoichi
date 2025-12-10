@@ -1,5 +1,4 @@
-// src/components/FarmDetailPriceCard.tsx
-import React from "react";
+// ← ★ React の import を削除した以外は完全にそのまま
 
 type Kg = 5 | 10 | 25;
 
@@ -80,10 +79,7 @@ export default function FarmDetailPriceCard({
                 tabIndex={disabled ? -1 : 0}
                 onClick={() => !disabled && onSelectKg(s.kg)}
                 onKeyDown={(e) => {
-                  if (
-                    !disabled &&
-                    (e.key === "Enter" || e.key === " ")
-                  ) {
+                  if (!disabled && (e.key === "Enter" || e.key === " ")) {
                     onSelectKg(s.kg);
                   }
                 }}

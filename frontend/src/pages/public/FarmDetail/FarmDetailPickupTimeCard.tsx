@@ -1,6 +1,3 @@
-// src/components/FarmDetailPickupTimeCard.tsx
-import React from "react";
-
 type Props = {
   pickupTextCard: string;
 };
