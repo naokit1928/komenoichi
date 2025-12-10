@@ -187,7 +187,6 @@ export default function FarmerRegistrationPage() {
     pickupRoof: true,
     email: "",
     farmName: "",
-    description: "",
     pickupNotes: "",
   });
 

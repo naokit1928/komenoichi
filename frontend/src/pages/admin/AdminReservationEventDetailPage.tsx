@@ -364,9 +364,9 @@ const AdminReservationEventDetailPage: React.FC = () => {
                     else if (value === "NONE") colorClass = "text-red-700";  // ← 赤
                     else if (value === "SENT") colorClass = "text-gray-700";
                     else if (value === "PENDING") colorClass = "text-yellow-700";
-                    else if (value === "DASH") colorClass = "text-gray-400";
+                    
 
-                    const label = value === "DASH" ? "–" : value;
+                    const label = (value as any) === "DASH" ? "–" : value;
 
                     return (
                       <span className="text-[13px] font-medium">

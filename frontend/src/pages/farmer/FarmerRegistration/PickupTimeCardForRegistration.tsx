@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import ReactDOM from "react-dom";
 
 export type TimeSlotOption = "WED_19_20" | "SAT_10_11";
