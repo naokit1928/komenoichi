@@ -64,7 +64,6 @@ export default function MapLayerPortal({
   mapCenter,
   noFarmsWithin100km,
 }: Props) {
-  const safeFarms = Array.isArray(farms) ? farms : [];
   const center = mapCenter ?? DEFAULT_CENTER;
 
   // マップ専用データ（Airbnb方式）
@@ -125,10 +124,18 @@ export default function MapLayerPortal({
     el.style.zIndex = "60";
     rootRef.current = el;
   }
+
   useEffect(() => {
-    const el = rootRef.current!;
+    const el = rootRef.current;
+    if (!el) return;
+
     document.body.appendChild(el);
-    return () => el.parentNode?.removeChild(el);
+
+    return () => {
+      if (el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    };
   }, []);
 
   // URL sel
@@ -167,7 +174,7 @@ export default function MapLayerPortal({
   const PANEL_VH = 0.88;
   const HALF_H = 140;
 
-  const [panelH, setPanelH] = useState(() =>
+  const [, setPanelH] = useState(() =>
     Math.round(window.innerHeight * PANEL_VH)
   );
   useEffect(() => {
@@ -175,11 +182,11 @@ export default function MapLayerPortal({
       setPanelH(Math.round(window.innerHeight * PANEL_VH));
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [setPanelH]);
 
   const CLOSE_THRESHOLD = 100;
   const [sheetH, setSheetH] = useState<number>(HALF_H);
-  const [sheetState, setSheetState] = useState<SheetState>("closed");
+  const [, setSheetState] = useState<SheetState>("closed");
   const [dragging, setDragging] = useState(false);
 
   const dragStartY = useRef(0);
@@ -193,7 +200,7 @@ export default function MapLayerPortal({
       setSheetState("closed");
       setSheetH(HALF_H);
     }
-  }, [selected]);
+  }, [selected, setSheetState]);
 
   const beginDrag = (y: number) => {
     setDragging(true);
