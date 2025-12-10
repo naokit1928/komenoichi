@@ -60,9 +60,7 @@ const DEFAULT_CENTER = { lat: 34.0703, lng: 134.5548 };
 export default function MapLayerPortal({
   open,
   onRequestClose,
-  farms,
   mapCenter,
-  noFarmsWithin100km,
 }: Props) {
   const center = mapCenter ?? DEFAULT_CENTER;
 
