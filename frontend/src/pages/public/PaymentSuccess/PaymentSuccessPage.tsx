@@ -1,28 +1,8 @@
-// src/pages/PaymentSuccessPage.tsx
-import { useLocation } from "react-router-dom";
+// src/pages/public/PaymentSuccess/PaymentSuccessPage.tsx
 
-type SuccessState = {
-  farmName?: string;
-  pickupAt?: string;
-  items?: Array<{ label: string; qty: number }>;
-  amountYen?: number;
-};
-
-function readFromSession(): SuccessState | null {
-  try {
-    const s = sessionStorage.getItem("lastReservationSummary");
-    return s ? (JSON.parse(s) as SuccessState) : null;
-  } catch {
-    return null;
-  }
-}
+import type { CSSProperties } from "react";
 
 export default function PaymentSuccessPage() {
-  const location = useLocation();
-  const state = (location.state as SuccessState | null) ?? readFromSession();
-
-
-
   return (
     <div style={sx.container}>
       <style>{css}</style>
@@ -51,10 +31,8 @@ export default function PaymentSuccessPage() {
 
         <p style={sx.subtext}>
           ご予約内容・受け渡し場所などの必要な情報は、
-　　　　　 LINE 内の「予約確認メニュー」から必ずご確認ください。
+          LINE 内の「予約確認メニュー」から必ずご確認ください。
         </p>
-
-        {/* ❌ 中央の情報セクションは完全削除しました */}
 
         <div style={{ marginTop: 28 }}>
           <a
@@ -69,18 +47,7 @@ export default function PaymentSuccessPage() {
   );
 }
 
-// ------------------------------
-// util
-// ------------------------------
-function formatYen(n?: number) {
-  if (typeof n !== "number") return "-";
-  return `¥${n.toLocaleString()}`;
-}
-
-// ------------------------------
-// styles
-// ------------------------------
-const sx: { [key: string]: React.CSSProperties } = {
+const sx: Record<string, CSSProperties> = {
   container: {
     padding: "20px 16px 40px",
     background: "#F9FAFB",
