@@ -18,6 +18,7 @@ export default function FarmDetailProfileCard({
 
   const displayName = ownerFullName ? `${ownerFullName}さんのお米` : null;
 
+  // 顔写真も名前もPR文も無ければカード自体を出さない
   if (!(faceImageUrl || displayName || farm?.pr_text)) {
     return null;
   }
@@ -61,18 +62,6 @@ export default function FarmDetailProfileCard({
               }}
             >
               {shortLocation}の農家
-            </div>
-          )}
-
-          {farm?.farming_years != null && (
-            <div
-              style={{
-                fontSize: 12,
-                color: "#6b7280",
-                marginTop: 2,
-              }}
-            >
-              農業歴 {farm.farming_years}年
             </div>
           )}
         </div>

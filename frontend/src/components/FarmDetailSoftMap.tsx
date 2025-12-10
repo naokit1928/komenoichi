@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import { GoogleMap, useJsApiLoader, Circle, Marker } from "@react-google-maps/api";
 
 /**
@@ -35,7 +35,12 @@ export default function FarmDetailSoftMap({
     return tokushimaDefault;
   }, [centerLat, centerLng, tokushimaDefault]);
 
-  const containerStyle: React.CSSProperties = { width: "100%", height, borderRadius: 8, overflow: "hidden" };
+  const containerStyle: React.CSSProperties = {
+    width: "100%",
+    height,
+    borderRadius: 8,
+    overflow: "hidden",
+  };
 
   // ※ 一覧と同一設定に統一（これが肝）
   const { isLoaded } = useJsApiLoader({
@@ -54,13 +59,29 @@ export default function FarmDetailSoftMap({
     // アイコンの主張を抑える
     { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
     { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
-    { featureType: "poi", elementType: "geometry", stylers: [{ saturation: -80 }, { lightness: 30 }] },
-    { featureType: "poi.business", elementType: "labels.icon", stylers: [{ visibility: "on" }, { saturation: -100 }, { lightness: 40 }] },
-    { featureType: "poi.business", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+    {
+      featureType: "poi",
+      elementType: "geometry",
+      stylers: [{ saturation: -80 }, { lightness: 30 }],
+    },
+    {
+      featureType: "poi.business",
+      elementType: "labels.icon",
+      stylers: [{ visibility: "on" }, { saturation: -100 }, { lightness: 40 }],
+    },
+    {
+      featureType: "poi.business",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#9ca3af" }],
+    },
 
     { featureType: "road", elementType: "labels", stylers: [{ visibility: "simplified" }] },
     { featureType: "road", elementType: "geometry", stylers: [{ saturation: -40 }] },
-    { featureType: "water", elementType: "geometry", stylers: [{ saturation: -10 }, { lightness: 10 }] },
+    {
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [{ saturation: -10 }, { lightness: 10 }],
+    },
   ];
 
   const mapOptions: google.maps.MapOptions = {
@@ -75,7 +96,11 @@ export default function FarmDetailSoftMap({
 
   // カスタムアイコン（任意）
   const icon: google.maps.Icon | undefined = markerIconUrl
-    ? { url: markerIconUrl, scaledSize: new google.maps.Size(36, 36), anchor: new google.maps.Point(18, 36) }
+    ? {
+        url: markerIconUrl,
+        scaledSize: new google.maps.Size(36, 36),
+        anchor: new google.maps.Point(18, 36),
+      }
     : undefined;
 
   return (
