@@ -1,5 +1,5 @@
 // frontend/src/pages/LineHomePage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface DevResult {
   ok: boolean;

@@ -22,18 +22,6 @@ const MAX_LEN = 25;
 // 文字数（バリデ用）: 改行は除去
 const countLen = (s: string) => s.replace(/\r?\n/g, "").trim().length;
 
-// “区切り”候補（※残しておくが今回の仕様では未使用）
-const isBoundary = (ch: string) =>
-  ch === " " || ch === "　" || "、。，．,.".includes(ch);
-
-/**
- * （旧）自動改行ロジック
- * 今回は「中央ぞろえのみ」の仕様に変更したため未使用。
- * 将来の再利用に備えて残しているが呼び出していない。
- */
-function autoBalancedCutIndex(_s: string): number {
-  return -1; // 使わない
-}
 
 /** 指定 cut で折り返し（安全域にクランプ） */
 function wrapAt(s: string, cut: number): string {
