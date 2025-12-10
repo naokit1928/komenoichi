@@ -1,7 +1,7 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-const AUTO_PAY_KEY = "AUTO_PAY_AFTER_LINE";
+
 
 function useQuery() {
   const { search } = useLocation();

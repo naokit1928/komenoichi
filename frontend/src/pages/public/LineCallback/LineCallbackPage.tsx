@@ -1,7 +1,5 @@
 // src/pages/LineCallbackPage.tsx
-import React from "react";
 
-export default function LineCallbackPage() {
   // 将来:
   // URLのクエリ(paramやcode)をFastAPIにPOSTしてline_user_idを確定
   // 成功したら /farms/:farmId/confirm に window.location.replace()
