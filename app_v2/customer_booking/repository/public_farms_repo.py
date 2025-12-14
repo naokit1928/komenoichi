@@ -14,7 +14,6 @@ def _get_db_path() -> str:
 @dataclass
 class PublicFarmRow:
     farm_id: int
-    owner_user_id: int
 
     owner_last_name: str
     owner_first_name: str
@@ -34,39 +33,34 @@ class PublicFarmRow:
 class PublicFarmsRepository:
     """
     公開農家一覧を取得する Repository（sqlite3版）
+    ※ Phase2 対応版：users JOIN 完全排除 / farms 単体完結
     """
 
     def __init__(self, db: Any = None) -> None:
-        # db 引数は互換性のためだけに受け取るが無視する
         self.conn = sqlite3.connect(_get_db_path())
         self.conn.row_factory = sqlite3.Row
 
+    # ---------------------------------------------------------
+    # 公開 & 予約受付中の農家 一覧
+    # ---------------------------------------------------------
     def fetch_publishable_farms(self) -> List[PublicFarmRow]:
-        """
-        一覧・距離ソート用に「公開中かつ予約受付中」の農家をすべて取得する。
-        """
         sql = """
             SELECT
-                f.id                   AS farm_id,
-                f.owner_user_id        AS owner_user_id,
+                f.farm_id              AS farm_id,
 
-                u.last_name            AS owner_last_name,
-                u.first_name           AS owner_first_name,
-                u.address              AS owner_address,
+                f.last_name            AS owner_last_name,
+                f.first_name           AS owner_first_name,
+                f.address              AS owner_address,
 
                 f.price_10kg           AS price_10kg,
                 f.pickup_time          AS pickup_slot_code,
                 f.pickup_lat           AS pickup_lat,
                 f.pickup_lng           AS pickup_lng,
 
-                fp.face_image_url      AS face_image_url,
-                fp.pr_title            AS pr_title,
-                fp.pr_images_json      AS pr_images_raw
+                f.face_image_url       AS face_image_url,
+                f.pr_title             AS pr_title,
+                f.pr_images_json       AS pr_images_raw
             FROM farms AS f
-            JOIN users AS u
-              ON u.id = f.owner_user_id
-            LEFT JOIN farmer_profiles AS fp
-              ON fp.farm_id = f.id
             WHERE
               f.active_flag = 1
               AND f.is_accepting_reservations = 1
@@ -80,7 +74,6 @@ class PublicFarmsRepository:
             result.append(
                 PublicFarmRow(
                     farm_id=int(r["farm_id"]),
-                    owner_user_id=int(r["owner_user_id"]),
                     owner_last_name=str(r["owner_last_name"] or ""),
                     owner_first_name=str(r["owner_first_name"] or ""),
                     owner_address=str(r["owner_address"] or ""),
@@ -96,6 +89,9 @@ class PublicFarmsRepository:
 
         return result
 
+    # ---------------------------------------------------------
+    # 地図バウンディングボックス検索
+    # ---------------------------------------------------------
     def fetch_publishable_farms_in_bounds(
         self,
         min_lat: float,
@@ -104,34 +100,24 @@ class PublicFarmsRepository:
         max_lng: float,
         limit: int,
     ) -> List[PublicFarmRow]:
-        """
-        地図表示用:
-        - 公開中かつ予約受付中
-        - pickup_lat/lng が指定バウンディングボックス内
-        - 最大 limit 件
-        """
+
         sql = """
             SELECT
-                f.id                   AS farm_id,
-                f.owner_user_id        AS owner_user_id,
+                f.farm_id              AS farm_id,
 
-                u.last_name            AS owner_last_name,
-                u.first_name           AS owner_first_name,
-                u.address              AS owner_address,
+                f.last_name            AS owner_last_name,
+                f.first_name           AS owner_first_name,
+                f.address              AS owner_address,
 
                 f.price_10kg           AS price_10kg,
                 f.pickup_time          AS pickup_slot_code,
                 f.pickup_lat           AS pickup_lat,
                 f.pickup_lng           AS pickup_lng,
 
-                fp.face_image_url      AS face_image_url,
-                fp.pr_title            AS pr_title,
-                fp.pr_images_json      AS pr_images_raw
+                f.face_image_url       AS face_image_url,
+                f.pr_title             AS pr_title,
+                f.pr_images_json       AS pr_images_raw
             FROM farms AS f
-            JOIN users AS u
-              ON u.id = f.owner_user_id
-            LEFT JOIN farmer_profiles AS fp
-              ON fp.farm_id = f.id
             WHERE
               f.active_flag = 1
               AND f.is_accepting_reservations = 1
@@ -139,9 +125,10 @@ class PublicFarmsRepository:
               AND f.pickup_lng IS NOT NULL
               AND f.pickup_lat BETWEEN ? AND ?
               AND f.pickup_lng BETWEEN ? AND ?
-            ORDER BY f.id
+            ORDER BY f.farm_id
             LIMIT ?
         """
+
         cur = self.conn.execute(
             sql,
             (min_lat, max_lat, min_lng, max_lng, limit),
@@ -153,7 +140,6 @@ class PublicFarmsRepository:
             result.append(
                 PublicFarmRow(
                     farm_id=int(r["farm_id"]),
-                    owner_user_id=int(r["owner_user_id"]),
                     owner_last_name=str(r["owner_last_name"] or ""),
                     owner_first_name=str(r["owner_first_name"] or ""),
                     owner_address=str(r["owner_address"] or ""),

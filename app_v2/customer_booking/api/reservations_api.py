@@ -56,7 +56,7 @@ def fetch_price(con, farm_id: int, size_kg: int) -> int:
     else:
         raise HTTPException(status_code=400, detail="Invalid size_kg")
 
-    cur.execute(f"SELECT {col} FROM farms WHERE id = ?", (farm_id,))
+    cur.execute(f"SELECT {col} FROM farms WHERE farm_id = ?", (farm_id,))
     row = cur.fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="Farm not found")
@@ -191,7 +191,7 @@ def create_reservation(payload: ReservationFormDTO):
             """
             INSERT INTO reservations
             (
-                user_id,
+                consumer_id,
                 farm_id,
                 pickup_slot_code,
                 items_json,

@@ -79,6 +79,8 @@ const AdminReservationEventDetailPage: React.FC = () => {
       : "";
   const ownerPostalCode = items[0]?.owner_postcode ?? "";
   const ownerAddressLine = items[0]?.owner_address_line ?? "";
+  const ownerPhone = items[0]?.owner_phone ?? "";
+
 
   // C / X 集計
   const { confirmedCount, cancelledCount } = useMemo(() => {
@@ -210,6 +212,7 @@ const AdminReservationEventDetailPage: React.FC = () => {
                   <div className="mt-1 space-y-0.5 text-xs text-gray-600">
                     <div>郵便番号：{ownerPostalCode || "（未登録）"}</div>
                     <div>住所：{ownerAddressLine || "（未登録）"}</div>
+                    <div>電話番号：{ownerPhone || "（未登録）"}</div>
                   </div>
                 </div>
 

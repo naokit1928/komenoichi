@@ -1,3 +1,5 @@
+# app_v2/admin_reservations/admin_reservation_repo.py
+
 from __future__ import annotations
 
 import os
@@ -7,25 +9,19 @@ from typing import Any, Dict, List, Optional, Sequence
 
 
 def _get_db_path() -> str:
-    """
-    BackendV2 共通ルールに合わせた DB パス解決。
-    APP_DB_PATH があればそれを優先、なければ ./app.db。
-    """
     env_path = os.getenv("APP_DB_PATH")
     return env_path if env_path else "app.db"
 
 
 class AdminReservationRepository:
     """
-    /admin/reservations 用の READ ONLY Repository。
+    フェーズ2対応・確定版
 
-    役割:
-      - reservations テーブルから「予約タイムライン用の生データ」を取得する
-      - line_notification_jobs から予約IDごとのジョブ一覧を取得する
-      - 農家オーナー情報(users)・受け渡し場所情報(farms)を join して返す
-
-    ここでは Pydantic DTO にはせず、dict ベースで返す。
-    DTO への変換・表示用の整形は Service 側の責務。
+    - users 参照なし
+    - reservations.reservation_id を正
+    - farms.farm_id を正
+    - admin repo は「事実取得のみ」
+    - 通知ステータス（– / NONE）の意味付けは service 層で行う
     """
 
     def __init__(self) -> None:
@@ -46,19 +42,7 @@ class AdminReservationRepository:
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
-        """
-        管理画面一覧用に reservations を取得する。
 
-        フィルタ条件:
-          - items_json IS NOT NULL で V2 予約のみ対象
-          - farm_id: 特定農家の予約だけ絞り込み
-          - reservation_id: 指定されていればその1件だけ（他条件と併用されてもよい）
-          - status: 'pending' / 'confirmed' / 'cancelled' など
-          - date_from/date_to: DATE(reservations.created_at) の範囲絞り込み（暫定）
-
-        並び順:
-          - reservations.created_at DESC, reservations.id DESC
-        """
         where_clauses: List[str] = ["r.items_json IS NOT NULL"]
         params: List[Any] = []
 
@@ -67,7 +51,7 @@ class AdminReservationRepository:
             params.append(farm_id)
 
         if reservation_id is not None:
-            where_clauses.append("r.id = ?")
+            where_clauses.append("r.reservation_id = ?")
             params.append(reservation_id)
 
         if status is not None:
@@ -82,18 +66,13 @@ class AdminReservationRepository:
             where_clauses.append("DATE(r.created_at) <= ?")
             params.append(date_to.isoformat())
 
-        where_sql = ""
-        if where_clauses:
-            where_sql = "WHERE " + " AND ".join(where_clauses)
+        where_sql = "WHERE " + " AND ".join(where_clauses)
 
-        # reservations + farms + users(owner) を join して、
-        # Service 側で必要とする基本列 + 拡張列をすべて返す
         sql = f"""
             SELECT
-                -- reservations 本体
-                r.id AS id,
+                r.reservation_id AS id,
                 r.farm_id AS farm_id,
-                r.user_id AS user_id,
+                r.consumer_id AS customer_user_id,
                 r.pickup_slot_code AS pickup_slot_code,
                 r.items_json AS items_json,
                 r.rice_subtotal AS rice_subtotal,
@@ -104,38 +83,30 @@ class AdminReservationRepository:
                 r.payment_succeeded_at AS payment_succeeded_at,
                 r.created_at AS created_at,
 
-                -- 予約者ID（一覧に出したいので別名も用意）
-                r.user_id AS customer_user_id,
-
-                 -- 農家オーナー(users)
-                owner.id AS owner_user_id,
-                owner.last_name AS owner_last_name,
-                owner.first_name AS owner_first_name,
-                owner.last_kana AS owner_last_kana,
-                owner.first_kana AS owner_first_kana,
-                owner.postal_code AS owner_postcode,
+                f.last_name AS owner_last_name,
+                f.first_name AS owner_first_name,
+                f.last_kana AS owner_last_kana,
+                f.first_kana AS owner_first_kana,
+                f.postal_code AS owner_postcode,
                 '' AS owner_pref,
                 '' AS owner_city,
-                owner.address AS owner_addr_line,
+                f.address AS owner_addr_line,
+                f.phone AS owner_phone,
 
-
-                -- 受け渡し場所情報(farms)
                 f.pickup_place_name AS pickup_place_name,
                 f.pickup_notes AS pickup_notes,
                 f.pickup_lat AS pickup_lat,
                 f.pickup_lng AS pickup_lng
+
             FROM reservations AS r
-            LEFT JOIN farms AS f ON r.farm_id = f.id
-            LEFT JOIN users AS owner ON f.owner_user_id = owner.id
+            LEFT JOIN farms AS f ON r.farm_id = f.farm_id
             {where_sql}
-            ORDER BY r.created_at DESC, r.id DESC
+            ORDER BY r.created_at DESC, r.reservation_id DESC
             LIMIT ? OFFSET ?
         """
 
-        params_with_paging = params + [limit, offset]
-        cur = self.conn.execute(sql, params_with_paging)
-        rows = cur.fetchall()
-        return [dict(row) for row in rows]
+        cur = self.conn.execute(sql, params + [limit, offset])
+        return [dict(row) for row in cur.fetchall()]
 
     def count_reservations(
         self,
@@ -146,9 +117,7 @@ class AdminReservationRepository:
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
     ) -> int:
-        """
-        list_reservations と同じフィルタで件数だけ返す。
-        """
+
         where_clauses: List[str] = ["r.items_json IS NOT NULL"]
         params: List[Any] = []
 
@@ -157,7 +126,7 @@ class AdminReservationRepository:
             params.append(farm_id)
 
         if reservation_id is not None:
-            where_clauses.append("r.id = ?")
+            where_clauses.append("r.reservation_id = ?")
             params.append(reservation_id)
 
         if status is not None:
@@ -172,32 +141,23 @@ class AdminReservationRepository:
             where_clauses.append("DATE(r.created_at) <= ?")
             params.append(date_to.isoformat())
 
-        where_sql = ""
-        if where_clauses:
-            where_sql = "WHERE " + " AND ".join(where_clauses)
-
         sql = f"""
             SELECT COUNT(*) AS cnt
             FROM reservations AS r
-            {where_sql}
+            WHERE {" AND ".join(where_clauses)}
         """
-        cur = self.conn.execute(sql, params)
-        row = cur.fetchone()
+        row = self.conn.execute(sql, params).fetchone()
         return int(row["cnt"]) if row else 0
 
     # ------------------------------------------------------------------
-    # 単一予約 + 通知ジョブ
+    # 単一予約
     # ------------------------------------------------------------------
     def fetch_reservation_by_id(self, reservation_id: int) -> Optional[Dict[str, Any]]:
-        """
-        1件の予約＋関連するオーナー情報・受け渡し場所情報を取得する。
-        """
         sql = """
             SELECT
-                -- reservations 本体
-                r.id AS id,
+                r.reservation_id AS id,
                 r.farm_id AS farm_id,
-                r.user_id AS user_id,
+                r.consumer_id AS customer_user_id,
                 r.pickup_slot_code AS pickup_slot_code,
                 r.items_json AS items_json,
                 r.rice_subtotal AS rice_subtotal,
@@ -207,68 +167,65 @@ class AdminReservationRepository:
                 r.payment_status AS payment_status,
                 r.payment_succeeded_at AS payment_succeeded_at,
                 r.created_at AS created_at,
-        
 
-                r.user_id AS customer_user_id,
-
-                
-                 - 農家オーナー(users) 情報（Registration 由来）
-                owner.id AS owner_user_id,
-                owner.last_name AS owner_last_name,
-                owner.first_name AS owner_first_name,
-                owner.last_kana AS owner_last_kana,
-                owner.first_kana AS owner_first_kana,
-                owner.postal_code AS owner_postcode,
+                f.last_name AS owner_last_name,
+                f.first_name AS owner_first_name,
+                f.last_kana AS owner_last_kana,
+                f.first_kana AS owner_first_kana,
+                f.postal_code AS owner_postcode,
                 '' AS owner_pref,
                 '' AS owner_city,
-                owner.address AS owner_addr_line,
+                f.address AS owner_addr_line,
+                f.phone AS owner_phone,
 
-
-                -- 受け渡し場所(farms)
                 f.pickup_place_name AS pickup_place_name,
                 f.pickup_notes AS pickup_notes,
                 f.pickup_lat AS pickup_lat,
                 f.pickup_lng AS pickup_lng
+
             FROM reservations AS r
-            LEFT JOIN farms AS f ON r.farm_id = f.id
-            LEFT JOIN users AS owner ON f.owner_user_id = owner.id
-            WHERE r.id = ?
+            LEFT JOIN farms AS f ON r.farm_id = f.farm_id
+            WHERE r.reservation_id = ?
         """
-        cur = self.conn.execute(sql, (reservation_id,))
-        row = cur.fetchone()
+        row = self.conn.execute(sql, (reservation_id,)).fetchone()
         return dict(row) if row else None
 
+    # ------------------------------------------------------------------
+    # notification_jobs（新設計）
+    # ------------------------------------------------------------------
     def fetch_notification_jobs_by_reservation_ids(
         self, reservation_ids: Sequence[int]
     ) -> Dict[int, List[Dict[str, Any]]]:
         """
-        line_notification_jobs から、対象予約IDのジョブ一覧を reservation_id ごとに返す。
+        reservation_id ごとに notification_jobs を取得する。
+
+        ※ ここでは一切の意味付けを行わない
+        ※ – / NONE / PENDING などの判定は service 層の責務
         """
+
         if not reservation_ids:
             return {}
 
         placeholders = ",".join("?" for _ in reservation_ids)
         sql = f"""
             SELECT
-                id,
+                job_id,
                 reservation_id,
-                farm_id,
-                customer_line_user_id,
                 kind,
                 scheduled_at,
                 status,
                 attempt_count,
                 last_error,
                 created_at
-            FROM line_notification_jobs
+            FROM notification_jobs
             WHERE reservation_id IN ({placeholders})
-            ORDER BY reservation_id, id
+            ORDER BY reservation_id, scheduled_at, job_id
         """
-        cur = self.conn.execute(sql, list(reservation_ids))
-        rows = cur.fetchall()
 
-        by_reservation: Dict[int, List[Dict[str, Any]]] = {}
+        rows = self.conn.execute(sql, list(reservation_ids)).fetchall()
+
+        result: Dict[int, List[Dict[str, Any]]] = {}
         for row in rows:
             rid = int(row["reservation_id"])
-            by_reservation.setdefault(rid, []).append(dict(row))
-        return by_reservation
+            result.setdefault(rid, []).append(dict(row))
+        return result

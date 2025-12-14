@@ -178,6 +178,47 @@ def line_callback(
             status_code=400, detail=f"token exchange/verify failed: {e}"
         )
 
+
+
+        # ===== consumer upsert（購入者：LINEユーザー）=====
+    conn = _get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # consumers に既存 consumer がいるか確認
+        cur.execute(
+            """
+            SELECT consumer_id
+            FROM consumers
+            WHERE line_consumer_id = ?
+            LIMIT 1
+            """,
+            (line_user_id,),
+        )
+        row = cur.fetchone()
+
+        if not row:
+            # consumer が存在しなければ作成
+            cur.execute(
+                """
+                INSERT INTO consumers (line_consumer_id, created_at)
+                VALUES (?, ?)
+                """,
+                (line_user_id, datetime.now(UTC).isoformat()),
+            )
+            conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"failed to ensure consumer: {e}",
+        )
+    finally:
+        conn.close()
+    # ===== consumer upsert end =====
+
+
     # ★★ 購入者フロー：Farmを作らず、そのまま return_to に返す ★★
     if is_consumer_flow:
         # 予約者側：ConfirmPage に戻すだけ

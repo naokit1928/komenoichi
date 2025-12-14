@@ -3,6 +3,11 @@ uvicorn app.main:app --reload
 npm run dev
 stripe listen --forward-to localhost:8000/stripe/webhook
 
+python -m app_v2.notifications.cron.send_pending_notifications
+.\sqlite3.exe app.db
+
+
+
 
 Backend V2 共通ルール（保存版）
 0. この文書の目的

@@ -1,0 +1,147 @@
+📘 Admin 通知ステータス表示・正式仕様（確定版）
+1. 目的
+
+Admin 画面において、
+通知ステータス（予約確定 / リマインダー / キャンセル完了）を 人間が誤解しない形で表示する。
+
+特に、
+
+正常で何も起きていない状態
+
+仕様上、対象外である状態
+
+本来あるべき job が存在しない異常状態
+
+を 明確に区別することを目的とする。
+
+2. 用語定義（重要）
+2.1 job
+
+notification_jobs（旧 line_notification_jobs）テーブルに存在する 1 レコード。
+「特定の reservation に対し、特定の通知を送る予定／結果」を表す。
+
+2.2 kind
+
+job の種類。
+
+CONFIRMATION      予約確定通知
+REMINDER          リマインダー通知
+CANCEL_COMPLETED  キャンセル完了通知
+
+2.3 admin 表示ステータス
+表示	意味
+PENDING	job が存在し、送信待ち
+SENT	job が存在し、送信済み
+FAILED	job が存在し、送信失敗
+NONE	本来 job が存在すべきだが、存在しない（異常候補）
+–	仕様上、そもそも通知対象ではない（正常）
+3. 基本原則（最重要）
+
+admin 表示は「job の有無」＋「仕様上の対象可否」で決まる
+
+job テーブルは 事実のみ
+
+admin は その事実を解釈する層
+
+4. 判定ロジック（文章仕様）
+
+admin で各通知列（CONFIRMATION / REMINDER / CANCEL_COMPLETED）を表示する際、
+以下の順序で判定する。
+
+Step 1. 対応する kind の job が存在するか？
+
+存在する場合
+
+job.status をそのまま表示する
+（PENDING / SENT / FAILED）
+
+存在しない場合
+
+Step 2 へ進む
+
+Step 2. 仕様上、その通知は「対象外」か？
+
+以下は すべて「対象外」 とみなす。
+
+A. キャンセル完了通知（CANCEL_COMPLETED）
+
+予約が キャンセルされていない 場合
+→ 対象外
+
+B. リマインダー通知（REMINDER）
+
+予約確定から受け渡しまで 48時間未満 の場合
+→ 対象外
+
+C. その他、将来追加される仕様上の除外条件
+
+例：手動予約、管理者操作など（将来拡張）
+
+👉 対象外の場合：
+admin 表示は「–」
+
+Step 3. 対象外でないのに job が存在しない場合
+
+本来 job が生成されるべき
+
+しかし DB に存在しない
+
+👉 異常候補
+
+admin 表示は「NONE」
+
+5. 判定ロジック（疑似コード）
+function getNotificationDisplay(reservation, kind, jobs):
+
+    job = find job in jobs where job.kind == kind
+
+    if job exists:
+        return job.status   // PENDING / SENT / FAILED
+
+    // job が存在しない場合
+    if isNotApplicableBySpec(reservation, kind):
+        return "-"          // 正常・対象外
+
+    return "NONE"           // 異常候補（本来あるべき job が無い）
+
+6. isNotApplicableBySpec の定義（疑似コード）
+function isNotApplicableBySpec(reservation, kind):
+
+    if kind == "CANCEL_COMPLETED":
+        return reservation.status != "CANCELLED"
+
+    if kind == "REMINDER":
+        return reservation.confirmed_to_pickup_hours < 48
+
+    if kind == "CONFIRMATION":
+        // 原則すべての予約で対象
+        return false
+
+    return false
+
+7. 表示例（確認）
+ケース①：通常の確定済み予約（未キャンセル）
+通知種別	job	表示
+CONFIRMATION	あり（PENDING）	PENDING
+REMINDER	あり（PENDING）	PENDING
+CANCEL_COMPLETED	なし	–
+ケース②：48時間以内予約
+通知種別	job	表示
+CONFIRMATION	あり	PENDING
+REMINDER	なし	–
+CANCEL_COMPLETED	なし	–
+ケース③：本来 REMINDER があるべきなのに job が無い
+通知種別	job	表示
+REMINDER	なし	NONE
+
+👉 admin が即異常に気づける
+
+8. この仕様を固定する意味
+
+NONE が 本当に調査すべき状態になる
+
+– が 安心して無視できる状態になる
+
+admin が「通知の健康状態ダッシュボード」になる
+
+👉 運用・保守の質が一段上がる

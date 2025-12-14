@@ -168,11 +168,11 @@ def _format_event_display_label(event_start: datetime, event_end: datetime) -> s
     return f"{month}月{day}日（{weekday_jp}）{start_str}〜{end_str}"
 
 
-def _generate_pickup_code(reservation_id: int, user_id: int) -> str:
+def _generate_pickup_code(reservation_id: int, consumer_id: int) -> str:
     """
     既存の PIN 生成ロジックと互換性を保つための 4桁コード生成。
     """
-    code = ((reservation_id * 104729) ^ (user_id * 179) ^ _PICKUP_SALT) % 10000
+    code = ((reservation_id * 104729) ^ (consumer_id * 179) ^ _PICKUP_SALT) % 10000
     return f"{code:04d}"
 
 
@@ -318,7 +318,7 @@ class ReservationExpandedService:
             else:
                 rice_subtotal = rice_subtotal_from_items
 
-            pickup_code = _generate_pickup_code(rec.id, rec.user_id)
+            pickup_code = _generate_pickup_code(rec.id, rec.consumer_id)
 
             rows.append(
                 ExportReservationRowDTO(

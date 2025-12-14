@@ -375,6 +375,7 @@ class AdminReservationService:
             owner_pref=pref or None,
             owner_city=city or None,
             owner_address_line=addr_line or None,
+            owner_phone=(row.get("owner_phone") or "").strip() or None,
             # --- 受け渡し日時 ---
             pickup_start=event_start,
             pickup_end=event_end,
@@ -419,10 +420,8 @@ class AdminReservationService:
               * 未キャンセル (status != "cancelled") → "DASH"
               * キャンセル済み & ジョブあり → SENT / FAILED / PENDING
               * キャンセル済み & ジョブ無し → "NONE"（異常なので "-" ではなく NONE）
-          - cancel_template:
-              * 既存通り、ジョブの有無だけで集約（UI 側では列非表示）
         """
-        kinds = ["CONFIRMATION", "REMINDER", "CANCEL_TEMPLATE", "CANCEL_COMPLETED"]
+        kinds = ["CONFIRMATION", "REMINDER", "CANCEL_COMPLETED"]
 
         # kind ごとに status を集計
         status_map: Dict[str, List[str]] = {k: [] for k in kinds}
@@ -444,32 +443,36 @@ class AdminReservationService:
 
         # --- confirmation: 仕様どおり「既存どおり」 ---
         confirmation = summarize_status(status_map["CONFIRMATION"])
-
         # --- reminder: 48時間ルールを適用 ---
         reminder_statuses = status_map["REMINDER"]
+        is_cancelled = reservation_status == "cancelled"
 
-        # lead_time（hours）を計算
-        lead_time_hours: Optional[float]
-        try:
-            delta = event_start - created_at
-            lead_time_hours = delta.total_seconds() / 3600.0
-        except Exception:
-            lead_time_hours = None
-
-        if lead_time_hours is not None and lead_time_hours < 48:
-            # 48時間未満 → 正常なのでジョブは作られない前提
-            if reminder_statuses:
-                # もし何らかの事情でジョブがあれば、その状態を優先して表示
-                reminder = summarize_status(reminder_statuses)
-            else:
-                reminder = "DASH"
+        # キャンセル済みなら常に DASH
+        if is_cancelled:
+            reminder = "DASH"
         else:
-            # 48時間以上 or lead_time を計算できない場合
-            if reminder_statuses:
-                reminder = summarize_status(reminder_statuses)
+            # lead_time（hours）を計算
+            lead_time_hours: Optional[float]
+            try:
+                delta = event_start - created_at
+                lead_time_hours = delta.total_seconds() / 3600.0
+            except Exception:
+                lead_time_hours = None
+
+            if lead_time_hours is not None and lead_time_hours < 48:
+                # 48時間未満 → 正常なのでジョブは作られない前提
+                if reminder_statuses:
+                    reminder = summarize_status(reminder_statuses)
+                else:
+                    reminder = "DASH"
             else:
-                # 48時間以上でジョブなし → 異常
-                reminder = "NONE"
+                # 48時間以上 or lead_time を計算できない場合
+                if reminder_statuses:
+                    reminder = summarize_status(reminder_statuses)
+                else:
+                    reminder = "NONE"
+
+   
 
         # --- cancel_completed: キャンセル状態＋ジョブ有無で分岐 ---
         cancel_completed_statuses = status_map["CANCEL_COMPLETED"]
@@ -486,13 +489,11 @@ class AdminReservationService:
                 # キャンセル済みなのにジョブなし → 異常なので NONE
                 cancel_completed = "NONE"
 
-        # --- cancel_template: 既存の集約ロジックのまま ---
-        cancel_template = summarize_status(status_map["CANCEL_TEMPLATE"])
+        
 
         return NotificationStatusSummaryDTO(
             confirmation=confirmation,
             reminder=reminder,
-            cancel_template=cancel_template,
             cancel_completed=cancel_completed,
         )
 

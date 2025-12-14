@@ -1,10 +1,9 @@
-# app_v2/customer_booking/services/cancel_service.py
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Tuple
+from typing import Tuple
 
 from app_v2.customer_booking.repository.reservation_repo import (
     get_reservation_by_id,
@@ -18,7 +17,7 @@ from app_v2.customer_booking.services.reservation_expanded_service import (
     _format_event_display_label,
 )
 
-# ★★ 追加：REMINDER 削除に必要
+# ★★ REMINDER 削除に必要
 from app_v2.notifications.repository.line_notification_job_repo import (
     LineNotificationJobRepository,
 )
@@ -29,22 +28,32 @@ from app_v2.notifications.services.line_notification_service import (
 JST = timezone(timedelta(hours=9))
 
 
+# -----------------------------------------------------
+# Domain Errors
+# -----------------------------------------------------
 class CancelDomainError(Exception):
     pass
+
 
 class InvalidTokenError(CancelDomainError):
     pass
 
+
 class ReservationNotFoundError(CancelDomainError):
     pass
 
+
 class AlreadyCancelledError(CancelDomainError):
     pass
+
 
 class NotCancellableError(CancelDomainError):
     pass
 
 
+# -----------------------------------------------------
+# Page DTO
+# -----------------------------------------------------
 @dataclass
 class CancelPageData:
     reservation_id: int
@@ -56,15 +65,18 @@ class CancelPageData:
     is_cancellable: bool
 
 
+# -----------------------------------------------------
+# Service
+# -----------------------------------------------------
 class CancelService:
 
     def __init__(self) -> None:
         self.job_repo = LineNotificationJobRepository()
         self.notification_service = LineNotificationService()
 
-    # -----------------------------------------------------
-    # items_json → qty_系（既存）
-    # -----------------------------------------------------
+    # -------------------------------------------------
+    # items_json → qty_*（既存ロジックそのまま）
+    # -------------------------------------------------
     def _parse_items_json(self, items_json: str) -> Tuple[int, int, int]:
         try:
             items = json.loads(items_json) if items_json else []
@@ -88,9 +100,9 @@ class CancelService:
 
         return qty_5, qty_10, qty_25
 
-    # -----------------------------------------------------
-    # pickup_display（既存）
-    # -----------------------------------------------------
+    # -------------------------------------------------
+    # pickup_display / is_cancellable（既存ロジック）
+    # -------------------------------------------------
     def _calc_pickup_info(self, reservation_row: dict) -> Tuple[str, bool]:
         created_at_raw = reservation_row.get("created_at")
         pickup_slot_code = reservation_row.get("pickup_slot_code")
@@ -107,14 +119,24 @@ class CancelService:
 
         return pickup_display, now_jst < cancel_limit
 
+    # -------------------------------------------------
+    # ★ Phase2 正式：token と reservation の照合
+    # -------------------------------------------------
     def _verify_token_user(self, payload: CancelTokenPayload, row: dict) -> None:
-        db_line_user_id = row.get("line_user_id")
-        if not db_line_user_id or db_line_user_id != payload.line_user_id:
-            raise InvalidTokenError("LINE_USER_ID_MISMATCH")
+        """
+        CancelTokenPayload.consumer_id と
+        reservations.consumer_id が一致するかを検証する。
+        """
+        db_consumer_id = row.get("consumer_id")
+        if db_consumer_id is None:
+            raise InvalidTokenError("RESERVATION_HAS_NO_CONSUMER")
 
-    # -----------------------------------------------------
-    # GET 用（既存）
-    # -----------------------------------------------------
+        if int(db_consumer_id) != int(payload.consumer_id):
+            raise InvalidTokenError("CONSUMER_ID_MISMATCH")
+
+    # -------------------------------------------------
+    # GET /cancel（確認ページ）
+    # -------------------------------------------------
     def build_cancel_page_data(self, payload: CancelTokenPayload) -> CancelPageData:
         row = get_reservation_by_id(int(payload.reservation_id))
         if not row:
@@ -123,6 +145,7 @@ class CancelService:
         if row["status"] == "cancelled":
             raise AlreadyCancelledError("ALREADY_CANCELLED")
 
+        # ★ consumer_id で正当性チェック
         self._verify_token_user(payload, row)
 
         qty_5, qty_10, qty_25 = self._parse_items_json(row.get("items_json", ""))
@@ -139,9 +162,9 @@ class CancelService:
             is_cancellable=is_cancellable,
         )
 
-    # -----------------------------------------------------
-    # POST /cancel（実際のキャンセル）
-    # -----------------------------------------------------
+    # -------------------------------------------------
+    # POST /cancel（実キャンセル）
+    # -------------------------------------------------
     def cancel_reservation(self, payload: CancelTokenPayload) -> CancelPageData:
         data = self.build_cancel_page_data(payload)
 
@@ -151,17 +174,20 @@ class CancelService:
         # ---- 状態更新
         cancel_reservation_db(data.reservation_id)
 
-        # ----------------------------------------------------------
-        # ★ 追加：REMINDER(PENDING) をここで削除（最小ロジック）
-        # ----------------------------------------------------------
+        # -------------------------------------------------
+        # REMINDER(PENDING) 削除
+        # -------------------------------------------------
         deleted = self.job_repo.delete_pending_reminder_jobs(data.reservation_id)
         print(f"[CancelService] deleted pending REMINDER jobs: {deleted}")
 
-        # ----------------------------------------------------------
-        # ★ 追加：キャンセル完了通知（CANCEL_COMPLETED）
-        # ----------------------------------------------------------
+        # -------------------------------------------------
+        # キャンセル完了通知（CANCEL_COMPLETED）
+        # -------------------------------------------------
         job_id = self.notification_service.schedule_cancel_completed(data.reservation_id)
-        if job_id:
-            self.notification_service.send_single_job(job_id, dry_run=False)
 
-        return data
+        if job_id:
+            try:
+               self.notification_service.send_single_job(job_id, dry_run=False)
+            except Exception as e:
+               # ★ 通知失敗は致命的ではない
+               print(f"[CancelService] CANCEL_COMPLETED send failed: {e}")

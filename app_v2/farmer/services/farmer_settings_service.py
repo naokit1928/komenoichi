@@ -246,7 +246,19 @@ class FarmerSettingsService:
         if not file_bytes:
             raise ValueError("empty file")
 
-        profile = self._ensure_monthly_upload_quota(farm_id)
+        # 既存 profile を取得（これは絶対に保持）
+        profile = self.repo.get_profile(farm_id)
+        if not profile:
+          profile = self.repo.create_initial_profile(farm_id)
+
+        # monthly 系だけをチェック・更新
+        monthly_state = self._ensure_monthly_upload_quota(farm_id)
+
+        # profile を上書きせず、必要なキーだけ反映
+        profile["monthly_upload_bytes"] = monthly_state.get("monthly_upload_bytes")
+        profile["monthly_upload_limit"] = monthly_state.get("monthly_upload_limit")
+        profile["next_reset_at"] = monthly_state.get("next_reset_at")
+
 
         used = int(profile.get("monthly_upload_bytes") or 0)
         limit = int(profile.get("monthly_upload_limit") or 50_000_000)
@@ -474,7 +486,12 @@ class FarmerSettingsService:
         if not profile:
             profile = self.repo.create_initial_profile(farm_id)
 
-        profile = self._ensure_monthly_upload_quota(farm_id)
+        monthly_state = self._ensure_monthly_upload_quota(farm_id)
+
+        profile["monthly_upload_bytes"] = monthly_state.get("monthly_upload_bytes")
+        profile["monthly_upload_limit"] = monthly_state.get("monthly_upload_limit")
+        profile["next_reset_at"] = monthly_state.get("next_reset_at")
+
 
         pr_list = self._load_pr_images_list(farm_id)
         pr_list_sorted = sorted(pr_list, key=lambda x: int(x.get("order", 0)))

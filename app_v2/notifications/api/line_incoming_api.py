@@ -1,4 +1,4 @@
-# app_v2/integrations/line/line_incoming_api.py
+from __future__ import annotations
 
 import os
 import json
@@ -14,21 +14,33 @@ router = APIRouter(
     tags=["line_incoming"],
 )
 
-# 環境変数（すでに通知ドメインで使っているはずのものを再利用）
+# =========================================================
+# 環境変数
+# =========================================================
+
+# Webhook 署名検証用（未設定の場合は検証スキップ）
 CHANNEL_SECRET = os.getenv("LINE_MESSAGING_CHANNEL_SECRET")
+
+# reply 用アクセストークン
 ACCESS_TOKEN = os.getenv("LINE_MESSAGING_CHANNEL_ACCESS_TOKEN")
 
-
-# フィードバックページURL
-# 本番では FRONTEND_URL=https://xxx を .env に入れておく前提
+# フィードバックページ URL
+# 本番では FRONTEND_URL=https://xxx を .env に入れておく
 _frontend = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 FEEDBACK_URL = f"{_frontend}/feedback"
 
 
+# =========================================================
+# 内部ユーティリティ
+# =========================================================
+
 def _verify_signature(body: bytes, signature: str | None) -> None:
     """
-    LINE の Webhook 署名検証。
-    CHANNEL_SECRET が未設定なら警告だけ出してスキップ。
+    LINE Webhook の署名検証。
+
+    設計方針：
+    - CHANNEL_SECRET 未設定時は「警告のみ」で検証をスキップ
+    - notification_jobs / DB / job には一切関与しない
     """
     if not CHANNEL_SECRET:
         print("[LineIncoming] WARNING: LINE_CHANNEL_SECRET not set; skip signature check")
@@ -52,8 +64,12 @@ def _verify_signature(body: bytes, signature: str | None) -> None:
 
 def _reply_feedback_message(reply_token: str) -> None:
     """
-    受け取った replyToken に対して、
-    「フィードバックページへ誘導する固定メッセージ」を返信する。
+    受信メッセージへの自動返信。
+
+    重要：
+    - 本 API は「通知」ではない（notification_jobs を使わない）
+    - job は作らない / status 管理もしない
+    - ユーザー操作の入口として、固定メッセージを即時返信するだけ
     """
     if not ACCESS_TOKEN:
         print("[LineIncoming] ERROR: LINE_CHANNEL_ACCESS_TOKEN not set; cannot reply")
@@ -89,7 +105,7 @@ def _reply_feedback_message(reply_token: str) -> None:
         ],
     }
 
-    data = json.dumps(payload).encode("utf-8")
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urlrequest.Request(
         url,
         data=data,
@@ -111,20 +127,26 @@ def _reply_feedback_message(reply_token: str) -> None:
         print(f"[LineIncoming] Exception reply: {type(e).__name__}: {e}")
 
 
+# =========================================================
+# Webhook エンドポイント
+# =========================================================
+
 @router.post("/webhook", status_code=200)
 async def line_webhook(
     request: Request,
     x_line_signature: str | None = Header(default=None),
 ):
     """
-    LINE Messaging API Webhook 入口（フェーズ1用）
+    LINE Messaging API Webhook 入口（フェーズ1）
 
-    - 任意メッセージ（text）を受け取ったら
-      フィードバックページへの誘導メッセージを返信するだけ。
+    仕様（固定）：
+    - text メッセージを受信したら
+      → フィードバックページへの誘導メッセージを即時返信
+    - DB / notification_jobs / admin 表示には一切影響しない
     """
     body = await request.body()
 
-    # 署名チェック（CHANNEL_SECRET 未設定なら警告のみ）
+    # 署名チェック（未設定時は警告のみ）
     _verify_signature(body, x_line_signature)
 
     payload = json.loads(body.decode("utf-8"))
@@ -144,5 +166,5 @@ async def line_webhook(
 
         _reply_feedback_message(reply_token)
 
-    # LINE Webhook には 200 を返せばOK
+    # LINE Webhook には 200 を返せば OK
     return {"ok": True}

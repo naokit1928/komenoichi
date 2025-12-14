@@ -1,5 +1,3 @@
-# app_v2/admin_reservations/dtos.py
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -8,80 +6,123 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 
+# ============================================================
 # 管理画面用：通知ステータスのサマリ
+# ============================================================
+
 class NotificationStatusSummaryDTO(BaseModel):
     """
-    1つの予約に紐づく通知ジョブ(line_notification_jobs)の状態を、
-    種類ごとにざっくりまとめたDTO。
+    1つの予約に紐づく notification_jobs の状態を、
+    通知種別ごとに「人間が判断しやすい粒度」でまとめた DTO。
 
-    値は以下の5種類のいずれか:
-      - "NONE"     : 該当kindのジョブが1件も存在しない（本来あるべきなのに無い場合は異常）
-      - "PENDING"  : PENDING のジョブが存在する（まだ送信待ち）
-      - "SENT"     : SENT のジョブが存在し、FAILED は存在しない
-      - "FAILED"   : FAILED のジョブが1件以上存在する
-      - "DASH"     : NotificationDomainV2 の仕様上「ジョブを作らないのが正しい」ケース
-                     （例：48時間未満のリマインダーや未キャンセル予約のキャンセル完了など）
+    各フィールドは以下いずれかの値を取る：
+
+    - "DASH"
+        NotificationDomain の正式仕様として
+        「そもそもジョブを作らないのが正しい」状態。
+        例：
+          - 48時間未満で確定した予約の REMINDER
+          - 未キャンセル予約の CANCEL_COMPLETED
+
+    - "NONE"
+        本来ジョブが存在してもおかしくないのに、
+        該当 kind のジョブが 1 件も存在しない状態。
+        （異常・未生成・設計漏れの可能性）
+
+    - "PENDING"
+        PENDING のジョブが存在する（送信待ち）
+
+    - "SENT"
+        SENT のジョブが存在し、FAILED が存在しない
+
+    - "FAILED"
+        FAILED のジョブが 1 件以上存在する
     """
 
-    confirmation: Literal["NONE", "PENDING", "SENT", "FAILED", "DASH"]
-    reminder: Literal["NONE", "PENDING", "SENT", "FAILED", "DASH"]
-    cancel_template: Literal["NONE", "PENDING", "SENT", "FAILED", "DASH"]
-    cancel_completed: Literal["NONE", "PENDING", "SENT", "FAILED", "DASH"]
+    confirmation: Literal["DASH", "NONE", "PENDING", "SENT", "FAILED"]
+    reminder: Literal["DASH", "NONE", "PENDING", "SENT", "FAILED"]
+    cancel_completed: Literal["DASH", "NONE", "PENDING", "SENT", "FAILED"]
 
+
+# ============================================================
+# 管理画面用：予約一覧の 1 行分 DTO
+# ============================================================
 
 class AdminReservationListItemDTO(BaseModel):
     """
-    /admin/reservations 一覧の1行分（= 1予約）を表すDTO。
+    /admin/reservations 一覧の 1 行分（= 1 予約）を表す DTO。
 
-    ポイント:
-      - 「タイムラインとして眺めたい情報」を1つにまとめる
-      - API としては詳細情報も含むが、UI側はそのうち一部だけを一覧カラムに使う
-      - 新しい DB カラムや V1 由来の概念は一切導入しない
+    設計原則：
+    - 「管理者が一覧で把握したい情報」を 1 オブジェクトに集約
+    - DB の生値をそのまま持たず、意味のある単位に整形済み
+    - notification の意味付けは NotificationStatusSummaryDTO に委譲
     """
 
-    # --- 識別子 / 紐付け ---
-    reservation_id: int  # reservations.id
-    farm_id: int         # reservations.farm_id
+    # --------------------------------------------------------
+    # 識別子 / 紐付け
+    # --------------------------------------------------------
+    reservation_id: int
+    farm_id: int
 
-    # 予約者（customer）の紐付け
-    # いったん Optional にしておき、service/repo 実装後に必須扱いにしてもよい。
-    customer_user_id: Optional[int] = None  # reservations.user_id
+    # 予約者（consumer）
+    customer_user_id: Optional[int] = None
 
-    # --- 農家オーナー情報（Registration 由来） ---
-    # Registration / OwnerDTO のフィールドに対応。UI側でフルネーム/ふりがなを組み立てる想定。
+    # --------------------------------------------------------
+    # 農家オーナー情報
+    # --------------------------------------------------------
     owner_last_name: Optional[str] = None
     owner_first_name: Optional[str] = None
     owner_last_kana: Optional[str] = None
     owner_first_kana: Optional[str] = None
     owner_postcode: Optional[str] = None
     owner_address_line: Optional[str] = None
+    owner_phone: Optional[str] = None
 
-    # --- 受け渡し日時 ---
-    pickup_start: datetime  # 受け渡し開始
-    pickup_end: datetime    # 受け渡し終了
-    pickup_display: str     # 例: "12/10(水) 19:00–20:00"（NotificationDomainと同一フォーマット）
+    # --------------------------------------------------------
+    # 受け渡し日時
+    # --------------------------------------------------------
+    pickup_start: datetime
+    pickup_end: datetime
+    pickup_display: str
+    # 例: "12/10(水) 19:00–20:00"
+    # NotificationDomain と同一フォーマット
 
-    # --- 受け渡し場所情報（NotificationDomain と同一ロジック） ---
-    # NotificationContextDTO と同じ名前にして、ロジックの再利用をしやすくする。
+    # --------------------------------------------------------
+    # 受け渡し場所情報
+    # --------------------------------------------------------
     pickup_place_name: Optional[str] = None
     pickup_map_url: Optional[str] = None
     pickup_detail_memo: Optional[str] = None
 
-    # --- 内容（お米の内訳の表示用） ---
-    items_display: str      # 例: "10kg×1 / 5kg×1"（rice_items_displayと同一ロジック）
+    # --------------------------------------------------------
+    # 予約内容（一覧表示用に整形済み）
+    # --------------------------------------------------------
+    items_display: str
+    # 例: "10kg×1 / 5kg×1"
 
-    # --- 金額 ---
-    rice_subtotal: int      # お米代の合計（現地払い）
-    service_fee: int        # Stripeで決済する運営サポート費
-    total_amount: int       # rice_subtotal + service_fee（サービス層で計算）
+    # --------------------------------------------------------
+    # 金額
+    # --------------------------------------------------------
+    rice_subtotal: int
+    service_fee: int
+    total_amount: int
+    # rice_subtotal + service_fee（service 層で算出）
 
-    # --- 予約ステータス ---
-    reservation_status: str  # reservations.status（"pending" / "confirmed" / "cancelled" など）
+    # --------------------------------------------------------
+    # 予約ステータス
+    # --------------------------------------------------------
+    reservation_status: str
+    # reservations.status をそのまま使用
+    # 例: "confirmed" / "cancelled"
 
-    # --- 通知ステータス（ざっくりサマリ） ---
+    # --------------------------------------------------------
+    # 通知ステータス（サマリ）
+    # --------------------------------------------------------
     notification_summary: NotificationStatusSummaryDTO
 
-    # --- メタ情報 ---
+    # --------------------------------------------------------
+    # メタ情報
+    # --------------------------------------------------------
     created_at: datetime
     updated_at: Optional[datetime] = None
 

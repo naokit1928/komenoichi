@@ -1,5 +1,3 @@
-# app_v2/notifications/repository/line_notification_job_repo.py
-
 from __future__ import annotations
 
 import sqlite3
@@ -15,7 +13,10 @@ def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
 
 class LineNotificationJobRepository:
     """
-    line_notification_jobs テーブル用の Repository（sqlite3 版）。
+    notification_jobs テーブル用 Repository（sqlite3 版）。
+
+    - DB には「事実（job の状態）」のみ保存する
+    - 送信先・文面は Service 層で都度組み立てる
     """
 
     def __init__(self, db_path: str = DB_PATH) -> None:
@@ -27,117 +28,84 @@ class LineNotificationJobRepository:
         return conn
 
     # --------------------------------------------------
-    # 初期化
-    # --------------------------------------------------
-    def ensure_table(self) -> None:
-        with self._get_conn() as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS line_notification_jobs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    reservation_id INTEGER NOT NULL,
-                    farm_id INTEGER NOT NULL,
-                    customer_line_user_id TEXT NOT NULL,
-                    kind TEXT NOT NULL,
-                    scheduled_at TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT 'PENDING',
-                    message_text TEXT NOT NULL,
-                    attempt_count INTEGER NOT NULL DEFAULT 0,
-                    last_error TEXT,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                )
-                """
-            )
-            conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_line_notification_jobs_status_scheduled
-                ON line_notification_jobs (status, scheduled_at)
-                """
-            )
-            conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_line_notification_jobs_reservation
-                ON line_notification_jobs (reservation_id)
-                """
-            )
-
-    # --------------------------------------------------
     # INSERT
     # --------------------------------------------------
     def insert_job(
         self,
         *,
         reservation_id: int,
-        farm_id: int,
-        customer_line_user_id: str,
         kind: str,
         scheduled_at: datetime,
-        message_text: str,
     ) -> Dict[str, Any]:
+        """
+        通知ジョブを1件登録する（status=PENDING）。
+        """
         now_iso = datetime.now().isoformat()
 
         with self._get_conn() as conn:
             cur = conn.execute(
                 """
-                INSERT INTO line_notification_jobs (
+                INSERT INTO notification_jobs (
                     reservation_id,
-                    farm_id,
-                    customer_line_user_id,
                     kind,
                     scheduled_at,
                     status,
-                    message_text,
                     attempt_count,
                     created_at,
                     updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, 'PENDING', ?, 0, ?, ?)
+                VALUES (?, ?, ?, 'PENDING', 0, ?, ?)
                 """,
                 (
                     reservation_id,
-                    farm_id,
-                    customer_line_user_id,
                     kind,
                     scheduled_at.isoformat(),
-                    message_text,
                     now_iso,
                     now_iso,
                 ),
             )
             job_id = cur.lastrowid
+
             cur = conn.execute(
-                "SELECT * FROM line_notification_jobs WHERE id = ?",
+                "SELECT * FROM notification_jobs WHERE job_id = ?",
                 (job_id,),
             )
             row = cur.fetchone()
             if not row:
-                raise RuntimeError("failed to insert line_notification_job")
+                raise RuntimeError("failed to insert notification_job")
+
             return _row_to_dict(row)
 
     # --------------------------------------------------
     # SELECT
     # --------------------------------------------------
     def list_pending_jobs(self, *, before: datetime) -> List[Dict[str, Any]]:
+        """
+        scheduled_at <= before かつ PENDING の job を古い順に取得する。
+        cron / send_pending_jobs 用。
+        """
         with self._get_conn() as conn:
             cur = conn.execute(
                 """
                 SELECT *
-                FROM line_notification_jobs
+                FROM notification_jobs
                 WHERE status = 'PENDING'
                   AND scheduled_at <= ?
-                ORDER BY scheduled_at ASC, id ASC
+                ORDER BY scheduled_at ASC, job_id ASC
                 """,
                 (before.isoformat(),),
             )
             return [_row_to_dict(r) for r in cur.fetchall()]
 
     def get_jobs_by_reservation(self, reservation_id: int) -> List[Dict[str, Any]]:
+        """
+        特定 reservation_id に紐づく全 job を取得する（admin / preview 用）。
+        """
         with self._get_conn() as conn:
             cur = conn.execute(
                 """
                 SELECT *
-                FROM line_notification_jobs
+                FROM notification_jobs
                 WHERE reservation_id = ?
                 ORDER BY scheduled_at ASC
                 """,
@@ -146,9 +114,12 @@ class LineNotificationJobRepository:
             return [_row_to_dict(r) for r in cur.fetchall()]
 
     def get_job(self, job_id: int) -> Optional[Dict[str, Any]]:
+        """
+        job_id で単一 job を取得する。
+        """
         with self._get_conn() as conn:
             cur = conn.execute(
-                "SELECT * FROM line_notification_jobs WHERE id = ?",
+                "SELECT * FROM notification_jobs WHERE job_id = ?",
                 (job_id,),
             )
             row = cur.fetchone()
@@ -165,41 +136,55 @@ class LineNotificationJobRepository:
         last_error: Optional[str] = None,
         increment_attempt: bool = False,
     ) -> None:
+        """
+        job の status を更新する。
+
+        ルール：
+        - SENT 更新は status='PENDING' の場合のみ（重複送信防止）
+        - FAILED 等は attempt_count を増やす
+        """
         now_iso = datetime.now().isoformat()
 
         with self._get_conn() as conn:
             if increment_attempt:
+                # FAILED 等：attempt を増やす
                 conn.execute(
                     """
-                    UPDATE line_notification_jobs
-                    SET status = ?, last_error = ?, attempt_count = attempt_count + 1,
+                    UPDATE notification_jobs
+                    SET status = ?,
+                        last_error = ?,
+                        attempt_count = attempt_count + 1,
                         updated_at = ?
-                    WHERE id = ?
+                    WHERE job_id = ?
                     """,
                     (status, last_error, now_iso, job_id),
                 )
             else:
+                # SENT 等：PENDING のときだけ更新
                 conn.execute(
                     """
-                    UPDATE line_notification_jobs
-                    SET status = ?, last_error = ?, updated_at = ?
-                    WHERE id = ?
+                    UPDATE notification_jobs
+                    SET status = ?,
+                        last_error = ?,
+                        updated_at = ?
+                    WHERE job_id = ?
+                      AND status = 'PENDING'
                     """,
                     (status, last_error, now_iso, job_id),
                 )
 
     # --------------------------------------------------
-    # DELETE（今回追加）
+    # DELETE
     # --------------------------------------------------
     def delete_pending_reminder_jobs(self, reservation_id: int) -> int:
         """
-        キャンセル時に REMINDER（PENDING）だけ安全に削除する。
-        戻り値：削除した件数
+        キャンセル時に REMINDER（PENDING）のみ安全に削除する。
+        戻り値：削除件数
         """
         with self._get_conn() as conn:
             cur = conn.execute(
                 """
-                DELETE FROM line_notification_jobs
+                DELETE FROM notification_jobs
                 WHERE reservation_id = ?
                   AND kind = 'REMINDER'
                   AND status = 'PENDING'

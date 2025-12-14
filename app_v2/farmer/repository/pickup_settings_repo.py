@@ -37,7 +37,7 @@ class PickupSettingsRepository:
         cur = self.conn.execute(
             """
             SELECT
-                id AS farm_id,
+                farm_id,
                 lat AS owner_lat,
                 lng AS owner_lng,
                 pickup_lat,
@@ -46,7 +46,7 @@ class PickupSettingsRepository:
                 pickup_notes,
                 pickup_time
             FROM farms
-            WHERE id = ?
+            WHERE farm_id = ?
             LIMIT 1
             """,
             (farm_id,),
@@ -128,7 +128,7 @@ class PickupSettingsRepository:
                 pickup_place_name = ?,
                 pickup_notes = ?,
                 pickup_time = ?
-            WHERE id = ?
+            WHERE farm_id = ?
             """,
             (
                 pickup_lat,

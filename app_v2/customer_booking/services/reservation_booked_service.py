@@ -3,36 +3,32 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from pydantic import BaseModel
 
-from app_v2.notifications.dtos import NotificationContextDTO
+from app_v2.customer_booking.dtos import ReservationContextDTO
 from app_v2.notifications.services.line_notification_service import (
     LineNotificationService,
 )
-from app_v2.notifications.services.line_message_builder import LineMessageBuilder
-from app_v2.customer_booking.repository import reservation_repo  # 既存のまま利用
+
+# Web キャンセル用トークン
+from app_v2.customer_booking.utils.cancel_token import (
+    CancelTokenPayload,
+    create_cancel_token,
+)
 
 
 class ReservationBookedViewDTO(BaseModel):
     """
-    予約確認ページ（予約済み一覧 → 1件を開いた画面）で使う DTO。
-
-    - NotificationContextDTO（pickup_display など通知ドメインと同じ）
-    - reservation_status: "confirmed" / "cancelled" など
-    - is_expired: 受け渡し終了時刻を過ぎているか（ロジック用）
-    - is_expired_for_display: 受け渡し終了 +15分 を過ぎているか（UI 用）
+    ReservationBooked ページ用 DTO
+    ※ notifications / CANCEL_TEMPLATE には一切依存しない
     """
 
     reservation_id: int
     reservation_status: Optional[str] = None
 
-    context: NotificationContextDTO
-
-    
-    cancel_template_json: Dict[str, Any]
-
+    context: ReservationContextDTO
 
     event_start: str
     confirmed_at: str
@@ -43,69 +39,128 @@ class ReservationBookedViewDTO(BaseModel):
 
 class ReservationBookedService:
     """
-    ReservationBookedPage 専用 Service。
-
-    - NotificationContextDTO の生成
-    - event_start / event_end / confirmed_at の取得
-
-    ※ SQL やロジックは NotificationDomain の private メソッドを再利用し、
-       新規の重複ロジックを絶対に作らない。
+    ReservationBookedPage 専用 Service
     """
 
-    def __init__(self, notification_service: Optional[LineNotificationService] = None) -> None:
-        self._notification_service = notification_service or LineNotificationService()
+    def __init__(
+        self,
+        notification_service: Optional[LineNotificationService] = None,
+    ) -> None:
+        self._notification_service = (
+            notification_service or LineNotificationService()
+        )
 
-    def get_view_for_reservation(self, reservation_id: int) -> Optional[ReservationBookedViewDTO]:
+    def get_view_for_reservation(
+        self,
+        reservation_id: int,
+    ) -> Optional[ReservationBookedViewDTO]:
         """
-        reservation_id を受け取り、ReservationBookedPage 用の DTO を返す。
-        該当予約 / ユーザー / 農家が存在しない場合は None を返す。
+        reservation_id を受け取り、
+        ReservationBookedPage 用の DTO を返す
         """
 
-        # ---- DB 接続 ----
         conn = self._notification_service._open_connection()
         try:
-            # reservations / users をまとめて取得
-            reservation, user = self._notification_service._fetch_reservation_and_user(
-                conn, reservation_id
+            # -------------------------------------------------
+            # reservations / consumers（新テーブル）
+            # -------------------------------------------------
+            reservation, consumer = (
+                self._notification_service._fetch_reservation_and_user(
+                    conn, reservation_id
+                )
             )
-            if not reservation or not user:
+            if not reservation or not consumer:
                 print(
-                    f"[ReservationBookedService] reservation or user not found "
+                    "[ReservationBookedService] reservation or consumer not found "
                     f"(reservation_id={reservation_id})"
                 )
                 return None
 
-            line_user_id = (user.get("line_user_id") or "").strip()
-
+            # -------------------------------------------------
             # 農家情報
-            farm = self._notification_service._fetch_farm(conn, reservation.get("farm_id"))
+            # -------------------------------------------------
+            farm = self._notification_service._fetch_farm(
+                conn, reservation.get("farm_id")
+            )
             if not farm:
                 print(
-                    f"[ReservationBookedService] farm not found "
+                    "[ReservationBookedService] farm not found "
                     f"(farm_id={reservation.get('farm_id')})"
                 )
                 return None
 
-            # NotificationContextDTO + event_start + event_end + confirmed_at を一度で生成
-            ctx, event_start, event_end, confirmed_at = self._notification_service._build_context(
+            # LINE consumer id（通知用。UI では使わない）
+            line_consumer_id = (consumer.get("line_consumer_id") or "").strip()
+
+            # -------------------------------------------------
+            # notifications 側で Context を一度組み立てる
+            # -------------------------------------------------
+            (
+                notification_ctx,
+                event_start,
+                event_end,
+                confirmed_at,
+            ) = self._notification_service._build_context(
                 reservation=reservation,
-                user=user,
+                user=consumer,
                 farm=farm,
-                line_user_id=line_user_id,
+                line_consumer_id=line_consumer_id,
             )
+
+            # -------------------------------------------------
+            # キャンセル期限
+            # 受け渡し開始 3 時間前までキャンセル可
+            # -------------------------------------------------
+            cancel_deadline = event_start - timedelta(hours=3)
+            cancel_token_exp = int(cancel_deadline.timestamp())
+
+            # -------------------------------------------------
+            # customer_booking 用 Context に詰め替え
+            # -------------------------------------------------
+            ctx = ReservationContextDTO(
+                reservation_id=notification_ctx.reservation_id,
+                consumer_id=reservation.get("consumer_id"),
+
+                pickup_display=notification_ctx.pickup_display,
+                pickup_place_name=notification_ctx.pickup_place_name,
+                pickup_map_url=notification_ctx.pickup_map_url,
+                pickup_detail_memo=notification_ctx.pickup_detail_memo,
+
+                qty_5=notification_ctx.qty_5,
+                qty_10=notification_ctx.qty_10,
+                qty_25=notification_ctx.qty_25,
+
+                label_5kg=notification_ctx.label_5kg,
+                label_10kg=notification_ctx.label_10kg,
+                label_25kg=notification_ctx.label_25kg,
+
+                rice_subtotal=notification_ctx.rice_subtotal,
+                pickup_code=notification_ctx.pickup_code,
+
+                cancel_token_exp=cancel_token_exp,
+            )
+
+            # -------------------------------------------------
+            # Web 用キャンセルトークン生成
+            # -------------------------------------------------
+            payload = CancelTokenPayload(
+                reservation_id=ctx.reservation_id,
+                consumer_id=ctx.consumer_id,
+                exp=ctx.cancel_token_exp,
+            )
+            ctx.cancel_token = create_cancel_token(payload)
 
         finally:
             conn.close()
 
-        # ---- reservations テーブルのステータスを取得 ----
-        reservation_row = reservation_repo.get_reservation_by_id(reservation_id)
-        if reservation_row is not None:
-            reservation_status: Optional[str] = reservation_row.get("status")  # type: ignore[assignment]
-        else:
-            reservation_status = None
+        # -------------------------------------------------
+        # reservation_status
+        # -------------------------------------------------
+        reservation_status: Optional[str] = reservation.get("status")
 
-        # ---- is_expired / is_expired_for_display の計算 ----
-        # event_end は _build_context が完全に返す
+        # -------------------------------------------------
+        # is_expired / is_expired_for_display
+        # -------------------------------------------------
         if event_end.tzinfo:
             now = datetime.now(tz=event_end.tzinfo)
         else:
@@ -114,23 +169,16 @@ class ReservationBookedService:
         is_expired = now >= event_end
         is_expired_for_display = now >= (event_end + timedelta(minutes=15))
 
-        
-
-        # ---- 2通目：キャンセル案内 TemplateMessage(dict) ----
-        cancel_template_dict = LineMessageBuilder.build_cancel_template(ctx)
-
-        
-
-        # ---- datetime → ISO ----
+        # -------------------------------------------------
+        # datetime → ISO
+        # -------------------------------------------------
         def _to_iso(dt: datetime) -> str:
             return dt.isoformat()
 
-        # ---- DTO 返却 ----
         return ReservationBookedViewDTO(
             reservation_id=ctx.reservation_id,
             reservation_status=reservation_status,
             context=ctx,
-            cancel_template_json=cancel_template_dict,
             event_start=_to_iso(event_start),
             confirmed_at=_to_iso(confirmed_at),
             is_expired=is_expired,

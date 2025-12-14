@@ -218,9 +218,9 @@ class PickupSettingsService:
             farm_id=farm_row["farm_id"],
             owner_lat=farm_row.get("owner_lat"),
             owner_lng=farm_row.get("owner_lng"),
-            pickup_lat=farm_row["pickup_lat"],
-            pickup_lng=farm_row["pickup_lng"],
-            pickup_place_name=farm_row["pickup_place_name"],
+            pickup_lat=farm_row.get("pickup_lat") or 0.0,
+            pickup_lng=farm_row.get("pickup_lng") or 0.0,
+            pickup_place_name=farm_row.get("pickup_place_name") or "",
             pickup_notes=farm_row.get("pickup_notes"),
             pickup_time=farm_row.get("pickup_time") or "",
         )

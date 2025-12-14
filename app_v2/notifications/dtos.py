@@ -6,71 +6,71 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 
-class LineNotificationJobDTO(BaseModel):
+# ============================================================
+# notification_jobs table DTO（DB事実）
+# ============================================================
+
+class NotificationJobDTO(BaseModel):
     """
-    line_notification_jobs テーブル 1行分を表す DTO。
-    Repository から dict を受け取り、Service 層で利用する想定。
+    notification_jobs テーブル 1 行分を表す DTO。
+
+    【設計原則】
+    - DB に保存されている「事実」だけを表す
+    - 送信先 / 文面 / UI 表示ロジックは一切含めない
     """
 
-    id: Optional[int] = None
+    job_id: Optional[int] = None
+
     reservation_id: int
-    farm_id: int
-    customer_line_user_id: str
-    kind: Literal["CONFIRMATION", "REMINDER"]
+
+    kind: Literal["CONFIRMATION", "REMINDER", "CANCEL_COMPLETED"]
+
     scheduled_at: datetime
-    status: Literal["PENDING", "SENDING", "SENT", "FAILED"] = "PENDING"
-    message_text: str
+    status: Literal["PENDING", "SENT", "FAILED"] = "PENDING"
+
     attempt_count: int = 0
     last_error: Optional[str] = None
+
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
 
+# ============================================================
+# Notification Context DTO（LINE 文面生成専用）
+# ============================================================
+
 class NotificationContextDTO(BaseModel):
     """
-    予約確定メッセージ / リマインダーの文面を組み立てるための元データ。
+    LINE 通知文面を組み立てるための最小 Context DTO。
 
-    - reservations / farms / users などから集約したものを保持し、
-      LineMessageBuilder がこの DTO だけを見てテキストを生成する。
+    【設計原則】
+    - notification_jobs（DB）とは独立
+    - 「そのまま文面に出る情報」だけを持つ
+    - UI / Web / cancel / token とは完全分離
     """
 
-    # 予約・農家・ユーザー
+    # 識別子
     reservation_id: int
-    farm_id: int
-    customer_line_user_id: str
 
-    # 受け渡し情報
-    pickup_display: str           # 「4/5(金) 18:00〜19:00」などの表示用文字列
-    pickup_place_name: str        # 受け渡し場所名
-    pickup_map_url: str           # Google Maps の URL
-    pickup_detail_memo: Optional[str] = None  # 補足メモ（任意）
-    pickup_code: str              # 4桁の予約コード
+    # 受け渡し情報（文面用）
+    pickup_display: str
+    pickup_place_name: Optional[str] = None
+    pickup_map_url: Optional[str] = None
+    pickup_detail_memo: Optional[str] = None
 
-    # 個数・金額
-    qty_5: int
-    qty_10: int
-    qty_25: int
-    subtotal_5: int
-    subtotal_10: int
-    subtotal_25: int
-    rice_subtotal: int            # お米代合計
+    # 数量（文面用）
+    qty_5: int = 0
+    qty_10: int = 0
+    qty_25: int = 0
 
-    # ラベル（将来 3kg / 8kg など増えてもここを変えればよい）
+    # ラベル（文面用）
     label_5kg: str = "5kg"
     label_10kg: str = "10kg"
     label_25kg: str = "25kg"
 
-    # キャンセルリンク用
-    # 「注文締切＝イベント開始の3時間前」の Unix秒をそのまま格納する。
-    cancel_token_exp: Optional[int] = None
-    # 基本はデフォルトURLを使うが、将来ホスト名を変えたい場合に上書きできるようにしておく。
-    cancel_base_url: Optional[str] = None
+    # 金額・コード（文面用）
+    rice_subtotal: int
+    pickup_code: str
 
-
-class LineMessagePayloadDTO(BaseModel):
-    """
-    文面ビルダーが組み立てた最終テキストを表す DTO。
-    将来、rich message（Flex など）を使いたくなった場合にも拡張しやすくする。
-    """
-
-    text: str
+    # 送信先（Service が解決して渡す）
+    customer_line_user_id: str

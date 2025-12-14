@@ -15,8 +15,9 @@ class FarmRecord:
 
 @dataclass
 class ReservationRecord:
+    # 旧 id → 新 reservation_id をそのまま id として保持（意味は同一）
     id: int
-    user_id: int
+    consumer_id: int
     farm_id: int
     pickup_slot_code: Optional[str]
     created_at: Optional[str]
@@ -31,7 +32,11 @@ class ReservationExpandedRepository:
 
     - farms.pickup_time （例: "SAT_10_11"）
     - farms.active_flag （BAN 判定用）
-    - reservations.*     （items_json / rice_subtotal / created_at / status など）
+    - reservations.*   （items_json / rice_subtotal / created_at / status など）
+
+    Phase2:
+    - 新 reservations テーブル（reservation_id / consumer_id 前提）に対応
+    - ロジック・返却構造は一切変更しない
     """
 
     def __init__(self, db_path: str = DB_PATH) -> None:
@@ -52,11 +57,11 @@ class ReservationExpandedRepository:
             cur.execute(
                 """
                 SELECT
-                    id          AS farm_id,
+                    farm_id     AS farm_id,
                     pickup_time AS pickup_time,
                     active_flag AS active_flag
                 FROM farms
-                WHERE id = ?
+                WHERE farm_id = ?
                 """,
                 (farm_id,),
             )
@@ -91,8 +96,8 @@ class ReservationExpandedRepository:
             cur.execute(
                 """
                 SELECT
-                    id,
-                    user_id,
+                    reservation_id,
+                    consumer_id,
                     farm_id,
                     pickup_slot_code,
                     created_at,
@@ -103,7 +108,7 @@ class ReservationExpandedRepository:
                 WHERE farm_id = ?
                   AND pickup_slot_code = ?
                   AND status = 'confirmed'
-                ORDER BY id ASC
+                ORDER BY reservation_id ASC
                 """,
                 (farm_id, pickup_slot_code),
             )
@@ -113,8 +118,8 @@ class ReservationExpandedRepository:
         for row in rows:
             results.append(
                 ReservationRecord(
-                    id=int(row["id"]),
-                    user_id=int(row["user_id"]),
+                    id=int(row["reservation_id"]),
+                    consumer_id=int(row["consumer_id"]),
                     farm_id=int(row["farm_id"]),
                     pickup_slot_code=row["pickup_slot_code"],
                     created_at=row["created_at"],
