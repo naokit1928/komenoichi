@@ -1,4 +1,4 @@
-﻿CREATE TABLE consumers (
+CREATE TABLE consumers (
     consumer_id INTEGER PRIMARY KEY,
     created_at TEXT,
     line_consumer_id TEXT UNIQUE,
