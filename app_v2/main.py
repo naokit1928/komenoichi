@@ -121,7 +121,7 @@ from app_v2.notifications.services.line_notification_service import (
     LineNotificationService,
 )
 
-from app_v2.db.init_db import init_db
+from db.init_db import init_db
 
 
 # Feedback V2
