@@ -16,4 +16,5 @@ def init_db():
 
     conn = sqlite3.connect(DB_PATH)
     conn.executescript(schema_sql)
+    conn.commit()   # ← ★この1行を追加
     conn.close()
