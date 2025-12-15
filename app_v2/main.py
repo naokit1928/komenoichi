@@ -190,63 +190,6 @@ app.include_router(notification_admin_router)
 # /api/admin/reservations ... のルーター（内部で prefix="/api/admin/reservations" 済）
 app.include_router(admin_reservations_router)
 
-# ============================
-#  Notification Background Worker
-# ============================
-
-_notification_worker_task: Optional[asyncio.Task] = None
-
-
-
-
-@app.on_event("startup")
-async def start_notification_worker() -> None:
-    """
-    line_notification_jobs テーブルのうち、
-    - status = 'PENDING'
-    - scheduled_at <= now(JST)
-    のジョブを 60 秒ごとにまとめて送信するバックグラウンド処理。
-    決済直後の CONFIRMATION も、前日12時の REMINDER もすべてここでカバーされる。
-    """
-    global _notification_worker_task
-
-    async def worker() -> None:
-        service = LineNotificationService()
-        while True:
-            try:
-                result = service.send_pending_jobs(limit=50, dry_run=False)
-                summary = result.get("summary", {}) or {}
-
-                sent = int(summary.get("sent") or 0)
-                skipped = int(summary.get("skipped") or 0)
-                failed = int(summary.get("failed") or 0)
-
-                # 何か送った / 失敗したときだけログを出す
-                if sent > 0 or failed > 0:
-                    print(
-                        "[NotificationWorker] "
-                        f"sent={sent} skipped={skipped} failed={failed}"
-                    )
-            except Exception as e:
-                # ワーカー自体が落ちないように、例外は握りつぶしてログだけ出す
-                print(f"[NotificationWorker] error: {e}")
-
-            # 60 秒ごとに実行
-            await asyncio.sleep(60)
-
-    _notification_worker_task = asyncio.create_task(worker())
-
-
-@app.on_event("shutdown")
-async def stop_notification_worker() -> None:
-    """
-    アプリ終了時にバックグラウンドタスクをきれいに止める。
-    """
-    global _notification_worker_task
-    if _notification_worker_task is not None:
-        _notification_worker_task.cancel()
-        with suppress(Exception):
-            await _notification_worker_task
 
 
 # ============================
