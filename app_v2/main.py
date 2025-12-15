@@ -121,7 +121,6 @@ from app_v2.notifications.services.line_notification_service import (
     LineNotificationService,
 )
 
-from app_v2.db.init_db import init_db
 
 
 # Feedback V2
@@ -190,7 +189,6 @@ _notification_worker_task: Optional[asyncio.Task] = None
 
 @app.on_event("startup")
 async def start_notification_worker() -> None:
-    init_db()
     """
     line_notification_jobs テーブルのうち、
     - status = 'PENDING'
