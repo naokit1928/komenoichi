@@ -69,7 +69,6 @@ CREATE TABLE reservations (
     FOREIGN KEY (consumer_id) REFERENCES consumers(consumer_id),
     FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
 );
-CREATE TABLE sqlite_sequence(name,seq);
 CREATE TABLE notification_jobs (
     job_id INTEGER PRIMARY KEY AUTOINCREMENT,
     reservation_id INTEGER NOT NULL,
