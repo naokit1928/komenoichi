@@ -3,18 +3,49 @@ import sqlite3
 
 DB_PATH = Path("/var/data/app.db")
 
-# Render / ローカル共通で必ず通る
-BASE_DIR = Path(__file__).resolve().parents[2]  # = /opt/render/project/src
-SCHEMA_PATH = BASE_DIR / "src" / "schema.sql"   # = /opt/render/project/src/src/schema.sql
+# Render / ローカル共通
+# /opt/render/project/src/app_v2/init_db.py
+#            ↑ parents[0]
+# /opt/render/project/src/app_v2
+#            ↑ parents[1]
+# /opt/render/project/src
+#            ↑ parents[2]
+BASE_DIR = Path(__file__).resolve().parents[2]
+SCHEMA_PATH = BASE_DIR / "src" / "schema.sql"
+
 
 def init_db():
-    print("INIT_DB RUNNING:", DB_PATH)
+    print("=== INIT_DB START ===")
+    print("DB_PATH:", DB_PATH)
     print("SCHEMA_PATH:", SCHEMA_PATH)
 
-    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
-        schema_sql = f.read()
+    # schema.sql の存在確認
+    if not SCHEMA_PATH.exists():
+        print("ERROR: schema.sql NOT FOUND")
+        return
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.executescript(schema_sql)
-    conn.commit()   # ← ★この1行を追加
-    conn.close()
+    try:
+        schema_sql = SCHEMA_PATH.read_text(encoding="utf-8")
+        print("schema.sql loaded. length =", len(schema_sql))
+    except Exception as e:
+        print("ERROR: failed to read schema.sql:", e)
+        return
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        print("sqlite connected")
+
+        conn.executescript(schema_sql)
+        print("executescript OK")
+
+        conn.commit()
+        print("commit OK")
+
+        conn.close()
+        print("connection closed")
+
+    except Exception as e:
+        print("ERROR during DB init:", e)
+        return
+
+    print("=== INIT_DB END ===")
