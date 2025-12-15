@@ -1,18 +1,19 @@
-import os
-import sqlite3
 from pathlib import Path
+import sqlite3
 
-print("INIT_DB RUNNING:", os.environ.get("APP_DB_PATH"))
+DB_PATH = Path("/var/data/app.db")
 
-DB_PATH = os.environ["APP_DB_PATH"]
-SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schema.sql"
+# Render / ローカル共通で必ず通る
+BASE_DIR = Path(__file__).resolve().parents[2]  # = /opt/render/project/src
+SCHEMA_PATH = BASE_DIR / "src" / "schema.sql"   # = /opt/render/project/src/src/schema.sql
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
-        conn.executescript(f.read())
-    conn.commit()
-    conn.close()
+    print("INIT_DB RUNNING:", DB_PATH)
+    print("SCHEMA_PATH:", SCHEMA_PATH)
 
-if __name__ == "__main__":
-    init_db()
+    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
+        schema_sql = f.read()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.executescript(schema_sql)
+    conn.close()
