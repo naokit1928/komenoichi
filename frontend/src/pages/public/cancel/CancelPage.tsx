@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { API_BASE } from "@/config/api";
+
 
 type CancelGetResponse = {
   reservation_id: number;
@@ -48,9 +50,7 @@ const CancelPage: React.FC = () => {
         setErrorMessage(null);
 
         const res = await fetch(
-          `http://localhost:8000/api/reservation/cancel?token=${encodeURIComponent(
-            token
-          )}`
+          `${API_BASE}/api/reservation/cancel?token=${encodeURIComponent(token)}`
         );
 
         if (!res.ok) {
@@ -94,7 +94,7 @@ const CancelPage: React.FC = () => {
       setPosting(true);
       setErrorMessage(null);
 
-      const res = await fetch(`http://localhost:8000/api/reservation/cancel`, {
+      const res = await fetch(`${API_BASE}/api/reservation/cancel`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

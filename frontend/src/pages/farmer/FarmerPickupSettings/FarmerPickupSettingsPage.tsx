@@ -5,11 +5,9 @@ import PickupNotesCard from "./PickupNotesCard";
 import PickupTimeCard from "./PickupTimeCard";
 import FarmerSettingsHeader from "../FarmerSettings/FarmerSettingsHeader";
 
+import { API_BASE } from "@/config/api";
 
-const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE ||
-  (import.meta as any).env?.VITE_BACKEND_BASE_URL ||
-  "";
+
 
 // =============================
 // 共通 fetch

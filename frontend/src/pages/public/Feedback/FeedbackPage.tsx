@@ -1,5 +1,7 @@
 // frontend/src/pages/public/Feedback/FeedbackPage.tsx
 import React, { useState } from "react";
+import { API_BASE } from "@/config/api";
+
 
 const MIN_LENGTH = 20;
 const MAX_LENGTH = 500;
@@ -118,13 +120,14 @@ const FeedbackPage: React.FC = () => {
         email: email.trim() || null,
       };
 
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(`${API_BASE}/api/feedback`, {
+      method: "POST",
+      headers: {
+       "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
 
       if (!res.ok) {
         throw new Error("Failed to submit feedback");

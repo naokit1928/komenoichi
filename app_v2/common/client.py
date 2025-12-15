@@ -3,8 +3,11 @@ import cloudinary
 import cloudinary.uploader
 
 # 必要な環境変数：
-# CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+# CLOUDINARY_CLOUD_NAME
+# CLOUDINARY_API_KEY
+# CLOUDINARY_API_SECRET
 # 任意：CLOUDINARY_UPLOAD_FOLDER （例: "rice-app/farms"）
+
 def init():
     cloudinary.config(
         cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -33,12 +36,11 @@ def upload_bytes(content: bytes, filename: str, folder: str | None = None):
 def delete_public_id(public_id: str) -> bool:
     """
     Cloudinary 側の実ファイルを削除する。
-    - 既に存在しない場合はエラーにはしない（`result: not found` でも True を返す）
+    - 既に存在しない場合はエラーにしない
     """
     init()
     try:
         resp = cloudinary.uploader.destroy(public_id, invalidate=True)
-        # resp 例: {'result': 'ok'} / {'result': 'not found'}
         return resp.get("result") in {"ok", "not found"}
     except Exception:
         return False

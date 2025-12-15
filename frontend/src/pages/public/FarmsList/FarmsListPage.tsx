@@ -2,24 +2,13 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import MapLayerPortal from "./MapLayerPortal";
+import { API_BASE } from "@/config/api";
 
-// ====== API base ======
-const ENV_BACKEND = (import.meta as any)?.env?.VITE_BACKEND_BASE_URL as
-  | string
-  | undefined;
-const ENV_API_BASE = (import.meta as any)?.env?.VITE_API_BASE as
-  | string
-  | undefined;
-
-const API_BASE = (
-  (ENV_BACKEND && ENV_BACKEND.trim()) ||
-  (ENV_API_BASE && ENV_API_BASE.trim()) ||
-  "http://localhost:8000"
-).replace(/\/+$/, "");
 
 // V2 Public API
 const LIST_URL = `${API_BASE}/api/public/farms`;
 const LAST_CONFIRMED_URL = `${API_BASE}/public/last-confirmed-farm`;
+
 
 // ====== Favorite (local only) ======
 const FAVORITES_KEY = "favoriteFarms";

@@ -1,6 +1,8 @@
 // frontend/src/pages/public/ReservationCancel/CancelConfirmPage.tsx
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { API_BASE } from "@/config/api";
+
 
 /**
  * キャンセル確認ページ
@@ -15,7 +17,8 @@ import { useSearchParams } from "react-router-dom";
  *   - 実際のバックエンド実装に合わせて URL / メソッドだけ必要に応じて調整してください。
  */
 
-const CANCEL_API_URL = "/api/reservation/cancel";
+const CANCEL_API_URL = `${API_BASE}/api/reservation/cancel`;
+
 
 const CancelConfirmPage: React.FC = () => {
   const [searchParams] = useSearchParams();

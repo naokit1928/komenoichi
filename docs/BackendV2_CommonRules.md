@@ -1,7 +1,9 @@
+## 付録A：ローカル起動・運用コマンド（確定版）
+
 .venv\Scripts\activate
-uvicorn app.main:app --reload
+uvicorn app_v2.main:app --host 0.0.0.0 --port 10000
 npm run dev
-stripe listen --forward-to localhost:8000/stripe/webhook
+stripe listen --forward-to http://localhost:10000/stripe/webhook
 
 python -m app_v2.notifications.cron.send_pending_notifications
 .\sqlite3.exe app.db
@@ -19,6 +21,13 @@ SQLAlchemy / ORM / database.py 時代には戻らないことを明示する。
 ChatGPT にバックエンドコードを書かせるときの「前提条件」として必ず参照することを想定。
 
 1. V2 アーキテクチャの基本コンセプト
+
+FastAPI のエントリポイントは app_v2/main.py のみ。
+app/main.py（V1）は物理削除済みであり、今後復活させない。
+
+ローカル・本番を問わず、FastAPI の待受ポートは 10000 に固定。
+8000 / proxy / 相対パス前提の設計は V2 では存在しない。
+
 
 データアクセスはすべて sqlite3 + Repository 経由
 
@@ -80,8 +89,12 @@ DB 接続方法
 import sqlite3, os
 
 def _get_db_path() -> str:
+    # V2 の正式な DB パス解決ルール
     env_path = os.getenv("APP_DB_PATH")
-    return env_path if env_path else "app.db"
+    if not env_path:
+        raise RuntimeError("APP_DB_PATH is not defined")
+    return env_path
+
 
 class XxxRepository:
     def __init__(self, db: object | None = None) -> None:
@@ -90,7 +103,11 @@ class XxxRepository:
         self.conn.row_factory = sqlite3.Row
 
 
-db 引数は V1 の互換のためだけに受け取って無視してよい。
+db 引数は V1 互換のために受け取ってもよいが、
+V2 の新規 Repository では定義しないことを推奨する。
+
+新規コードでは Repository が自分で DB を開く。
+
 
 禁止事項
 
@@ -126,7 +143,11 @@ except Exception:
 
 Repository を 1つ以上受け取り、ビジネスロジックだけを書く層。
 
-HTTP のステータスコードや FastAPI の HTTPException は Service では使わない。
+Service では以下を禁止する：
+
+FastAPI / HTTPException / status_code の import
+Stripe / LINE SDK の直接呼び出し（外部I/Oは adapter に閉じ込める）
+
 
 代わりに 専用の Exception クラスを定義し、API 層で HTTP にマッピングする。
 
@@ -174,7 +195,12 @@ FarmNotFoundError
 API やフロントで同じ計算式を重複実装しない。
 → フロントは「表示用（価格ラベル）」に限定し、最終的な計算は必ずサーバーの Service を優先。
 
-5. API（FastAPI Router）レイヤのルール
+API（FastAPI Router）レイヤのルール
+
+Webhook エンドポイント（例：/stripe/webhook）も API レイヤに含む。
+Webhook では署名検証 → Service 呼び出しのみを行い、
+状態遷移ロジックはすべて Service に委譲する。
+
 
 責務
 
@@ -219,6 +245,13 @@ Stripe
 フロントから /api/checkout/session → Stripe Checkout。
 
 Stripe から webhook /stripe/webhook を受ける。
+
+ローカル検証時は必ず以下を使用する：
+
+stripe listen --forward-to http://localhost:10000/stripe/webhook
+
+8000 を forward 先に指定することは禁止（V1 の遺物）。
+
 
 webhook では 同一予約に対する複数イベントを前提にし、ステータスは idempotent に更新。
 
@@ -293,11 +326,29 @@ Service から HTTP ステータスを直接返す（HTTPException を raise す
 
  変更前に動いていた機能が壊れていないか（最低限、関連フローの手動テスト済みか）？
 
+10. フロントエンドとの責務分離（V2 確定）
+
+API の URL / 接続先はフロントで一元管理される。
+バックエンドは「指定された URL で待つだけ」の存在。
+
+バックエンド側で
+「フロントは proxy を使うはず」
+「/api は相対で来るはず」
+という前提を一切持たない。
+
+11. フォールバック禁止ルール（重要）
+
+env 未設定時のデフォルト値（例："app.db" / "localhost"）は禁止。
+
+設定ミスは即エラーにする。
+フォールバックは不具合の発見を遅らせるため、V2 では採用しない。
 
 
+ 12. V2 開発における「GPT 作業ルール・完全版」（運用規約）
 
+この章は設計思想ではなく運用規約。
+コードと同等に尊重されるルールとして扱う。
 
- ✅ V2 開発における「GPT 作業ルール・完全版」
 ■ 1. 原因特定のルール（最重要）
 1-1. 原因は断定しない
 

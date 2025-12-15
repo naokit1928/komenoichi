@@ -9,8 +9,8 @@ import PublishToggleCard from "./PublishToggleCard";
 import RiceVarietyLabelEditor from "./RiceVarietyLabelEditor";
 import TitleEditor from "./TitleEditor";
 
+import { API_BASE } from "@/config/api";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
 type PrImage = { id: string; url: string; order: number };
 

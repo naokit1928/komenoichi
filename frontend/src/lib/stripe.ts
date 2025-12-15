@@ -1,6 +1,6 @@
 // src/lib/stripe.ts
-const API_BASE =
-  import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
+import { API_BASE } from "@/config/api";
+
 
 /** 予約を作成して reservation_id を返す */
 export async function createReservation(params: {

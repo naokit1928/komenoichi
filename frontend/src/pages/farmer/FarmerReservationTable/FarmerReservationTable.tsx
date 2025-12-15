@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./FarmerReservationTable.module.css";
 import FarmerReservationNoticeModal from "./FarmerReservationNoticeModal";
+import { API_BASE } from "@/config/api";
 
-const API_BASE = "http://127.0.0.1:8000";
 const NOTICE_STORAGE_KEY = "farmer_reservation_notice_ack";
 
 // -------------------------

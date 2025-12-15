@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from typing import Optional, List, Tuple, Any, Dict
 
-from app.cloudinary_client import upload_bytes
+from app_v2.common.client import upload_bytes
 from app_v2.farmer.dtos import FarmerSettingsDTO, PRImageDTO
 from app_v2.farmer.repository.farmer_settings_repo import (
     FarmerSettingsRepository,

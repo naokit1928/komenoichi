@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "@/config/api";
 import type {
   AdminReservationWeekSummary,
   AdminReservationWeekListResponse,
@@ -67,7 +68,7 @@ const AdminReservationWeeksPage: React.FC = () => {
         });
 
         const weeksRes = await fetch(
-          `/api/admin/reservations/weeks?` + weeksParams.toString(),
+          `${API_BASE}/api/admin/reservations/weeks?` + weeksParams.toString(),
           { signal: controller.signal }
         );
         if (!weeksRes.ok) {
@@ -86,7 +87,7 @@ const AdminReservationWeeksPage: React.FC = () => {
         });
 
         const headerRes = await fetch(
-          `/api/admin/reservations?` + headerParams.toString(),
+          `${API_BASE}/api/admin/reservations?` + headerParams.toString(),
           { signal: controller.signal }
         );
 

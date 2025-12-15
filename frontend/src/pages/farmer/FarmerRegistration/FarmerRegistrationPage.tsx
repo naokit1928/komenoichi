@@ -12,11 +12,8 @@ import PickupNotesCard from "../FarmerPickupSettings/PickupNotesCard";
 import PickupTimeCardForRegistration from "./PickupTimeCardForRegistration";
 import type { TimeSlotOption } from "./PickupTimeCardForRegistration";
 
-const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE ||
-  (import.meta as any).env?.VITE_BACKEND_BASE_URL ||
-  "";
-const DEV_MODE = (import.meta as any).env?.VITE_DEV_MODE === "1";
+import { API_BASE, DEV_MODE } from "@/config/api";
+
 
 async function postRaw(url: string, body: any) {
   const res = await fetch(API_BASE + url, {

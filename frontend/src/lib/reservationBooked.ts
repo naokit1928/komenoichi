@@ -1,5 +1,7 @@
 // frontend/src/lib/reservationBooked.ts
 
+import { API_BASE } from "@/config/api";
+
 // ---- 型定義 ----
 
 export type ReservationBookedContext = {
@@ -53,7 +55,7 @@ export async function fetchReservationBooked(
   reservationId: number
 ): Promise<ReservationBookedResponse> {
   const res = await fetch(
-    `/api/reservations/booked?reservation_id=${reservationId}`
+     `${API_BASE}/api/reservations/booked?reservation_id=${reservationId}`
   );
 
   if (!res.ok) {

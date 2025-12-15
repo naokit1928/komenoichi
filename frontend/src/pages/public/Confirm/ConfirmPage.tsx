@@ -1,14 +1,10 @@
 // src/pages/ConfirmPage.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { API_BASE } from "@/config/api";
 
-const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE ??
-  (import.meta as any).env?.VITE_BACKEND_BASE_URL ??
-  "http://127.0.0.1:8000";
+const FRONT_BASE = window.location.origin;
 
-const FRONT_BASE =
-  (import.meta as any).env?.VITE_FRONTEND_BASE_URL ?? window.location.origin;
 
 // ConfirmPage が使うコンテキスト
 type ConfirmCtx = {
@@ -67,6 +63,7 @@ async function createReservationV2(
   payload: ReservationFormInput
 ): Promise<ReservationResultDTO> {
   const res = await fetch(`${API_BASE}/api/reservations`, {
+
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

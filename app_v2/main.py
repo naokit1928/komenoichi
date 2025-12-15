@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.routing import APIRoute
-from pathlib import Path
 import os
 from urllib.parse import urlparse
 import asyncio
@@ -71,13 +69,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Existing-Farm-Id", "X-Settings-URL"],
 )
-
-# ============================
-#  static
-# ============================
-static_dir = Path("app/static")
-static_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # ============================
 #  V2 Routers

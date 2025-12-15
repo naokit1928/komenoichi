@@ -2,6 +2,8 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import type { PublicFarmDetailDTO } from "../../../types/publicFarmDetail";
+import { API_BASE } from "@/config/api";
+
 
 // 追加：カード用コンポーネント
 import FarmDetailPriceCard from "./FarmDetailPriceCard";
@@ -66,9 +68,7 @@ type Kg = 5 | 10 | 25;
 // フロント側での計算や /pricing/preview 呼び出しは行わない。
 // ==============================
 
-// API ベースURL（他のAPIと同様の運用を想定。環境変数が無ければローカルFastAPI）
-const API_BASE: string =
-  (import.meta as any).env?.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
 
 export default function FarmDetailPage() {
   const { farmId } = useParams();

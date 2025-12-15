@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { GoogleMap, useJsApiLoader, OverlayView } from "@react-google-maps/api";
 import debounce from "lodash/debounce";
+import { API_BASE } from "@/config/api";
+
 
 // ====== V2 DTO ======
 export type PublicFarmCardDTO = {
@@ -78,7 +80,7 @@ export default function MapLayerPortal({
     const ne = bounds.getNorthEast();
     const sw = bounds.getSouthWest();
 
-    const url = `/api/public/farms/map?min_lat=${sw.lat()}&max_lat=${ne.lat()}&min_lng=${sw.lng()}&max_lng=${ne.lng()}&limit=200`;
+    const url = `${API_BASE}/api/public/farms/map?min_lat=${sw.lat()}&max_lat=${ne.lat()}&min_lng=${sw.lng()}&max_lng=${ne.lng()}&limit=200`;
 
     try {
       const res = await fetch(url);

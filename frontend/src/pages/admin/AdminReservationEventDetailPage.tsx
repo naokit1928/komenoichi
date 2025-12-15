@@ -3,6 +3,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { API_BASE } from "@/config/api";
+
 import type {
   AdminReservationListItemDTO,
   AdminReservationListResponse,
@@ -40,9 +42,11 @@ const AdminReservationEventDetailPage: React.FC = () => {
           event_start: eventStartParam,
         });
 
-        const res = await fetch(`/api/admin/reservations?` + params.toString(), {
-          signal: controller.signal,
-        });
+        const res = await fetch(
+          `${API_BASE}/api/admin/reservations?` + params.toString(),
+          { signal: controller.signal }
+        );
+
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 

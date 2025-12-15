@@ -1,5 +1,7 @@
 // frontend/src/pages/LineHomePage.tsx
 import { useEffect, useState } from "react";
+import { API_BASE, DEV_MODE } from "@/config/api";
+
 
 interface DevResult {
   ok: boolean;
@@ -12,8 +14,6 @@ interface DevResult {
 }
 
 export default function LineHomePage() {
-  const apiBase = import.meta.env.VITE_API_BASE || "";
-  const devMode = import.meta.env.VITE_DEV_MODE === "1";
   const [farmId, setFarmId] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
 
@@ -25,7 +25,7 @@ export default function LineHomePage() {
 
   // 共通：POSTユーティリティ（DEV専用）
   const callDevAPI = async (endpoint: string, body: any) => {
-    const res = await fetch(`${apiBase}${endpoint}`, {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -64,7 +64,7 @@ export default function LineHomePage() {
   };
   const handleFinishRegistration = async () => {
     try {
-      const res = await fetch(`${apiBase}/api/farms/finish_registration`, {
+      const res = await fetch(`${API_BASE}/api/farmer/registration/finish_registration`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -181,7 +181,7 @@ export default function LineHomePage() {
         </section>
 
         {/* DEVツール（本番では VITE_DEV_MODE=0 に） */}
-        {devMode && (
+        {DEV_MODE && (
           <section className="mb-6 border rounded-2xl p-4 bg-gray-50">
             <h2 className="font-semibold text-sm mb-2">DEVツール（開発専用）</h2>
             <div className="flex flex-col gap-2 text-sm">
