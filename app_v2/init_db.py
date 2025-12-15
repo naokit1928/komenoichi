@@ -5,7 +5,7 @@ from pathlib import Path
 print("INIT_DB RUNNING:", os.environ.get("APP_DB_PATH"))
 
 DB_PATH = os.environ["APP_DB_PATH"]
-SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schema.sql"
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schema.sql"
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -13,3 +13,6 @@ def init_db():
         conn.executescript(f.read())
     conn.commit()
     conn.close()
+
+if __name__ == "__main__":
+    init_db()
