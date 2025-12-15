@@ -7,6 +7,8 @@ import asyncio
 from contextlib import suppress
 from typing import Optional
 
+from app_v2.db.core import resolve_db_path
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -30,6 +32,13 @@ app = FastAPI(
     version="2.0.0",
     generate_unique_id_function=custom_generate_unique_id,
 )
+
+# ============================
+#  DB PATH RESOLUTION (重要)
+# ============================
+db_path = resolve_db_path()
+print(f"[BOOT] resolved DB_PATH = {db_path}")
+
 
 # ============================
 #  CORS
@@ -123,6 +132,7 @@ from app_v2.notifications.services.line_notification_service import (
 
 
 
+
 # Feedback V2
 from app_v2.feedback.api.feedback_api import router as feedback_router
 
@@ -185,6 +195,8 @@ app.include_router(admin_reservations_router)
 # ============================
 
 _notification_worker_task: Optional[asyncio.Task] = None
+
+
 
 
 @app.on_event("startup")
