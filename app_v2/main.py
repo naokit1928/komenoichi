@@ -122,19 +122,6 @@ from app_v2.notifications.api.line_incoming_api import (
 
 # --- Admin / Dev / Feedback ---
 from app_v2.dev.dev_api import router as dev_router
-<<<<<<< HEAD
-
-# 通知サービス（バックグラウンドワーカー用）
-from app_v2.notifications.services.line_notification_service import (
-    LineNotificationService,
-)
-
-
-
-
-# Feedback V2
-=======
->>>>>>> f2214c5 (backend: finalize db path and render deploy ready)
 from app_v2.feedback.api.feedback_api import router as feedback_router
 from app_v2.admin.api.admin_reservation_api import (
     router as admin_reservations_router,
@@ -180,53 +167,6 @@ app.include_router(notification_dev_router, prefix="/dev")
 app.include_router(notification_admin_router)
 app.include_router(admin_reservations_router)
 app.include_router(admin_farm_router)
-
-<<<<<<< HEAD
-=======
-# ============================
-# Notification Worker
-# ============================
-
-from app_v2.notifications.services.line_notification_service import (
-    LineNotificationService,
-)
-
-_notification_worker_task: Optional[asyncio.Task] = None
-
-
-@app.on_event("startup")
-async def start_notification_worker() -> None:
-    global _notification_worker_task
-
-    async def worker() -> None:
-        service = LineNotificationService()
-        while True:
-            try:
-                result = service.send_pending_jobs(limit=50, dry_run=False)
-                summary = result.get("summary", {}) or {}
-                sent = int(summary.get("sent") or 0)
-                failed = int(summary.get("failed") or 0)
-                if sent > 0 or failed > 0:
-                    print(
-                        "[NotificationWorker] "
-                        f"sent={sent} failed={failed}"
-                    )
-            except Exception as e:
-                print(f"[NotificationWorker] error: {e}")
-            await asyncio.sleep(60)
-
-    _notification_worker_task = asyncio.create_task(worker())
-
-
-@app.on_event("shutdown")
-async def stop_notification_worker() -> None:
-    global _notification_worker_task
-    if _notification_worker_task is not None:
-        _notification_worker_task.cancel()
-        with suppress(Exception):
-            await _notification_worker_task
->>>>>>> f2214c5 (backend: finalize db path and render deploy ready)
-
 
 @app.get("/")
 def root():
