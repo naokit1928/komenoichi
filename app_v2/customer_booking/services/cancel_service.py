@@ -7,7 +7,6 @@ from typing import Tuple
 
 from app_v2.customer_booking.repository.reservation_repo import (
     get_reservation_by_id,
-    cancel_reservation_db,
 )
 from app_v2.customer_booking.utils.cancel_token import CancelTokenPayload
 
@@ -15,6 +14,11 @@ from app_v2.customer_booking.services.reservation_expanded_service import (
     _parse_db_datetime,
     _calc_event_for_booking,
     _format_event_display_label,
+)
+
+# ★ 状態遷移はここに集約
+from app_v2.customer_booking.services.reservation_status_service import (
+    ReservationStatusService,
 )
 
 # ★★ REMINDER 削除に必要
@@ -73,6 +77,7 @@ class CancelService:
     def __init__(self) -> None:
         self.job_repo = LineNotificationJobRepository()
         self.notification_service = LineNotificationService()
+        self.status_service = ReservationStatusService()
 
     # -------------------------------------------------
     # items_json → qty_*（既存ロジックそのまま）
@@ -120,7 +125,7 @@ class CancelService:
         return pickup_display, now_jst < cancel_limit
 
     # -------------------------------------------------
-    # ★ Phase2 正式：token と reservation の照合
+    # token と reservation の照合
     # -------------------------------------------------
     def _verify_token_user(self, payload: CancelTokenPayload, row: dict) -> None:
         """
@@ -171,8 +176,10 @@ class CancelService:
         if not data.is_cancellable:
             raise NotCancellableError("CANCEL_LIMIT_PASSED")
 
-        # ---- 状態更新
-        cancel_reservation_db(data.reservation_id)
+        # -------------------------------------------------
+        # 状態更新（正式・一元管理）
+        # -------------------------------------------------
+        self.status_service.cancel(data.reservation_id)
 
         # -------------------------------------------------
         # REMINDER(PENDING) 削除
@@ -187,7 +194,9 @@ class CancelService:
 
         if job_id:
             try:
-               self.notification_service.send_single_job(job_id, dry_run=False)
+                self.notification_service.send_single_job(job_id, dry_run=False)
             except Exception as e:
-               # ★ 通知失敗は致命的ではない
-               print(f"[CancelService] CANCEL_COMPLETED send failed: {e}")
+                # ★ 通知失敗は致命的ではない
+                print(f"[CancelService] CANCEL_COMPLETED send failed: {e}")
+
+        return data

@@ -18,6 +18,11 @@ const AdminReservationEventDetailPage: React.FC = () => {
 
   const farmIdParam = searchParams.get("farm_id");
   const eventStartParam = searchParams.get("event_start");
+  const highlightReservationId = searchParams.get("highlight_reservation_id");
+  const highlightId = highlightReservationId
+    ? Number(highlightReservationId)
+    : null;
+
   const farmId = farmIdParam ? Number(farmIdParam) : null;
 
   const [items, setItems] = useState<AdminReservationListItemDTO[]>([]);
@@ -128,9 +133,15 @@ const AdminReservationEventDetailPage: React.FC = () => {
     [items]
   );
   const visibleItems = useMemo(
-    () => items.filter((r) => r.reservation_status !== "pending"),
-    [items]
-  );
+  () =>
+    items.filter(
+      (r) =>
+        r.reservation_status !== "pending" ||
+        highlightId === Number(r.reservation_id)
+    ),
+  [items, highlightId]
+);
+
 
   const sumRiceSubtotal = useMemo(
     () => confirmedItems.reduce((sum, r) => sum + r.rice_subtotal, 0),
@@ -143,6 +154,26 @@ const AdminReservationEventDetailPage: React.FC = () => {
 
   const formatNumber = (n: number) =>
     new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }).format(n);
+
+  // 通知ステータス表示用
+  const pill = (value: NotificationStatusValue) => {
+
+    let colorClass = "text-gray-500";
+
+    if (value === "FAILED") colorClass = "text-green-700"; // 緑
+    else if (value === "NONE") colorClass = "text-red-700"; // 赤
+    else if (value === "SENT") colorClass = "text-gray-700";
+    else if (value === "PENDING") colorClass = "text-yellow-700";
+
+    const label = (value as any) === "DASH" ? "–" : value;
+
+    return (
+      <span className="text-[13px] font-medium">
+        <span className={colorClass}>{label}</span>
+      </span>
+    );
+  };
+
 
   // クエリ不足
   if (!farmIdParam || !eventStartParam) {
@@ -363,27 +394,18 @@ const AdminReservationEventDetailPage: React.FC = () => {
 
                   const notif: NotificationStatusSummaryDTO = r.notification_summary;
 
-                  // ★ 修正版 pill(): NONE=赤, FAILED=緑
-                  const pill = (value: NotificationStatusValue) => {
-                    let colorClass = "text-gray-500";
+                  
 
-                    if (value === "FAILED") colorClass = "text-green-700";   // ← 緑
-                    else if (value === "NONE") colorClass = "text-red-700";  // ← 赤
-                    else if (value === "SENT") colorClass = "text-gray-700";
-                    else if (value === "PENDING") colorClass = "text-yellow-700";
-                    
-
-                    const label = (value as any) === "DASH" ? "–" : value;
-
-                    return (
-                      <span className="text-[13px] font-medium">
-                        <span className={colorClass}>{label}</span>
-                      </span>
-                    );
-                  };
 
                   return (
-                    <tr key={r.reservation_id} className="hover:bg-gray-50">
+                    <tr
+                      key={r.reservation_id}
+                      className={
+                        highlightId === Number(r.reservation_id)
+                         ? "bg-slate-50 hover:bg-slate-100"
+                         : "hover:bg-gray-50"
+                      }
+                    >
                       <td className="px-4 py-2 text-sm">
                         <div className="font-mono text-xs">#{r.reservation_id}</div>
                       </td>

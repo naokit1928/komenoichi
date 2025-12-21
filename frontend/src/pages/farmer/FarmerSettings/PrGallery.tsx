@@ -798,7 +798,14 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
                         if (!res.ok) throw new Error(await res.text());
                       } catch (e) {
                         console.error(e);
-                        alert("PR画像の削除に失敗しました。");
+
+                        const msg = String((e as any)?.message ?? "");
+
+                        if (msg.includes("at least one pr image")) {
+                          alert("PR画像が1枚のみの場合は削除できません。");
+                        } else {
+                          alert("PR画像の削除に失敗しました。");
+                        }
                       } finally {
                         onChanged && onChanged();
                         closePreview();

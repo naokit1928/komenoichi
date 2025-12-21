@@ -62,8 +62,7 @@ const TERM_SERVICE = "運営サポート費";
 async function createReservationV2(
   payload: ReservationFormInput
 ): Promise<ReservationResultDTO> {
-  const res = await fetch(`${API_BASE}/api/reservations`, {
-
+  const res = await fetch(`${API_BASE}/api/confirm`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

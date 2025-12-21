@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-DB_PATH = "app.db"
+from app_v2.db.core import resolve_db_path
 
 
 def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
@@ -13,17 +13,22 @@ def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
 
 class LineNotificationJobRepository:
     """
-    notification_jobs テーブル用 Repository（sqlite3 版）。
+    notification_jobs テーブル専用 Repository（V2 最終形）
 
-    - DB には「事実（job の状態）」のみ保存する
-    - 送信先・文面は Service 層で都度組み立てる
+    責務：
+      - notification_jobs の CRUD のみ
+      - 状態判断・送信判断は一切行わない
+
+    方針：
+      - DB パスは resolve_db_path() を唯一の正とする
+      - Service / Scheduler / Dispatcher からは黒箱として扱う
     """
 
-    def __init__(self, db_path: str = DB_PATH) -> None:
-        self.db_path = db_path
-
+    # ==================================================
+    # DB connection
+    # ==================================================
     def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(resolve_db_path())
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -66,11 +71,10 @@ class LineNotificationJobRepository:
             )
             job_id = cur.lastrowid
 
-            cur = conn.execute(
+            row = conn.execute(
                 "SELECT * FROM notification_jobs WHERE job_id = ?",
                 (job_id,),
-            )
-            row = cur.fetchone()
+            ).fetchone()
             if not row:
                 raise RuntimeError("failed to insert notification_job")
 
@@ -82,7 +86,7 @@ class LineNotificationJobRepository:
     def list_pending_jobs(self, *, before: datetime) -> List[Dict[str, Any]]:
         """
         scheduled_at <= before かつ PENDING の job を古い順に取得する。
-        cron / send_pending_jobs 用。
+        cron / dispatcher 用。
         """
         with self._get_conn() as conn:
             cur = conn.execute(
@@ -99,7 +103,7 @@ class LineNotificationJobRepository:
 
     def get_jobs_by_reservation(self, reservation_id: int) -> List[Dict[str, Any]]:
         """
-        特定 reservation_id に紐づく全 job を取得する（admin / preview 用）。
+        特定 reservation_id に紐づく全 job を取得する（admin / debug 用）。
         """
         with self._get_conn() as conn:
             cur = conn.execute(
@@ -118,11 +122,10 @@ class LineNotificationJobRepository:
         job_id で単一 job を取得する。
         """
         with self._get_conn() as conn:
-            cur = conn.execute(
+            row = conn.execute(
                 "SELECT * FROM notification_jobs WHERE job_id = ?",
                 (job_id,),
-            )
-            row = cur.fetchone()
+            ).fetchone()
             return _row_to_dict(row) if row else None
 
     # --------------------------------------------------
@@ -147,7 +150,6 @@ class LineNotificationJobRepository:
 
         with self._get_conn() as conn:
             if increment_attempt:
-                # FAILED 等：attempt を増やす
                 conn.execute(
                     """
                     UPDATE notification_jobs
@@ -160,7 +162,6 @@ class LineNotificationJobRepository:
                     (status, last_error, now_iso, job_id),
                 )
             else:
-                # SENT 等：PENDING のときだけ更新
                 conn.execute(
                     """
                     UPDATE notification_jobs

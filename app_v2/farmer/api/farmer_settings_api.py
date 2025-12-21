@@ -1,4 +1,3 @@
-# app_v2/farmer/api/farmer_settings_api.py
 from __future__ import annotations
 
 from typing import Optional, List
@@ -13,13 +12,12 @@ from fastapi import (
 from pydantic import BaseModel, field_validator
 
 from app_v2.farmer.dtos import FarmerSettingsDTO
-from app_v2.farmer.services.farmer_settings_service import (
-    FarmerSettingsService,
-)
+from app_v2.farmer.services.farmer_settings_service import FarmerSettingsService
+
 
 router = APIRouter(
     prefix="/farmer/settings-v2",
-    tags=["farmer_settings_v2"],
+    tags=["farmer_settings"],
 )
 
 # ============================================================
@@ -28,6 +26,11 @@ router = APIRouter(
 
 
 class FarmerSettingsUpdatePayload(BaseModel):
+    """
+    農家本人が編集できる可変情報のみ。
+    registration 由来の固定情報は含めない。
+    """
+
     farm_id: int
 
     is_accepting_reservations: Optional[bool] = None
@@ -41,8 +44,8 @@ class FarmerSettingsUpdatePayload(BaseModel):
 
 class AdminActiveFlagPayload(BaseModel):
     """
-    運営専用：BAN / BAN解除を行うための payload。
-    Swagger 上ではここから active_flag を 0/1 切り替えできる。
+    運営専用。
+    農家 BAN / BAN解除 用。
     """
 
     farm_id: int
@@ -58,14 +61,13 @@ class AdminActiveFlagPayload(BaseModel):
 
 class PRImagesOrderPayload(BaseModel):
     """
-    PR画像の並び順更新用 payload
+    PR画像の並び順更新用。
     """
-
     image_ids: List[str]
 
 
 # ============================================================
-# GET Farmer Settings
+# GET: Farmer Settings
 # ============================================================
 
 
@@ -76,8 +78,8 @@ def get_farmer_settings(
     """
     Farmer Settings v2 - GET
 
-    - 農家 UI / 運営 UI 双方から利用
-    - active_flag / is_ready_to_publish / missing_fields なども確認可能
+    - 農家 UI / 管理 UI 共通
+    - 公開可否判定（missing_fields 等）も含む
     """
     service = FarmerSettingsService()
     try:
@@ -90,7 +92,7 @@ def get_farmer_settings(
 
 
 # ============================================================
-# POST Farmer Settings (farmer 用)
+# POST: Farmer Settings 更新（農家用）
 # ============================================================
 
 
@@ -101,12 +103,12 @@ def update_farmer_settings(
     """
     Farmer Settings v2 - POST
 
-    - 農家側が操作する公開設定用
-    - active_flag はここからは変更できない（BAN操作は admin 専用）
+    - 農家本人が操作する編集 API
+    - active_flag は変更不可
     """
     service = FarmerSettingsService()
     try:
-        dto = service.save_settings(
+        return service.save_settings(
             farm_id=payload.farm_id,
             is_accepting_reservations=payload.is_accepting_reservations,
             rice_variety_label=payload.rice_variety_label,
@@ -114,9 +116,10 @@ def update_farmer_settings(
             pr_text=payload.pr_text,
             price_10kg=payload.price_10kg,
             face_image_url=payload.face_image_url,
-            cover_image_url=payload.cover_image_url,
+            # NOTE:
+            # cover_image_url は「PR画像先頭=カバー」という運用に寄せるなら、
+            # save_settings 側で算出・保存するのが筋（API からは渡さない）。
         )
-        return dto
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -125,7 +128,7 @@ def update_farmer_settings(
 
 
 # ============================================================
-# Admin: active_flag を直接変更（BAN / BAN解除）
+# Admin: active_flag 直接変更
 # ============================================================
 
 
@@ -138,19 +141,17 @@ def admin_update_active_flag(
     payload: AdminActiveFlagPayload,
 ):
     """
-    運営専用エンドポイント。
+    運営専用 API。
 
-    - active_flag を 0/1 に設定
-    - BAN(0) にした場合は is_accepting_reservations も自動的に False へ
-    - レスポンスは FarmerSettingsDTO（active_flag / is_accepting_reservations / missing_fields など）
+    - BAN / BAN解除
+    - BAN 時は is_accepting_reservations も自動で false
     """
     service = FarmerSettingsService()
     try:
-        dto = service.set_active_flag_for_admin(
+        return service.set_active_flag_for_admin(
             farm_id=payload.farm_id,
             active_flag=payload.active_flag,
         )
-        return dto
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -159,7 +160,7 @@ def admin_update_active_flag(
 
 
 # ============================================================
-# 画像アップロード（顔 / カバー） v2
+# 画像アップロード（顔 / カバー）
 # ============================================================
 
 
@@ -172,10 +173,7 @@ async def upload_face_image(
     file: UploadFile = File(...),
 ):
     """
-    顔写真アップロード v2
-
-    - multipart/form-data で file を受け取り、
-      Cloudinary にアップロード
+    顔写真アップロード（multipart/form-data）
     """
     service = FarmerSettingsService()
     try:
@@ -188,14 +186,8 @@ async def upload_face_image(
     except ValueError as e:
         msg = str(e)
         if "monthly upload limit exceeded" in msg:
-            # 月次アップロード上限超え
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=msg,
-            )
-        if "not found" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
                 detail=msg,
             )
         raise HTTPException(
@@ -213,7 +205,7 @@ async def upload_cover_image(
     file: UploadFile = File(...),
 ):
     """
-    カバー画像アップロード v2
+    カバー画像アップロード（multipart/form-data）
     """
     service = FarmerSettingsService()
     try:
@@ -230,20 +222,10 @@ async def upload_cover_image(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=msg,
             )
-        if "not found" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=msg,
-            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=msg,
         )
-
-
-# ============================================================
-# PR画像（複数アップロード / 並び替え / 削除） v2
-# ============================================================
 
 
 @router.post(
@@ -254,33 +236,20 @@ async def upload_pr_images(
     farm_id: int,
     files: List[UploadFile] = File(...),
 ):
-    """
-    PR画像を複数枚アップロードするエンドポイント。
-
-    - フロント側では FormData に files を複数 append 済み。
-    """
     service = FarmerSettingsService()
     try:
-        # (bytes, filename) のリストに変換
-        file_tuples = []
+        data = []
         for f in files:
-            content = await f.read()
-            file_tuples.append((content, f.filename or "pr_image"))
-
+            data.append((await f.read(), f.filename or "pr_image"))
         return service.upload_pr_images_from_bytes(
             farm_id=farm_id,
-            files=file_tuples,
+            files=data,
         )
     except ValueError as e:
         msg = str(e)
         if "monthly upload limit exceeded" in msg:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=msg,
-            )
-        if "not found" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
                 detail=msg,
             )
         raise HTTPException(
@@ -293,13 +262,10 @@ async def upload_pr_images(
     "/pr-images/order",
     response_model=FarmerSettingsDTO,
 )
-def update_pr_images_order(
+def reorder_pr_images(
     farm_id: int,
     payload: PRImagesOrderPayload,
 ):
-    """
-    PR画像の並び順(order)を更新するエンドポイント。
-    """
     service = FarmerSettingsService()
     try:
         return service.reorder_pr_images(
@@ -307,15 +273,9 @@ def update_pr_images_order(
             image_ids=payload.image_ids,
         )
     except ValueError as e:
-        msg = str(e)
-        if "not found" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=msg,
-            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=msg,
+            detail=str(e),
         )
 
 
@@ -325,19 +285,8 @@ def update_pr_images_order(
 )
 def delete_pr_image(
     farm_id: int,
-    image_id: Optional[str] = None,
+    image_id: str,
 ):
-    """
-    PR画像を1枚削除するエンドポイント。
-
-    - クエリパラメータ image_id で対象を指定
-    """
-    if not image_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="image_id is required",
-        )
-
     service = FarmerSettingsService()
     try:
         return service.delete_pr_image(
@@ -345,13 +294,7 @@ def delete_pr_image(
             image_id=image_id,
         )
     except ValueError as e:
-        msg = str(e)
-        if "not found" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=msg,
-            )
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=msg,
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
         )

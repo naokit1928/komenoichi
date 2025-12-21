@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Any
-import os
+from typing import Optional
 import sqlite3
 
+from app_v2.db.core import resolve_db_path
 
-def _get_db_path() -> str:
-    env_path = os.getenv("APP_DB_PATH")
-    return env_path if env_path else "app.db"
 
+# ============================================================
+# Row 定義（FarmDetail 専用）
+# ============================================================
 
 @dataclass
 class PublicFarmDetailRow:
@@ -20,14 +20,13 @@ class PublicFarmDetailRow:
     owner_address: str
 
     rice_variety_label: str
-    harvest_year: Optional[str]
 
     price_5kg: int
     price_10kg: int
     price_25kg: int
 
-    face_image_url: str
-    cover_image_url: str
+    face_image_url: Optional[str]
+    cover_image_url: Optional[str]
     pr_images_raw: Optional[str]
     pr_title: str
     pr_text: str
@@ -39,19 +38,25 @@ class PublicFarmDetailRow:
     pickup_lng: float
 
 
+# ============================================================
+# Repository
+# ============================================================
+
 class PublicFarmDetailRepository:
     """
-    FarmDetailPage 用 Repository（Phase2 / 新DB完全対応）
+    FarmDetailPage 用 Repository（read-only）
 
-    - users / owner_user_id 完全排除
-    - farms 単体取得
-    - farm_id 主キー固定
+    方針:
+    - farms テーブルのみ参照
+    - public_farms 一覧とは完全に独立
+    - 公開中 & 予約受付中 farm のみ取得
+    - 値は加工しない（決定責務は service にない）
     """
 
-    def __init__(self, db: Any | None = None) -> None:
-        conn = sqlite3.connect(_get_db_path())
-        conn.row_factory = sqlite3.Row
-        self.conn = conn
+    def __init__(self) -> None:
+        db_path = resolve_db_path()
+        self.conn = sqlite3.connect(db_path)
+        self.conn.row_factory = sqlite3.Row
 
     def fetch_publishable_farm_detail(
         self,
@@ -67,7 +72,6 @@ class PublicFarmDetailRepository:
                 f.address               AS owner_address,
 
                 f.rice_variety_label    AS rice_variety_label,
-                f.harvest_year          AS harvest_year,
 
                 f.price_5kg             AS price_5kg,
                 f.price_10kg            AS price_10kg,
@@ -96,10 +100,8 @@ class PublicFarmDetailRepository:
         if row is None:
             return None
 
-        # ---- NULL → 0 fallback ----
-        def to_int_or_zero(v: object) -> int:
-            if v is None:
-                return 0
+        # ---------- 数値だけ安全変換（既存仕様維持） ----------
+        def to_int(v: object) -> int:
             try:
                 return int(v)
             except Exception:
@@ -113,14 +115,15 @@ class PublicFarmDetailRepository:
             owner_address=str(row["owner_address"] or ""),
 
             rice_variety_label=str(row["rice_variety_label"] or ""),
-            harvest_year=row["harvest_year"],
 
-            price_5kg=to_int_or_zero(row["price_5kg"]),
-            price_10kg=to_int_or_zero(row["price_10kg"]),
-            price_25kg=to_int_or_zero(row["price_25kg"]),
+            price_5kg=to_int(row["price_5kg"]),
+            price_10kg=to_int(row["price_10kg"]),
+            price_25kg=to_int(row["price_25kg"]),
 
-            face_image_url=str(row["face_image_url"] or ""),
-            cover_image_url=str(row["cover_image_url"] or ""),
+            # ★ 重要：空文字に変換しない（service 側判断に委ねる）
+            face_image_url=row["face_image_url"],
+            cover_image_url=row["cover_image_url"],
+
             pr_images_raw=row["pr_images_raw"],
             pr_title=str(row["pr_title"] or ""),
             pr_text=str(row["pr_text"] or ""),

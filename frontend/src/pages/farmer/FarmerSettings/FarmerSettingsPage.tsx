@@ -110,61 +110,64 @@ export default function FarmerSettingsPage() {
   }, [farmId]);
 
   async function fetchAll() {
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/farmer/settings-v2?farm_id=${encodeURIComponent(
-          farmId
-        )}`
-      );
-      if (!res.ok) {
-        console.error("fetch settings-v2 failed", res.status, await res.text());
-        return;
-      }
-      const v2: SettingsV2Response = await res.json();
+  try {
+    setBusy(true); // ★ 追加
 
-      const mapped: SettingsResponse = {
-        farm: {
-          id: v2.farm_id ?? farmId,
-          farm_name: v2.farm_name ?? "",
-          price_10kg: v2.price_10kg ?? 0,
-          price_5kg: v2.price_5kg ?? 0,
-          price_25kg: v2.price_25kg ?? 0,
-          rice_variety_label: v2.rice_variety_label ?? null,
-          // SettingsPage では location 情報は主に「公開準備OKかどうか」の補助程度なので、
-          // v2 の pickup_* をそのままマッピングしておく
-          location_name: v2.pickup_place_name ?? null,
-          latitude: v2.pickup_lat ?? null,
-          longitude: v2.pickup_lng ?? null,
-          is_accepting_reservations: !!v2.is_accepting_reservations,
-          is_active: (v2.active_flag ?? 1) === 1,
-        },
-        profile: {
-          pr_title: v2.pr_title ?? "",
-          pr_text: v2.pr_text ?? "",
-          face_image_url: v2.face_image_url ?? null,
-          cover_image_url: v2.cover_image_url ?? null,
-          pr_images: v2.pr_images ?? [],
-          monthly_upload_bytes: v2.monthly_upload_bytes,
-          monthly_upload_limit: v2.monthly_upload_limit,
-          next_reset_at: v2.next_reset_at,
-        },
-        status: {
-          is_ready_to_publish: v2.is_ready_to_publish ?? false,
-          missing_fields: v2.missing_fields ?? [],
-          thumbnail_url: v2.thumbnail_url ?? v2.cover_image_url ?? null,
-          active_flag:
-            typeof v2.active_flag === "number" ? v2.active_flag : 1,
-        },
-      };
-
-      setInitial(mapped);
-      setTitle(mapped.profile.pr_title ?? "");
-      setText(mapped.profile.pr_text ?? "");
-      setRiceVariety(mapped.farm.rice_variety_label ?? "");
-    } catch (e) {
-      console.error("fetch settings-v2 error", e);
+    const res = await fetch(
+      `${API_BASE}/api/farmer/settings-v2?farm_id=${encodeURIComponent(
+        farmId
+      )}`
+    );
+    if (!res.ok) {
+      console.error("fetch settings-v2 failed", res.status, await res.text());
+      return;
     }
+    const v2: SettingsV2Response = await res.json();
+
+    const mapped: SettingsResponse = {
+      farm: {
+        id: v2.farm_id ?? farmId,
+        farm_name: v2.farm_name ?? "",
+        price_10kg: v2.price_10kg ?? 0,
+        price_5kg: v2.price_5kg ?? 0,
+        price_25kg: v2.price_25kg ?? 0,
+        rice_variety_label: v2.rice_variety_label ?? null,
+        location_name: v2.pickup_place_name ?? null,
+        latitude: v2.pickup_lat ?? null,
+        longitude: v2.pickup_lng ?? null,
+        is_accepting_reservations: !!v2.is_accepting_reservations,
+        is_active: (v2.active_flag ?? 1) === 1,
+      },
+      profile: {
+        pr_title: v2.pr_title ?? "",
+        pr_text: v2.pr_text ?? "",
+        face_image_url: v2.face_image_url ?? null,
+        cover_image_url: v2.cover_image_url ?? null,
+        pr_images: v2.pr_images ?? [],
+        monthly_upload_bytes: v2.monthly_upload_bytes,
+        monthly_upload_limit: v2.monthly_upload_limit,
+        next_reset_at: v2.next_reset_at,
+      },
+      status: {
+        is_ready_to_publish: v2.is_ready_to_publish ?? false,
+        missing_fields: v2.missing_fields ?? [],
+        thumbnail_url: v2.thumbnail_url ?? v2.cover_image_url ?? null,
+        active_flag:
+          typeof v2.active_flag === "number" ? v2.active_flag : 1,
+      },
+    };
+
+    setInitial(mapped);
+    setTitle(mapped.profile.pr_title ?? "");
+    setText(mapped.profile.pr_text ?? "");
+    setRiceVariety(mapped.farm.rice_variety_label ?? "");
+  } catch (e) {
+    console.error("fetch settings-v2 error", e);
+  } finally {
+    setBusy(false); // ★ 追加
   }
+}
+
 
   // 予約受付トグル（v2）
   async function toggleAccepting(next: boolean) {

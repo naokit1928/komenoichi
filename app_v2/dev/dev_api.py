@@ -19,8 +19,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app_v2.db.core import resolve_db_path
+
+
 DEV_MODE = os.getenv("DEV_MODE", "0") == "1"
-DB_PATH = os.getenv("DB_PATH", "app.db")
 
 router = APIRouter(tags=["dev"])
 
@@ -34,7 +36,13 @@ def require_dev_access():
 
 
 def get_connection() -> sqlite3.Connection:
-    con = sqlite3.connect(DB_PATH)
+    """
+    DEV 用 DB 接続生成。
+
+    - 本番コードと同じく resolve_db_path() を唯一の正とする
+    - DEV 専用だが、DB 入口ルールは例外にしない
+    """
+    con = sqlite3.connect(resolve_db_path())
     con.row_factory = sqlite3.Row
     return con
 
@@ -97,7 +105,7 @@ class ResetUserBody(BaseModel):
 # --------------------------------------------------
 @router.get("/ping")
 def ping(_: None = Depends(require_dev_access)):
-    return {"ok": True, "mode": "DEV", "db": DB_PATH}
+    return {"ok": True, "mode": "DEV"}
 
 
 @router.post("/test_login")

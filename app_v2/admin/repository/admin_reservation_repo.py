@@ -1,16 +1,10 @@
-# app_v2/admin_reservations/admin_reservation_repo.py
-
 from __future__ import annotations
 
-import os
 import sqlite3
 from datetime import date
 from typing import Any, Dict, List, Optional, Sequence
 
-
-def _get_db_path() -> str:
-    env_path = os.getenv("APP_DB_PATH")
-    return env_path if env_path else "app.db"
+from app_v2.db.core import resolve_db_path
 
 
 class AdminReservationRepository:
@@ -25,7 +19,7 @@ class AdminReservationRepository:
     """
 
     def __init__(self) -> None:
-        self.conn = sqlite3.connect(_get_db_path())
+        self.conn = sqlite3.connect(resolve_db_path())
         self.conn.row_factory = sqlite3.Row
 
     # ------------------------------------------------------------------

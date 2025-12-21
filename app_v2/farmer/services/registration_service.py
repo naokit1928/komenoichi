@@ -5,21 +5,21 @@ from dataclasses import dataclass
 from app_v2.farmer.dtos import OwnerDTO, FarmPickupDTO
 from app_v2.farmer.repository.registration_repo import RegistrationRepository
 from app_v2.farmer.services.location_service import (
-    GeocodeResult,
     geocode_address,
+    GeocodeResult,
 )
 
 
 # ============================================================
-# 例外
+# Exceptions
 # ============================================================
 
 class RegistrationError(Exception):
-    pass
+    """Base registration error"""
 
 
 class FarmerNotFriendError(RegistrationError):
-    pass
+    """LINE friendship is required"""
 
 
 class FarmAlreadyExistsError(RegistrationError):
@@ -29,14 +29,14 @@ class FarmAlreadyExistsError(RegistrationError):
 
 
 # ============================================================
-# 戻り値 DTO
+# Result DTO
 # ============================================================
 
 @dataclass
 class RegistrationResult:
     farm_id: int
     settings_url_hint: str
-    note: str = "Farmer registration completed"
+    note: str = "registration successful"
 
 
 # ============================================================
@@ -45,18 +45,22 @@ class RegistrationResult:
 
 class RegistrationService:
     """
-    Phase1 後対応 Farmer Registration Service
+    Farmer Registration Service
 
-    - users は一切参照しない
-    - farmer_line_id を唯一の識別子とする
+    Responsibilities:
+    - Validate registration conditions
+    - Control registration flow
+    - Decide initial farm state
+    - Delegate persistence to repository
     """
 
     def __init__(self) -> None:
         self.repo = RegistrationRepository()
 
     # --------------------------------------------------------
-    # geocode
+    # Internal helpers
     # --------------------------------------------------------
+
     def _geocode_owner_address(
         self,
         *,
@@ -64,7 +68,9 @@ class RegistrationService:
         owner_city: str,
         owner_addr_line: str,
     ) -> tuple[float, float]:
-
+        """
+        Convert owner address to lat/lng.
+        """
         address = f"{owner_pref}{owner_city}{owner_addr_line}".strip()
         if not address:
             raise RegistrationError("owner address is empty")
@@ -77,12 +83,14 @@ class RegistrationService:
         return float(result.lat), float(result.lng)
 
     # --------------------------------------------------------
-    # main
+    # Public API
     # --------------------------------------------------------
+
     def register_new_farm(
         self,
         *,
         farmer_line_id: str,
+        is_friend: int,
         owner_last_name: str,
         owner_first_name: str,
         owner_last_kana: str,
@@ -97,19 +105,21 @@ class RegistrationService:
         pickup_place_name: str,
         pickup_notes: str | None,
         pickup_time: str,
-        is_friend: int,
     ) -> RegistrationResult:
+        """
+        Register a new farm.
+        """
 
-        # 1. friend 判定（farms 基準）
+        # 1. friendship check
         if int(is_friend) != 1:
             raise FarmerNotFriendError("friendship required")
 
-        # 2. 既存 farm チェック（farmer_line_id）
+        # 2. existing farm check
         existing_farm_id = self.repo.get_existing_farm_id_by_line_id(farmer_line_id)
         if existing_farm_id is not None:
             raise FarmAlreadyExistsError(existing_farm_id)
 
-        # 3. DTO
+        # 3. build DTOs
         owner_dto = OwnerDTO(
             owner_last_name=owner_last_name,
             owner_first_name=owner_first_name,
@@ -131,22 +141,30 @@ class RegistrationService:
             pickup_time=pickup_time,
         )
 
-        # 4. geocode
+        # 4. geocode owner address
         owner_lat, owner_lng = self._geocode_owner_address(
             owner_pref=owner_pref,
             owner_city=owner_city,
             owner_addr_line=owner_addr_line,
         )
 
+        # 5. initial state (business rule)
+        active_flag = 1
+        is_public = 0
+        is_accepting_reservations = 0
+
+        # 6. persist
         try:
-            # 5. create farm
-            farm_id = self.repo.create_farm_for_registration(
+            farm_id = self.repo.create_farm(
                 farmer_line_id=farmer_line_id,
                 is_friend=is_friend,
                 owner=owner_dto,
                 pickup=pickup_dto,
                 owner_lat=owner_lat,
                 owner_lng=owner_lng,
+                active_flag=active_flag,
+                is_public=is_public,
+                is_accepting_reservations=is_accepting_reservations,
             )
             self.repo.commit()
         except Exception:

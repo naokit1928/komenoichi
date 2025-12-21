@@ -7,7 +7,7 @@ import { API_BASE } from "@/config/api";
 
 // V2 Public API
 const LIST_URL = `${API_BASE}/api/public/farms`;
-const LAST_CONFIRMED_URL = `${API_BASE}/public/last-confirmed-farm`;
+const LAST_CONFIRMED_URL = `${API_BASE}/api/public/last-confirmed-farm`;
 
 
 // ====== Favorite (local only) ======

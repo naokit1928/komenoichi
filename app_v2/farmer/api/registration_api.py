@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app_v2.farmer.services.registration_service import (
     RegistrationService,
@@ -10,22 +10,15 @@ from app_v2.farmer.services.registration_service import (
     FarmerNotFriendError,
 )
 
-
 router = APIRouter(
     prefix="/farmer/registration",
-    tags=["farmer-registration-v2"],
+    tags=["farmer-registration"],
 )
 
 
-# ============================================================
-# Pydantic Schemas
-# ============================================================
-
 class RegistrationRequest(BaseModel):
-    # LINE
     line_user_id: str
 
-    # 農家個人情報
     owner_last_name: str
     owner_first_name: str
     owner_last_kana: str
@@ -36,7 +29,6 @@ class RegistrationRequest(BaseModel):
     owner_addr_line: str
     owner_phone: str
 
-    # Pickup
     pickup_lat: float
     pickup_lng: float
     pickup_place_name: str
@@ -51,10 +43,6 @@ class RegistrationResponse(BaseModel):
     note: str
 
 
-# ============================================================
-# Endpoint
-# ============================================================
-
 @router.post(
     "/finish_registration",
     response_model=RegistrationResponse,
@@ -64,26 +52,23 @@ def finish_registration(payload: RegistrationRequest) -> RegistrationResponse:
 
     try:
         result = service.register_new_farm(
-    farmer_line_id=payload.line_user_id,
-    is_friend=1,
-
-    owner_last_name=payload.owner_last_name,
-    owner_first_name=payload.owner_first_name,
-    owner_last_kana=payload.owner_last_kana,
-    owner_first_kana=payload.owner_first_kana,
-    owner_postcode=payload.owner_postcode,
-    owner_pref=payload.owner_pref,
-    owner_city=payload.owner_city,
-    owner_addr_line=payload.owner_addr_line,
-    owner_phone=payload.owner_phone,
-
-    pickup_lat=payload.pickup_lat,
-    pickup_lng=payload.pickup_lng,
-    pickup_place_name=payload.pickup_place_name,
-    pickup_notes=payload.pickup_notes,
-    pickup_time=payload.pickup_time,
-)
-
+            farmer_line_id=payload.line_user_id,
+            is_friend=1,
+            owner_last_name=payload.owner_last_name,
+            owner_first_name=payload.owner_first_name,
+            owner_last_kana=payload.owner_last_kana,
+            owner_first_kana=payload.owner_first_kana,
+            owner_postcode=payload.owner_postcode,
+            owner_pref=payload.owner_pref,
+            owner_city=payload.owner_city,
+            owner_addr_line=payload.owner_addr_line,
+            owner_phone=payload.owner_phone,
+            pickup_lat=payload.pickup_lat,
+            pickup_lng=payload.pickup_lng,
+            pickup_place_name=payload.pickup_place_name,
+            pickup_notes=payload.pickup_notes,
+            pickup_time=payload.pickup_time,
+        )
 
     except FarmerNotFriendError:
         raise HTTPException(
@@ -106,6 +91,6 @@ def finish_registration(payload: RegistrationRequest) -> RegistrationResponse:
     return RegistrationResponse(
         ok=True,
         farm_id=result.farm_id,
-        settings_url_hint=f"/farmer/settings?farm_id={result.farm_id}",
-        note="registration successful",
+        settings_url_hint=result.settings_url_hint,
+        note=result.note,
     )

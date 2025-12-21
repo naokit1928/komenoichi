@@ -1,4 +1,4 @@
-# app_v2/customer_booking/utils/slack_notifier.py
+# komet\app_v2\feedback\utils\slack_notifier.py"
 
 """
 SlackNotifier

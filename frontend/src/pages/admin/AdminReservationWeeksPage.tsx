@@ -1,5 +1,3 @@
-// frontend/src/pages/admin/AdminReservationWeeksPage.tsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "@/config/api";
@@ -29,11 +27,22 @@ type FarmerInfo = {
   owner_address_line?: string;
 };
 
+type FarmOwnerMatch = {
+  farm_id: number;
+  owner_full_name: string;
+  owner_full_kana: string;
+};
+
 const AdminReservationWeeksPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [farmIdInput, setFarmIdInput] = useState<string>("67");
-  const [farmId, setFarmId] = useState<number | null>(67);
+  const [farmIdInput, setFarmIdInput] = useState<string>("");
+  const [farmId, setFarmId] = useState<number | null>(null);
+  const [reservationIdInput, setReservationIdInput] = useState<string>("");
+
+  const [ownerKanaInput, setOwnerKanaInput] = useState<string>("");
+  const [ownerKanaMatches, setOwnerKanaMatches] = useState<FarmOwnerMatch[]>([]);
+  const [ownerKanaLoading, setOwnerKanaLoading] = useState<boolean>(false);
 
   const [weeks, setWeeks] = useState<AdminReservationWeekSummary[]>([]);
   const [farmerInfo, setFarmerInfo] = useState<FarmerInfo | null>(null);
@@ -51,6 +60,82 @@ const AdminReservationWeeksPage: React.FC = () => {
     setFarmId(n);
   };
 
+  const handleOwnerKanaSearch = async () => {
+    const q = ownerKanaInput.trim();
+    if (!q) {
+      setError("owner_kana を入力してください。");
+      return;
+    }
+
+    setError(null);
+    setOwnerKanaLoading(true);
+    setOwnerKanaMatches([]);
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/admin/farms/resolve-by-owner-kana?query=${encodeURIComponent(
+          q
+        )}`
+      );
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const matches: FarmOwnerMatch[] = Array.isArray(data.matches)
+        ? data.matches
+        : [];
+      setOwnerKanaMatches(matches);
+
+      if (matches.length === 0) {
+        setError("該当する農家が見つかりませんでした。");
+      }
+    } catch (e) {
+      console.error(e);
+      setError("owner_kana からの農家検索に失敗しました。");
+    } finally {
+      setOwnerKanaLoading(false);
+    }
+  };
+
+  const handleSelectOwnerMatch = (m: FarmOwnerMatch) => {
+    setError(null);
+    setOwnerKanaMatches([]);
+    setOwnerKanaInput(m.owner_full_kana);
+    setFarmIdInput(String(m.farm_id));
+    setFarmId(m.farm_id);
+  };
+
+  const handleReservationIdSearch = async () => {
+    const n = Number(reservationIdInput);
+    if (!Number.isFinite(n) || n <= 0) {
+      setError("reservation_id が不正です。正の整数を入力してください。");
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/admin/reservations/resolve-by-reservation-id?reservation_id=${n}`
+      );
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      navigate(
+        `/admin/reservations/event?farm_id=${data.farm_id}&event_start=${encodeURIComponent(
+          data.event_start
+        )}&highlight_reservation_id=${data.reservation_id}`
+      );
+    } catch (e) {
+      console.error(e);
+      setError("reservation_id からの検索に失敗しました。");
+    }
+  };
+
   useEffect(() => {
     if (farmId == null) return;
 
@@ -62,24 +147,32 @@ const AdminReservationWeeksPage: React.FC = () => {
       setFarmerInfo(null);
 
       try {
-        // 1) 受け渡しイベント一覧（/weeks）
         const weeksParams = new URLSearchParams({
           farm_id: String(farmId),
         });
 
         const weeksRes = await fetch(
-          `${API_BASE}/api/admin/reservations/weeks?` + weeksParams.toString(),
+          `${API_BASE}/api/admin/reservations/weeks?` +
+            weeksParams.toString(),
           { signal: controller.signal }
         );
         if (!weeksRes.ok) {
           throw new Error(`HTTP ${weeksRes.status}`);
         }
 
-        const weeksData: AdminReservationWeekListResponse =
-          await weeksRes.json();
-        setWeeks(weeksData.items ?? []);
+        const weeksData: AdminReservationWeekListResponse = await weeksRes.json();
+        setWeeks([...(weeksData.items ?? [])].sort((a, b) => new Date(b.event_start).getTime() - new Date(a.event_start).getTime()));
 
-        // 2) 農家ヘッダ用情報（/api/admin/reservations から 1件だけ）
+
+const sorted = [...(weeksData.items ?? [])].sort(
+  (a, b) =>
+    new Date(b.event_start).getTime() -
+    new Date(a.event_start).getTime()
+);
+
+setWeeks(sorted);
+
+
         const headerParams = new URLSearchParams({
           farm_id: String(farmId),
           limit: "1",
@@ -87,7 +180,8 @@ const AdminReservationWeeksPage: React.FC = () => {
         });
 
         const headerRes = await fetch(
-          `${API_BASE}/api/admin/reservations?` + headerParams.toString(),
+          `${API_BASE}/api/admin/reservations?` +
+            headerParams.toString(),
           { signal: controller.signal }
         );
 
@@ -110,7 +204,6 @@ const AdminReservationWeeksPage: React.FC = () => {
             setFarmerInfo(null);
           }
         } else if (headerRes.status === 404) {
-          // V2予約がまだ無い農家など
           setFarmerInfo(null);
         } else {
           throw new Error(`HTTP ${headerRes.status}`);
@@ -131,7 +224,8 @@ const AdminReservationWeeksPage: React.FC = () => {
   }, [farmId]);
 
   const fullName =
-    (farmerInfo?.owner_last_name ?? "") + (farmerInfo?.owner_first_name ?? "");
+    (farmerInfo?.owner_last_name ?? "") +
+    (farmerInfo?.owner_first_name ?? "");
   const fullKana =
     (farmerInfo?.owner_last_kana ?? "") +
     (farmerInfo?.owner_first_kana ?? "");
@@ -170,7 +264,85 @@ const AdminReservationWeeksPage: React.FC = () => {
           </button>
         </div>
 
-        {/* 農家ヘッダカード */}
+
+        {/* reservation_id 入力 */}
+        <div className="mb-4 flex items-center gap-2 text-sm">
+          <label className="text-gray-700">
+            reservation_id:
+            <input
+              type="number"
+              value={reservationIdInput}
+              onChange={(e) => setReservationIdInput(e.target.value)}
+              className="ml-1 w-28 rounded border border-gray-300 px-2 py-1 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={handleReservationIdSearch}
+            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            検索
+          </button>
+        </div>
+
+
+        {/* owner_kana 入力 */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 text-sm">
+            <label className="text-gray-700">
+              owner_kana:
+              <input
+                type="text"
+                value={ownerKanaInput}
+                onChange={(e) => setOwnerKanaInput(e.target.value)}
+                placeholder="例：たなか"
+                className="ml-1 w-60 rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={handleOwnerKanaSearch}
+              className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              disabled={ownerKanaLoading}
+            >
+              検索
+            </button>
+
+            {ownerKanaLoading && (
+              <span className="text-xs text-gray-500">検索中…</span>
+            )}
+          </div>
+
+          {ownerKanaMatches.length > 0 && (
+            <div className="mt-2 grid gap-2">
+              {ownerKanaMatches.map((m) => (
+                <button
+                  key={m.farm_id}
+                  type="button"
+                  onClick={() => handleSelectOwnerMatch(m)}
+                  className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-left text-sm hover:bg-gray-50"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-gray-900">
+                        {m.owner_full_name}
+                        <span className="ml-2 text-xs text-gray-500">
+                          （{m.owner_full_kana}）
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      farm_id: {m.farm_id}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 農家ヘッダ */}
         {farmerInfo && (
           <div className="mb-4 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800">
             <div className="flex items-start justify-between gap-4">
@@ -200,7 +372,6 @@ const AdminReservationWeeksPage: React.FC = () => {
           </div>
         )}
 
-        {/* エラー・ロード中 */}
         {error && (
           <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
@@ -212,7 +383,6 @@ const AdminReservationWeeksPage: React.FC = () => {
           </div>
         )}
 
-        {/* 一覧テーブル */}
         {!loading && weeks.length > 0 && (
           <div className="overflow-hidden rounded-lg border border-gray-300 bg-white">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -237,47 +407,45 @@ const AdminReservationWeeksPage: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {weeks.map((w) => {
-                  // キャンセル率 = X / (C + X)
-                  const denom = w.confirmed_count + w.cancelled_count;
+                  const denom =
+                    w.confirmed_count + w.cancelled_count;
                   const cancelRate =
                     denom === 0
                       ? null
-                      : Math.round((w.cancelled_count / denom) * 100);
+                      : Math.round(
+                          (w.cancelled_count / denom) * 100
+                        );
 
                   return (
-                    <tr key={`${w.pickup_slot_code}-${w.event_start}`}>
-                      {/* 受け渡し日時（slot 表示は出さない） */}
+                    <tr
+                      key={`${w.pickup_slot_code}-${w.event_start}`}
+                    >
                       <td className="px-4 py-2 align-top text-xs text-gray-900">
                         <div>{w.pickup_display}</div>
                       </td>
-
-                      {/* ステータス別（C / X） */}
                       <td className="px-4 py-2 align-middle text-xs text-gray-800">
                         <span className="font-semibold text-green-600">
                           🟩 確定 {w.confirmed_count}
                         </span>
-                        <span className="mx-1 text-gray-400">｜</span>
+                        <span className="mx-1 text-gray-400">
+                          ｜</span>
                         <span className="font-semibold text-red-600">
                           🟥 キャンセル {w.cancelled_count}
                         </span>
                       </td>
-
-                      {/* キャンセル率 */}
                       <td
                         className={
                           "px-4 py-2 align-middle text-right text-sm " +
                           getCancelRateClass(cancelRate)
                         }
                       >
-                        {cancelRate == null ? "-" : `${cancelRate}%`}
+                        {cancelRate == null
+                          ? "-"
+                          : `${cancelRate}%`}
                       </td>
-
-                      {/* お米合計（Cのみ） */}
                       <td className="px-4 py-2 align-middle text-right text-sm text-gray-900">
                         {formatNumber(w.rice_subtotal)} 円
                       </td>
-
-                      {/* 詳細ボタン */}
                       <td className="px-4 py-2 align-middle text-right">
                         <button
                           type="button"
@@ -301,11 +469,12 @@ const AdminReservationWeeksPage: React.FC = () => {
           </div>
         )}
 
-        {!loading && weeks.length === 0 && !error && (
-          <div className="mt-3 text-sm text-gray-600">
-            対象の受け渡しイベントはありません。
-          </div>
+        {!loading && farmId !== null && weeks.length === 0 && !error && (
+         <div className="mt-3 text-sm text-gray-600">
+           対象の受け渡しイベントはありません。
+         </div>
         )}
+
       </div>
     </div>
   );

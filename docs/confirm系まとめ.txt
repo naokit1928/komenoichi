@@ -1,0 +1,321 @@
+confirm 系 構造改革まとめ（保存用）
+1. 改革の目的
+
+confirm 系（旧 reservation 系）は当初、以下の問題を抱えていた。
+
+confirm に無関係な機能が混在
+
+repo が read / write / cancel / history を兼任
+
+Service が DB・SQL・価格計算・状態遷移まで抱えていた
+
+cancel / confirm で状態遷移の実装方針が不統一
+
+本改革の目的は：
+
+confirm の責務を「予約確定フローの制御」に限定する
+
+状態遷移・履歴・通知・参照をすべて外部に切り出す
+
+V2 基準（API / Service / Repo / Domain 分離）を満たす
+
+2. このスレッドで「confirm から外に出した機能」
+2.1 状態遷移（最重要）
+新設
+
+ReservationStatusService
+
+移動した機能
+
+status = confirmed
+
+status = cancelled
+
+トランザクション管理
+
+冪等性（二重 confirm / cancel 防止）
+
+意味論の確定
+
+payment_succeeded_at
+= 手数料300円の決済成功時刻
+
+仕様上：
+
+confirm 時に必ず入る
+
+cancel されても 消さない
+
+status と payment は独立軸
+
+👉 confirm / cancel / admin / system は
+すべて ReservationStatusService を唯一の正として使う
+
+2.2 cancel 系（confirm から完全分離）
+CancelService の責務（確定）
+
+キャンセル可否判定（3時間前）
+
+キャンセル確認ページ用データ構築
+
+CancelToken 検証
+
+REMINDER 削除
+
+CANCEL_COMPLETED 通知送信
+
+confirm から消えたもの
+
+cancel 処理
+
+cancel DB 更新
+
+token 検証
+
+👉 confirm は cancel を一切知らない
+
+2.3 consumer 履歴系（confirm から完全分離）
+新設
+
+consumer_history_repo.py
+
+consumer_history_api.py
+
+移動した機能
+
+get_last_confirmed_farm_id
+
+「前回予約した農家を優先表示する」ロジック
+
+接続先
+
+FarmsListPage
+
+MapLayerPortal
+
+👉 confirm / reservation_repo から 履歴参照は完全排除
+
+2.4 reservation_repo の整理
+削除した責務
+
+cancel 用 UPDATE
+
+consumer 履歴参照
+
+confirm 専用ロジック
+
+残した責務
+
+reservation の read-only 取得
+
+booked / cancel / confirm 共通で使える参照
+
+👉 「reservation read の共通入口」として正しい位置に縮退
+
+3. 現在の confirm 系ファイルの評価
+3.1 confirm_api.py
+
+HTTP 入出力
+
+最低限の入力チェック
+
+ConfirmService への完全委譲
+
+✅ V2 基準を完全に満たす（完成）
+
+3.2 reservation_repo.py
+
+reservation の read-only 参照
+
+confirm 専用ではないが、それが正しい
+
+✅ 完成
+
+3.3 confirm_service.py（重要）
+現在の責務
+
+フロント入力の業務的検証
+
+締切判定（client / server）
+
+注文内容の正当性検証
+
+ReservationStatusService.confirm の呼び出し
+
+ただし、まだ残っている「外に出すべき責務」
+
+以下は confirm の本来責務ではない：
+
+sqlite3 接続管理
+
+SQL（INSERT INTO reservations）
+
+farms テーブルからの価格取得
+
+DB パス解決
+
+👉 confirm_service は まだ V1 の尻尾を引きずっている
+
+4. これから confirm から外に出す予定のファイル（未完了）
+4.1 新設予定：confirm_repository（仮）
+想定責務
+
+insert_pending_reservation(...)
+
+fetch_farm_price(...)
+
+confirm_service から削除予定
+
+_get_conn
+
+_fetch_price
+
+SQL 文
+
+sqlite3 import
+
+4.2 最終的な confirm_service のあるべき姿
+
+confirm_service は最終的に：
+
+業務フロー制御
+
+順序の保証
+
+Service 間のオーケストレーション
+
+のみを行う
+
+DB / SQL / テーブル構造を一切知らない状態がゴール。
+
+5. 現在地の総括
+
+cancel：完成
+
+consumer 履歴：完成
+
+状態遷移：完成
+
+confirm API：完成
+
+confirm Service：80% 完成
+
+confirm Repository 分離：未着手（次の作業）
+
+👉 confirm は「最後に残る難所」であり、
+この順序は正しい
+
+6. 次にやるべき作業（再開用メモ）
+
+confirm_repository を新設
+
+confirm_service から DB / SQL を完全排除
+
+confirm_service を orchestration 専用にする
+
+動作確認（POST /api/confirm）
+
+この文書は
+「なぜこの構造になっているか」「何が終わっていて何が残っているか」
+を次の作業者が一切迷わず理解できることを目的に書いています。
+
+このまま .md や 構造改革_confirm.txt として保存してください。
+
+
+
+最終追記】ReservationStatusService の完全分離について（構造改革 完了宣言）
+背景
+
+confirm / cancel 構造改革の最終段階として、
+reservation_status_service.py が Service でありながら sqlite3 / SQL / トランザクションを直接扱っている という一点だけが、構造改革原則から外れて残っていた。
+
+これは設計ミスではなく、状態遷移という最重要コアを一度 Service に集約した結果、意図的に残された未分離コアである。
+
+しかし最終完全体としては、
+
+Service は意味論・状態遷移ルールのみを持つ
+
+DB / SQL / トランザクションは Repository に完全隔離する
+
+という原則①②を満たす必要があるため、
+このタイミングで repo 分離を実施した。
+
+実施内容（最終構成）
+新設
+
+reservation_status_repo.py
+
+役割分担（最終確定）
+ReservationStatusService
+
+状態遷移の意味論を一元管理
+
+冪等性保証
+
+不正遷移の防止
+
+confirm / cancel の唯一の正
+
+※ DB・SQL・トランザクションを一切持たない
+
+ReservationStatusRepository
+
+status の取得
+
+status の更新
+
+トランザクション管理
+
+sqlite3 / SQL を完全に隔離
+
+※ 業務判断・状態遷移ルールを一切持たない
+
+なぜこの分離が「最終工程」なのか
+
+状態遷移は以下をすべて内包するため、構造改革の中で最も壊れやすい。
+
+confirmed / cancelled / pending の意味論
+
+冪等性
+
+将来の admin / system / cron / Stripe 連携
+
+全ページからの信頼点（唯一の正）
+
+そのため、
+
+まず Service に完全集約する
+
+構造が安定した後、最後に Repo を切る
+
+という順序は 意図的かつ正しい進め方である。
+
+現在の状態（最終評価）
+
+confirm / cancel / status の責務分離は完了
+
+Service / Repository の境界は完全
+
+構造改革原則①②③をすべて満たす
+
+挙動変更なし・API変更なし・UI変更なし
+
+👉 confirm 系構造改革はこの時点で「完成」
+
+将来の保守・変更時の注意点
+
+状態を変えたい場合は、必ず ReservationStatusService にメソッドを追加する
+
+SQL を Service に戻してはいけない
+
+他 Service から直接 status を UPDATE してはいけない
+
+Repo はあくまで「DB操作係」に徹する
+
+一文まとめ（完成宣言）
+
+confirm は手続き係、
+status は意味論の王、
+repo は DB の奴隷。
+
+この境界を壊さない限り、構造は長期的に安定する。

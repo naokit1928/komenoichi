@@ -3,7 +3,10 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 
-DB_PATH = "app.db"
+from app_v2.db.core import resolve_db_path
+
+DB_PATH = str(resolve_db_path())
+
 
 
 @dataclass

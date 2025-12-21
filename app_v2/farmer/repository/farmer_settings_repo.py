@@ -5,30 +5,26 @@ import sqlite3
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-DB_PATH = "app.db"
+from app_v2.db.core import resolve_db_path
 
 
 class FarmerSettingsRepository:
     """
-    Farmer Settings v2 用の DB アクセス層（sqlite3 版）。
-    farms テーブルのみを正とする。
+    Farmer Settings 用 Repository。
+
+    - sqlite3 直叩き
+    - DB パスは resolve_db_path に一本化
+    - 業務ロジックは一切持たない
     """
 
-    def __init__(self, db_path: str = DB_PATH) -> None:
-        self.db_path = db_path
-
-    # -----------------------------------------------------
-    # 内部ヘルパ
-    # -----------------------------------------------------
-
     def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(resolve_db_path())
         conn.row_factory = sqlite3.Row
         return conn
 
-    # -----------------------------------------------------
-    # Farm 取得
-    # -----------------------------------------------------
+    # ============================================================
+    # Farm / Profile
+    # ============================================================
 
     def get_farm(self, farm_id: int) -> Optional[Dict[str, Any]]:
         with self._get_conn() as conn:
@@ -39,13 +35,8 @@ class FarmerSettingsRepository:
             row = cur.fetchone()
             return dict(row) if row else None
 
-    # 互換用（service 側を壊さないため残す）
     def get_profile(self, farm_id: int) -> Optional[Dict[str, Any]]:
         return self.get_farm(farm_id)
-
-    # -----------------------------------------------------
-    # 初期 PR 情報作成
-    # -----------------------------------------------------
 
     def create_initial_profile(self, farm_id: int) -> Dict[str, Any]:
         with self._get_conn() as conn:
@@ -58,7 +49,7 @@ class FarmerSettingsRepository:
                        face_image_url = NULL,
                        pr_images_json = '[]',
                        monthly_upload_bytes = 0,
-                       monthly_upload_limit = 150000000,
+                       monthly_upload_limit = 50000000,
                        next_reset_at = NULL
                  WHERE farm_id = ?
                 """,
@@ -70,17 +61,16 @@ class FarmerSettingsRepository:
             raise RuntimeError("failed to create initial profile")
         return farm
 
-    # -----------------------------------------------------
-    # Farm 更新
-    # -----------------------------------------------------
+    # ============================================================
+    # Update helpers
+    # ============================================================
 
     def update_farm_fields(self, farm_id: int, **fields: Any) -> None:
         if not fields:
             return
 
         columns = ", ".join(f"{k} = ?" for k in fields.keys())
-        values = list(fields.values())
-        values.append(farm_id)
+        values = list(fields.values()) + [farm_id]
 
         with self._get_conn() as conn:
             conn.execute(
@@ -91,9 +81,9 @@ class FarmerSettingsRepository:
     def update_profile_fields(self, farm_id: int, **fields: Any) -> None:
         self.update_farm_fields(farm_id, **fields)
 
-    # -----------------------------------------------------
-    # PR 画像
-    # -----------------------------------------------------
+    # ============================================================
+    # PR images
+    # ============================================================
 
     def load_pr_images_list(self, farm_id: int) -> List[Dict[str, Any]]:
         farm = self.get_farm(farm_id)
@@ -102,11 +92,14 @@ class FarmerSettingsRepository:
 
         raw = farm.get("pr_images_json") or "[]"
         try:
-            loaded = json.loads(raw)
+            data = json.loads(raw)
         except Exception:
             return []
 
-        return [x for x in loaded if isinstance(x, dict)] if isinstance(loaded, list) else []
+        if not isinstance(data, list):
+            return []
+
+        return [x for x in data if isinstance(x, dict)]
 
     def save_pr_images_list(
         self,
@@ -116,14 +109,14 @@ class FarmerSettingsRepository:
         payload = json.dumps(pr_list, ensure_ascii=False)
         self.update_farm_fields(farm_id, pr_images_json=payload)
 
-    # -----------------------------------------------------
-    # 月間アップロード
-    # -----------------------------------------------------
+    # ============================================================
+    # Monthly upload state
+    # ============================================================
 
     def get_monthly_upload_state(self, farm_id: int) -> Dict[str, Any]:
         farm = self.get_farm(farm_id)
         if not farm:
-            raise RuntimeError("Farm not found")
+            raise RuntimeError("farm not found")
 
         if (
             farm.get("monthly_upload_bytes") is None
@@ -142,23 +135,21 @@ class FarmerSettingsRepository:
         next_reset_at: Optional[datetime] = None,
         monthly_upload_limit: Optional[int] = None,
     ) -> None:
-        update_fields: Dict[str, Any] = {}
+        fields: Dict[str, Any] = {}
 
         if monthly_upload_bytes is not None:
-            update_fields["monthly_upload_bytes"] = int(monthly_upload_bytes)
-
+            fields["monthly_upload_bytes"] = int(monthly_upload_bytes)
         if next_reset_at is not None:
-            update_fields["next_reset_at"] = next_reset_at.isoformat()
-
+            fields["next_reset_at"] = next_reset_at.isoformat()
         if monthly_upload_limit is not None:
-            update_fields["monthly_upload_limit"] = int(monthly_upload_limit)
+            fields["monthly_upload_limit"] = int(monthly_upload_limit)
 
-        if update_fields:
-            self.update_farm_fields(farm_id, **update_fields)
+        if fields:
+            self.update_farm_fields(farm_id, **fields)
 
-    # -----------------------------------------------------
-    # 予約カウント
-    # -----------------------------------------------------
+    # ============================================================
+    # Reservation
+    # ============================================================
 
     def count_active_reservations(self, farm_id: int) -> int:
         with self._get_conn() as conn:
