@@ -1,11 +1,12 @@
-// frontend/src/config/api.ts
+// src/config/api.ts
 
-export const API_BASE = (() => {
-  const v = import.meta.env.VITE_API_BASE;
-  if (!v) {
-    throw new Error("VITE_API_BASE is not defined");
-  }
-  return v;
-})();
+const apiBase = import.meta.env.VITE_API_BASE;
 
-export const DEV_MODE = import.meta.env.VITE_DEV_MODE === "1";
+if (!apiBase) {
+  throw new Error(
+    "VITE_API_BASE is not defined. " +
+    "Check .env (local) or Vercel Environment Variables."
+  );
+}
+
+export const API_BASE: string = apiBase;
