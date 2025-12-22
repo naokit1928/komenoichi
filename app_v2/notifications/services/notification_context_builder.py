@@ -25,10 +25,9 @@ class NotificationContextBuilder:
       - reservation / user / farm の生データから
       - 通知・表示で共通利用される Context を生成する
 
-    特徴：
-      - DB 接続を持たない
-      - job / schedule / send を一切知らない
-      - NotificationScheduler / ReservationBooked から再利用可能
+    設計方針（重要）：
+      - pickup_map_url は **pickup 設定で指定された lat/lng のみ**を使用
+      - 住所フォールバックは禁止（ピン指定の正確性を最優先）
     """
 
     # ==========================================================
@@ -80,7 +79,7 @@ class NotificationContextBuilder:
             customer_line_user_id=line_consumer_id,
             pickup_display=pickup_display,
             pickup_place_name=farm.get("pickup_place_name") or "",
-            pickup_map_url="",  # map URL は別責務
+            pickup_map_url=self._build_pickup_map_url_from_latlng(farm),
             pickup_detail_memo=farm.get("pickup_notes") or "",
             pickup_code=pickup_code,
             qty_5=qty_5,
@@ -101,6 +100,30 @@ class NotificationContextBuilder:
     # ==========================================================
     # Internal helpers（純粋関数群）
     # ==========================================================
+
+    def _build_pickup_map_url_from_latlng(self, farm: Dict[str, Any]) -> str:
+        """
+        pickup 設定で指定された正確な lat/lng から
+        Google Maps URL を生成する。
+
+        ※ 住所フォールバックは禁止
+        """
+        lat = farm.get("pickup_lat")
+        lng = farm.get("pickup_lng")
+
+        if lat is None or lng is None:
+            return ""
+
+        try:
+            lat_f = float(lat)
+            lng_f = float(lng)
+        except (TypeError, ValueError):
+            return ""
+
+        return (
+            "https://www.google.com/maps/search/?api=1&query="
+            f"{lat_f},{lng_f}"
+        )
 
     def _parse_items(self, items_json: str):
         try:
