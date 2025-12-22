@@ -120,8 +120,8 @@ def line_callback(
         value="1",
         max_age=60 * 60 * 24 * 30,
         httponly=True,
-        secure=False,
-        samesite="Lax",
+        secure=True,
+        samesite="None",
         path="/",
     )
 
