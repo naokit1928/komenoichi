@@ -1,4 +1,3 @@
-// frontend/src/App.tsx
 import React, { Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -45,6 +44,11 @@ const FeedbackPage = React.lazy(
 
 const ReservationBookedPage = React.lazy(
   () => import("./pages/public/ReservationBooked/ReservationBookedPage")
+);
+
+// ★ 追加①：予約中継ページ（/reservations）
+const ReservationsRedirectPage = React.lazy(
+  () => import("./pages/public/Reservations")
 );
 
 // ★ 新しいキャンセル確認ページ
@@ -110,6 +114,12 @@ export default function App() {
 
             <Route path="/feedback" element={<FeedbackPage />} />
 
+            {/* ★ 追加②：リッチメニュー中継 */}
+            <Route
+              path="/reservations"
+              element={<ReservationsRedirectPage />}
+            />
+
             {/* 予約キャンセル（LINE から遷移） */}
             <Route
               path="/reservation/cancel"
@@ -151,7 +161,7 @@ export default function App() {
               element={<FarmerPickupSettingsPage />}
             />
 
-            {/* 予約確認ページ */}
+            {/* 予約確認ページ（最終表示） */}
             <Route
               path="/reservation/booked"
               element={<ReservationBookedPage />}

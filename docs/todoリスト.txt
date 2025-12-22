@@ -1,0 +1,99 @@
+📝 今後の TODO リスト（後回し確定）
+TODO-1：LINE cookie の有効期限ポリシー整理
+
+現状
+
+Web 側 LINE cookie：30日
+
+動作・UX ともに問題なし
+
+将来やること
+
+更新タイミングを
+
+決済成功時に延長するか
+
+固定 30 日にするか
+
+セキュリティ要件が変わった場合のみ再検討
+
+優先度：低
+理由：現行仕様で UX / セキュリティともに十分
+
+TODO-2：LINE 連携解除 UX
+
+現状
+
+未実装
+
+機能的な支障なし
+
+将来やること
+
+/api/line/unlink API
+
+マイページ or 設定画面に
+
+「LINE 連携を解除する」導線追加
+
+優先度：中
+理由：運営・法務・CS 観点で将来必須だが、今すぐ不要
+
+TODO-3：Stripe Webhook 本番監視の強化
+
+現状
+
+実装は本番品質
+
+Stripe Dashboard での目視確認のみ
+
+将来やること
+
+Webhook イベントのログ整理
+
+異常時の運営対応フロー文書化
+
+（必要なら）Slack / メール通知
+
+優先度：中〜高
+理由：ユーザー数が増え始めた段階で必須
+
+
+TODO-4：consumer_id 固定撤去（セッション方式導入）
+
+現状
+
+consumer_id = 1 固定で暫定運用中
+
+LINE OAuth により line_user_id → consumer の紐付けは完了済み
+
+API リクエスト単位で consumer を特定する正式な仕組み（認証コンテキスト）は未導入
+
+背景 / 判断
+
+長期的な安定性・拡張性・責務分離の観点から
+cookie 直書き方式ではなく session テーブル方式を採用することを決定
+
+「1ユーザー同時1予約制限」は業務ルールであり、
+認証設計（consumer 特定）とは切り離すべきと判断
+
+将来やること
+
+sessions テーブルを新設
+
+session_id / consumer_id / expires_at 等
+
+LINE callback 時に session を発行し HttpOnly cookie に保存
+
+get_current_consumer() を session ベースで実装
+
+public_reservations_api 等の consumer_id 固定コードを撤去
+
+優先度：中（後回し確定）
+
+理由
+
+現在の UX / 動作に致命的問題はない
+
+ただし将来の拡張（複数端末、管理画面、認証拡張）を考えると
+必ず対応が必要な構造的 TODO のため、決定事項として明文化

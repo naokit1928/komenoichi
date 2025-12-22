@@ -88,6 +88,9 @@ from app_v2.customer_booking.api.public_farms_api import router as public_farms_
 from app_v2.customer_booking.api.public_farm_detail_api import (
     router as public_farm_detail_router,
 )
+from app_v2.customer_booking.api.public_reservations_api import (
+    router as public_reservations_router,
+)
 from app_v2.customer_booking.consumer_history.consumer_history_api import (
     router as consumer_history_router,
 )
@@ -149,10 +152,12 @@ app.include_router(geocode_router, prefix="/api")
 # Customer
 app.include_router(public_farms_router)
 app.include_router(public_farm_detail_router)
+app.include_router(public_reservations_router)
 app.include_router(consumer_history_router)
 app.include_router(confirm_router)
 app.include_router(expanded_router)
 app.include_router(cancel_router, prefix="/api")
+
 
 # Integrations
 app.include_router(line_router)
