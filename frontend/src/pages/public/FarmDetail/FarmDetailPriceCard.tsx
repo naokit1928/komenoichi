@@ -65,9 +65,7 @@ export default function FarmDetailPriceCard({
                 }
               }}
               style={{
-                border: active
-                  ? "1px solid #1f7a36"
-                  : "1px solid #e5e7eb",
+                border: active ? "1px solid #1f7a36" : "1px solid #e5e7eb",
                 boxShadow: active ? "0 0 0 2px #bbf7d0" : "none",
                 cursor: disabled ? "not-allowed" : "pointer",
                 opacity: disabled ? 0.5 : 1,
@@ -162,29 +160,46 @@ export default function FarmDetailPriceCard({
           text-align: center;
         }
 
-        /* ===== 391px以上：3枚ちょうど自然に並ぶ ===== */
-        @media (min-width: 391px) {
-          .price-card-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-            gap: 10px;
-          }
+        /* =========================================================
+           モバイル（基本）：常に横スライド
+           - 2段化を絶対に防ぐ
+           - 大きめスマホでは「3枚が自然に収まる」ように
+             min幅 + 余白で均等に少しだけ太る（maxで止める）
+           ========================================================= */
+        .price-card-container {
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          -webkit-overflow-scrolling: touch;
+          scroll-snap-type: x mandatory;
         }
 
-        /* ===== 390px以下：横スライド ===== */
-        @media (max-width: 390px) {
+        .price-card {
+          /* ★最小95pxから開始。余白があれば均等に太る */
+          flex: 1 0 95px; /* grow=1 / shrink=0 / basis=95px */
+          /* ★太りすぎ防止。これで「2枚しか入らない」事故を防ぐ */
+          max-width: 120px;
+          scroll-snap-align: start;
+        }
+
+        /* =========================================================
+           タブレット以上（必要なら grid）
+           - スマホでの事故を避けるため、grid はここからだけ
+           ========================================================= */
+        @media (min-width: 768px) {
           .price-card-container {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
-            overflow-x: auto;
-            padding-bottom: 4px;
-            -webkit-overflow-scrolling: touch;
-            scroll-snap-type: x mandatory;
+            overflow-x: visible;
+            padding-bottom: 0;
+            scroll-snap-type: none;
           }
 
           .price-card {
-            flex: 0 0 140px;
-            scroll-snap-align: start;
+            max-width: none;
+            scroll-snap-align: unset;
           }
         }
       `}</style>
