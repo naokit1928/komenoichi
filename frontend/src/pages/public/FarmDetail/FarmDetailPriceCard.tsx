@@ -10,7 +10,7 @@ type Props = {
   loading: boolean;
   errorMsg: string | null;
   sizes: readonly Size[];
-  selectedKg: Kg; // 10kg が常に選択中表示
+  selectedKg: Kg;
   qtyByKg: { 5: number; 10: number; 25: number };
   onSelectKg: (kg: Kg) => void;
   onInc: (kg: Kg) => void;
@@ -47,7 +47,6 @@ export default function FarmDetailPriceCard({
 
   return (
     <>
-      {/* ===== container ===== */}
       <div className="price-card-container">
         {sizes.map((s) => {
           const active = selectedKg === s.kg;
@@ -65,7 +64,6 @@ export default function FarmDetailPriceCard({
                   onSelectKg(s.kg);
                 }
               }}
-              title={disabled ? "価格未設定" : `${s.label}を選択`}
               style={{
                 border: active
                   ? "1px solid #1f7a36"
@@ -75,19 +73,15 @@ export default function FarmDetailPriceCard({
                 opacity: disabled ? 0.5 : 1,
               }}
             >
-              {/* 上段 */}
               <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>
-                  {s.label}
-                </div>
-                <div style={{ fontSize: 15, color: "#374151", marginTop: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 500 }}>{s.label}</div>
+                <div style={{ fontSize: 15, marginTop: 4 }}>
                   {s.price != null ? `${money(s.price)}円` : "未設定"}
                 </div>
                 <div style={{ marginTop: 8, minHeight: 20 }}>
                   {!disabled && active && (
                     <span
                       style={{
-                        display: "inline-block",
                         fontSize: 12,
                         padding: "2px 8px",
                         borderRadius: 999,
@@ -102,7 +96,6 @@ export default function FarmDetailPriceCard({
                 </div>
               </div>
 
-              {/* 下段（数量） */}
               <div
                 style={{
                   marginTop: 8,
@@ -127,13 +120,7 @@ export default function FarmDetailPriceCard({
                 >
                   −
                 </button>
-                <span
-                  style={{
-                    width: 14,
-                    textAlign: "center",
-                    fontSize: 14,
-                  }}
-                >
+                <span style={{ width: 14, textAlign: "center" }}>
                   {qtyByKg[s.kg]}
                 </span>
                 <button
@@ -158,9 +145,7 @@ export default function FarmDetailPriceCard({
         })}
       </div>
 
-      {/* ===== CSS（このファイル内完結） ===== */}
       <style>{`
-        /* 共通 */
         .price-card-container {
           margin-bottom: 12px;
         }
@@ -177,7 +162,7 @@ export default function FarmDetailPriceCard({
           text-align: center;
         }
 
-        /* ===== 通常（大きめスマホ以上） ===== */
+        /* ===== 391px以上：3枚ちょうど自然に並ぶ ===== */
         @media (min-width: 391px) {
           .price-card-container {
             display: grid;
@@ -186,7 +171,7 @@ export default function FarmDetailPriceCard({
           }
         }
 
-        /* ===== 小さいスマホ（iPhone SE 等） ===== */
+        /* ===== 390px以下：横スライド ===== */
         @media (max-width: 390px) {
           .price-card-container {
             display: flex;
@@ -198,7 +183,7 @@ export default function FarmDetailPriceCard({
           }
 
           .price-card {
-            flex: 0 0 140px; /* ← 右が少し切れる幅 */
+            flex: 0 0 140px;
             scroll-snap-align: start;
           }
         }
