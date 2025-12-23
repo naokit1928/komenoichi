@@ -7,6 +7,12 @@ import { RiceBreakdown } from "./components/RiceBreakdown";
 import { ServiceFeeCard } from "./components/ServiceFeeCard";
 import { AgreementBlock } from "./components/AgreementBlock";
 
+// ★ 追加：注文ルール再利用
+import {
+  calcTotalKg,
+  isOverMaxKg,
+} from "../FarmDetail/rules/orderRules";
+
 const FRONT_BASE = window.location.origin;
 
 // ConfirmPage が使うコンテキスト
@@ -190,6 +196,26 @@ export default function ConfirmPage() {
         return;
       }
 
+      // ===== ★ 追加：注文内容バリデーション（最終防衛線） =====
+
+      const qtyByKg = {
+        5: ctx.items.find((i) => i.kg === 5)?.qty ?? 0,
+        10: ctx.items.find((i) => i.kg === 10)?.qty ?? 0,
+        25: ctx.items.find((i) => i.kg === 25)?.qty ?? 0,
+      };
+
+      const totalKg = calcTotalKg(qtyByKg);
+
+      if (totalKg === 0) {
+        throw new Error("数量が 0 のため予約できません。");
+      }
+
+      if (isOverMaxKg(qtyByKg)) {
+        throw new Error("注文は合計50kgまでです。");
+      }
+
+      // ===== 既存ロジック =====
+
       if (!lineReady) {
         sessionStorage.setItem(CONFIRM_CTX_KEY, JSON.stringify(ctx));
         sessionStorage.setItem(AUTO_PAY_KEY, "1");
@@ -206,8 +232,6 @@ export default function ConfirmPage() {
       const items: ReservationItemInput[] = ctx.items
         .filter((it) => it.qty > 0)
         .map((it) => ({ size_kg: it.kg, quantity: it.qty }));
-
-      if (!items.length) throw new Error("数量が 0 のため予約できません。");
 
       const pickupSlotCode = ctx.pickupSlotCode?.trim();
       if (!pickupSlotCode)

@@ -7,7 +7,10 @@ export default function RegistrationLayout({
 }) {
   return (
     <div className="min-h-screen bg-[#F7F7F7]">
-      <div className="mx-auto max-w-md px-4 py-6">{children}</div>
+      {/* 下に余白を追加 */}
+      <div className="mx-auto max-w-md px-4 pt-6 pb-24">
+        {children}
+      </div>
     </div>
   );
 }

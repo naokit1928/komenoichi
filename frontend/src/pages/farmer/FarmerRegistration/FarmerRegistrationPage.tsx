@@ -114,6 +114,9 @@ export default function FarmerRegistrationPage() {
           />
         </div>
 
+        {/* ★ 受け取り日時カードとボタンの間の余白 */}
+        <div style={{ height: 32 }} aria-hidden="true" />
+
         {/* エラー表示 */}
         {reg.submitted && reg.allErrors.length > 0 && (
           <ul
@@ -131,11 +134,8 @@ export default function FarmerRegistrationPage() {
           </ul>
         )}
 
-        {/* ボタン前余白 */}
-        <div style={{ height: 50 }} aria-hidden="true" />
-
         {/* 登録ボタン */}
-        <div>
+        <div className="mt-8">
           <button
             type="submit"
             disabled={reg.loading}
@@ -153,6 +153,9 @@ export default function FarmerRegistrationPage() {
             {reg.loading ? "登録中..." : "登録を完了する"}
           </button>
         </div>
+
+        {/* 下に必ず見える余白（あなたが 48 に設定した部分） */}
+        <div style={{ height: 48 }} aria-hidden="true" />
 
         {/* サーバーエラー */}
         {reg.msg && (

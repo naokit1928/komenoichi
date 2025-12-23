@@ -11,6 +11,12 @@ from app_v2.customer_booking.services.confirm_service import (
     ConfirmService,
 )
 
+# ★ 追加：注文量バリデーション（三重防御の最後）
+from app_v2.domain.order_quantity import (
+    OrderItem,
+    validate_order_quantity,
+)
+
 # ------------------------------------------------------------
 # Router
 # ------------------------------------------------------------
@@ -36,6 +42,7 @@ def confirm_reservation(
 
     役割:
     - 入力バリデーション
+    - 注文量ルールの検証（0kg / 最大kg）
     - ConfirmService に処理委譲
     - pending reservation を1件作成して返す
 
@@ -55,6 +62,24 @@ def confirm_reservation(
         raise HTTPException(
             status_code=400,
             detail="pickup_slot_code is required",
+        )
+
+    # --- ★ 注文量バリデーション（ドメイン責務） ---
+    try:
+        order_items = [
+            OrderItem(
+                size_kg=item.size_kg,
+                quantity=item.quantity,
+            )
+            for item in payload.items
+        ]
+
+        validate_order_quantity(order_items)
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
         )
 
     # --- Service に完全委譲 ---
