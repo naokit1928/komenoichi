@@ -87,7 +87,7 @@ export default function FarmDetailSoftMap({
   const mapOptions: google.maps.MapOptions = {
     disableDefaultUI: true,
     clickableIcons: false,
-    gestureHandling: "greedy",
+    gestureHandling: "none",
     zoomControl: true,
     minZoom: 9,
     maxZoom: 18,
