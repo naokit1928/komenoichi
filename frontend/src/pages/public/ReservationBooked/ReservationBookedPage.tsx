@@ -1,10 +1,7 @@
 // frontend/src/pages/public/ReservationBooked/ReservationBookedPage.tsx
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  fetchReservationBooked,
-  type ReservationBookedResponse,
-} from "../../../lib/reservationBooked";
+import { fetchReservationBooked, type ReservationBookedResponse } from "../../../lib/reservationBooked";
 
 import PickupSummaryCard from "./PickupSummaryCard";
 import BookingItemsCard from "./BookingItemsCard";
@@ -43,8 +40,7 @@ const ReservationBookedPage: React.FC = () => {
         setError(null);
         const res = await fetchReservationBooked(id);
         setData(res);
-      } catch (e) {
-        console.error(e);
+      } catch {
         setError("予約情報の取得に失敗しました。");
       } finally {
         setLoading(false);
@@ -54,13 +50,7 @@ const ReservationBookedPage: React.FC = () => {
 
   const renderShell = (child: React.ReactNode) => (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-      <section
-        style={{
-          maxWidth: 720,
-          margin: "0 auto",
-          padding: "24px 16px 40px 16px",
-        }}
-      >
+      <section style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 40px" }}>
         <div
           style={{
             background: "#ffffff",
@@ -77,33 +67,29 @@ const ReservationBookedPage: React.FC = () => {
   );
 
   if (loading) {
-    return renderShell(
-      <div style={{ textAlign: "center", padding: "40px 0", fontSize: 14 }}>
-        読み込み中です…
-      </div>
-    );
+    return renderShell(<div style={{ textAlign: "center", padding: "40px 0" }}>読み込み中です…</div>);
   }
 
   if (error) {
     return renderShell(
-      <div style={{ textAlign: "center", padding: "32px 4px", color: "#b91c1c" }}>
-        {error}
-      </div>
+      <div style={{ textAlign: "center", padding: "32px 4px", color: "#b91c1c" }}>{error}</div>
     );
   }
 
   if (!data) {
-    return renderShell(
-      <div style={{ textAlign: "center", padding: "32px 4px" }}>
-        予約情報が見つかりませんでした。
-      </div>
-    );
+    return renderShell(<div style={{ textAlign: "center", padding: "32px 4px" }}>予約情報が見つかりませんでした。</div>);
   }
 
-  const reservationStatus = (data as any).reservation_status as string | undefined;
-  const isExpiredForDisplay = (data as any).is_expired_for_display as
-    | boolean
-    | undefined;
+  // 外形だけを安全に取り出す（as any 縮小）
+  const reservationStatus =
+    typeof data === "object" && data !== null
+      ? (data as { reservation_status?: string }).reservation_status
+      : undefined;
+
+  const isExpiredForDisplay =
+    typeof data === "object" && data !== null
+      ? (data as { is_expired_for_display?: boolean }).is_expired_for_display
+      : undefined;
 
   if (reservationStatus && reservationStatus !== "confirmed") {
     return renderShell(<div>現在、ご予約中の受け渡しはありません。</div>);
@@ -138,7 +124,6 @@ const ReservationBookedPage: React.FC = () => {
 
   const riceSubtotalText = `${rice_subtotal.toLocaleString()}円（現金）`;
 
-  // ★ ここが最重要：Web 導線でキャンセル URL を生成
   const cancelActionUri = cancel_token
     ? `/reservation/cancel?token=${encodeURIComponent(cancel_token)}`
     : null;
@@ -158,7 +143,6 @@ const ReservationBookedPage: React.FC = () => {
       <ReservationCodeCard pickupCode={pickup_code} />
       <MemoCard memo={pickup_detail_memo} />
       <NoticeCard />
-
       <CancelActionCard cancelActionUri={cancelActionUri} />
     </div>
   );

@@ -1,3 +1,18 @@
+/* ===============================
+   Global base reset（★追加）
+   =============================== */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background-color: #f7f7f7;
+}
+
+/* ===============================
+   Tailwind base
+   =============================== */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

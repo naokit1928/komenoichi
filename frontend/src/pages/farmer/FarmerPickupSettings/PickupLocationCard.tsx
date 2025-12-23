@@ -1,7 +1,7 @@
 // frontend/src/features/farmer-pickup/PickupLocationCard.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom";
-import { GoogleMap, useJsApiLoader, Circle } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 import FarmDetailSoftMap from "../../../components/FarmDetailSoftMap";
 import LocationConsentModal from "./LocationConsentModal";
 
@@ -416,22 +416,7 @@ const initialCenter = useMemo(() => {
               mapContainerStyle={{ width: "100%", height: "100%" }}
               options={baseMapOptions}
             >
-              {/* 400m サークル（基準座標がある場合はそこを中心） */}
-              <Circle
-                center={baseCenter ?? center}
-                radius={effectiveRadius}
-                options={{
-                  strokeColor: "#1F7A36",
-                  strokeOpacity: 0.65,
-                  strokeWeight: 2,
-                  fillColor: "rgba(31,122,54,0.18)",
-                  fillOpacity: 0.18,
-                  clickable: false,
-                  draggable: false,
-                  editable: false,
-                  zIndex: 2,
-                }}
-              />
+              
             </GoogleMap>
           )}
 
