@@ -21,6 +21,7 @@ type Props = {
 };
 
 const DEFAULT_CENTER = { lat: 34.0703, lng: 134.5548 };
+const CLOSE_SWIPE_THRESHOLD = 90;
 
 export default function MapLayerPortal({
   open,
@@ -49,7 +50,7 @@ export default function MapLayerPortal({
   }, []);
 
   // =========================================================
-  // URL sel 管理（分離前と完全一致）
+  // URL sel 管理（既存仕様）
   // =========================================================
   const parseSelFromURL = (): number | null => {
     const params = new URLSearchParams(window.location.search);
@@ -96,7 +97,7 @@ export default function MapLayerPortal({
   };
 
   // =========================================================
-  // Map → Portal データ受信（★最重要）
+  // Map → Portal データ受信
   // =========================================================
   const [mapFarms, setMapFarms] = useState<PublicFarmCardDTO[]>([]);
 
@@ -105,14 +106,27 @@ export default function MapLayerPortal({
     [mapFarms, selectedId]
   );
 
-  // =========================================================
-  // hover
-  // =========================================================
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   // =========================================================
-  // style（分離前と同一）
+  // スワイプで閉じる
   // =========================================================
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY.current == null) return;
+    const endY = e.changedTouches[0]?.clientY;
+    if (endY == null) return;
+    const dy = endY - touchStartY.current;
+    touchStartY.current = null;
+    if (dy > CLOSE_SWIPE_THRESHOLD) onRequestClose();
+  };
+
   const backdropStyle: React.CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -127,7 +141,7 @@ export default function MapLayerPortal({
     left: 0,
     top: 0,
     width: "100%",
-    height: "88vh",
+    height: "83vh",
     background: "#fff",
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
@@ -136,16 +150,20 @@ export default function MapLayerPortal({
     transition: "transform 260ms ease",
     overflow: "hidden",
     pointerEvents: open ? "auto" : "none",
+    touchAction: "pan-y",
   };
 
-  // =========================================================
-  // Render
-  // =========================================================
-  const tree = (
+  return createPortal(
     <>
       <div style={backdropStyle} onClick={onRequestClose} />
 
-      <section role="dialog" aria-modal={open} style={panelStyle}>
+      <section
+        role="dialog"
+        aria-modal={open}
+        style={panelStyle}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <MapCanvas
           center={center}
           selectedId={selectedId}
@@ -161,11 +179,11 @@ export default function MapLayerPortal({
         <MapBottomSheet
           selected={selected}
           onClose={clearSelection}
+          onCloseMap={onRequestClose}
           onHoverChange={setHoveredId}
         />
       </section>
-    </>
+    </>,
+    rootRef.current!
   );
-
-  return createPortal(tree, rootRef.current!);
 }

@@ -306,28 +306,33 @@ export default function FarmsListPage() {
       </footer>
 
       <button
-        type="button"
-        onClick={toggleMap}
-        aria-expanded={isMapOpen}
-        aria-label={isMapOpen ? "地図を閉じる" : "地図を表示"}
-        style={{
-          position: "fixed",
-          left: "50%",
-          transform: "translateX(-50%)",
-          bottom: "calc(56px + env(safe-area-inset-bottom))",
-          zIndex: 70,
-          padding: "12px 18px",
-          borderRadius: 9999,
-          border: "1px solid rgba(0,0,0,0.2)",
-          background: "#000000",
-          color: "#ffffff",
-          boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
-          fontWeight: 700,
-          fontSize: 14,
-        }}
-      >
-        {isMapOpen ? "地図を閉じる（Esc）" : "地図を表示"}
-      </button>
+  type="button"
+  onClick={toggleMap}
+  aria-expanded={isMapOpen}
+  aria-label={isMapOpen ? "地図を閉じる" : "地図を表示"}
+  style={{
+    position: "fixed",
+    left: "50%",
+    top: isMapOpen ? "83vh" : "auto",
+    bottom: isMapOpen ? "auto" : "calc(56px + env(safe-area-inset-bottom))",
+    transform: isMapOpen
+      ? "translate(-50%, -50%)"   // ← 中心を境目に合わせる
+      : "translateX(-50%)",
+    zIndex: 70,
+    padding: "12px 18px",
+    borderRadius: 9999,
+    border: "1px solid rgba(0,0,0,0.2)",
+    background: "#000000",
+    color: "#ffffff",
+    boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
+    fontWeight: 700,
+    fontSize: 14,
+    whiteSpace: "nowrap",
+  }}
+>
+  {isMapOpen ? "地図を閉じる（Esc）" : "地図を表示"}
+</button>
+
 
       <MapLayerPortal
         open={isMapOpen}

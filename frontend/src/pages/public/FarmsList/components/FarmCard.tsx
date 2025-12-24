@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 // 一覧カード用の内部データ
 export type FarmCardData = {
@@ -6,7 +6,7 @@ export type FarmCardData = {
   name: string; // owner_label （◯◯さんのお米）
   price10kg: number;
   avatarUrl: string; // face_image_url
-  images: string[]; // pr_images
+  images: string[]; // pr_images（先頭をカバーとして使用）
   title: string; // pr_title
   addressLabel: string; // owner_address_label
   pickupTime: string; // next_pickup_display
@@ -42,21 +42,6 @@ export function FarmCard({
   isFav: boolean;
   toggleFav: (id: number, e?: React.MouseEvent) => void;
 }) {
-  const [idx, setIdx] = useState(0);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-
-  const onTouchStart = (e: React.TouchEvent) =>
-    setTouchStartX(e.touches[0].clientX);
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX == null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    if (dx > 40)
-      setIdx((i) => (i - 1 + farm.images.length) % farm.images.length);
-    if (dx < -40) setIdx((i) => (i + 1) % farm.images.length);
-    setTouchStartX(null);
-  };
-
   const card = {
     border: "1px solid #e5e7eb",
     borderRadius: 12,
@@ -67,30 +52,26 @@ export function FarmCard({
 
   const text = { padding: 16 } as const;
 
-  const imageCount = Math.max(farm.images.length, 1);
-  const safeIdx = Math.min(Math.max(idx, 0), Math.max(imageCount - 1, 0));
-  const mainImage =
-    farm.images[safeIdx] || "https://placehold.co/1500x1000?text=No+Image";
+  // ★ カバー写真は常に1枚目
+  const coverImage =
+    farm.images?.[0] || "https://placehold.co/1500x1000?text=No+Image";
 
   const displayTitle = farm.title || farm.name;
 
   return (
     <article style={card}>
-      {/* --- 画像 --- */}
+      {/* --- カバー画像（1枚のみ） --- */}
       <div
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
         style={{
           position: "relative",
           width: "100%",
           aspectRatio: "3 / 2",
           overflow: "hidden",
-          userSelect: "none",
         }}
       >
         <img
-          src={mainImage}
-          alt={`${displayTitle}の写真 ${safeIdx + 1}`}
+          src={coverImage}
+          alt={`${displayTitle}のカバー写真`}
           style={{
             width: "100%",
             height: "100%",
@@ -120,21 +101,6 @@ export function FarmCard({
         >
           <HeartIcon filled={isFav} />
         </button>
-
-        <div
-          style={{
-            position: "absolute",
-            right: 10,
-            bottom: 10,
-            padding: "4px 8px",
-            borderRadius: 9999,
-            background: "rgba(0,0,0,0.55)",
-            color: "#fff",
-            fontSize: 12,
-          }}
-        >
-          {Math.min(safeIdx + 1, imageCount)} / {imageCount}
-        </div>
       </div>
 
       {/* --- テキスト --- */}
@@ -175,7 +141,6 @@ export function FarmCard({
           </p>
         )}
 
-        {/* ★ 価格表示（正の仕様に復元） */}
         <div style={{ marginTop: 12 }}>
           <span
             style={{
