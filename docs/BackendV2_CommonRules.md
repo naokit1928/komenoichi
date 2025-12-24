@@ -10,6 +10,14 @@ python -m app_v2.notifications.cron.send_pending_notifications
 
 
 
+git status
+git add .
+git commit -m
+git push origin main
+
+
+
+
 
 Backend V2 共通ルール（保存版）
 0. この文書の目的

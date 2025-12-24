@@ -7,7 +7,7 @@ import { RiceBreakdown } from "./components/RiceBreakdown";
 import { ServiceFeeCard } from "./components/ServiceFeeCard";
 import { AgreementBlock } from "./components/AgreementBlock";
 
-// ★ 追加：注文ルール再利用
+// ★ 注文ルール再利用
 import {
   calcTotalKg,
   isOverMaxKg,
@@ -143,29 +143,19 @@ export default function ConfirmPage() {
 
   const lineReady = serverLinked;
 
-  /**
-   * ===============================
-   * useEffect ① ctx 復元専用
-   * ===============================
-   */
+  // ===== ctx 復元 =====
   useEffect(() => {
     if (!ctx) {
       const saved = sessionStorage.getItem(CONFIRM_CTX_KEY);
       if (saved) {
         try {
           setCtx(JSON.parse(saved));
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
     }
   }, [ctx]);
 
-  /**
-   * ===============================
-   * useEffect ② Stripe 自動遷移専用
-   * ===============================
-   */
+  // ===== Stripe 自動遷移 =====
   useEffect(() => {
     const auto = sessionStorage.getItem(AUTO_PAY_KEY);
     if (ctx && lineReady && auto) {
@@ -177,12 +167,13 @@ export default function ConfirmPage() {
 
   const money = (n: number) => n.toLocaleString("ja-JP");
 
+  // ===== お米明細（簡潔版） =====
   const riceLines = useMemo(() => {
     if (!ctx) return [];
     return ctx.items
       .filter((it) => it.qty)
       .map((it) => ({
-        label: `白米${it.kg}kg × ${it.qty}（@${money(it.unitPrice)}円）`,
+        label: `白米${it.kg}kg × ${it.qty}`,
         amount: it.unitPrice * it.qty,
       }));
   }, [ctx]);
@@ -196,8 +187,7 @@ export default function ConfirmPage() {
         return;
       }
 
-      // ===== ★ 追加：注文内容バリデーション（最終防衛線） =====
-
+      // ===== 最終バリデーション =====
       const qtyByKg = {
         5: ctx.items.find((i) => i.kg === 5)?.qty ?? 0,
         10: ctx.items.find((i) => i.kg === 10)?.qty ?? 0,
@@ -205,17 +195,14 @@ export default function ConfirmPage() {
       };
 
       const totalKg = calcTotalKg(qtyByKg);
-
       if (totalKg === 0) {
         throw new Error("数量が 0 のため予約できません。");
       }
-
       if (isOverMaxKg(qtyByKg)) {
         throw new Error("注文は合計50kgまでです。");
       }
 
-      // ===== 既存ロジック =====
-
+      // ===== LINE 未連携 =====
       if (!lineReady) {
         sessionStorage.setItem(CONFIRM_CTX_KEY, JSON.stringify(ctx));
         sessionStorage.setItem(AUTO_PAY_KEY, "1");
@@ -234,8 +221,9 @@ export default function ConfirmPage() {
         .map((it) => ({ size_kg: it.kg, quantity: it.qty }));
 
       const pickupSlotCode = ctx.pickupSlotCode?.trim();
-      if (!pickupSlotCode)
+      if (!pickupSlotCode) {
         throw new Error("受け渡し情報の取得に失敗しました。");
+      }
 
       const result = await createReservationV2({
         farm_id: Number(ctx.farmId),
@@ -281,6 +269,7 @@ export default function ConfirmPage() {
       <RiceBreakdown
         riceSubtotal={ctx.riceSubtotal}
         lines={riceLines}
+        pickupDisplay={ctx.nextPickupDisplay}
       />
 
       <ServiceFeeCard
