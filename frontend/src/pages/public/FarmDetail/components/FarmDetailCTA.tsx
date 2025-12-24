@@ -67,7 +67,7 @@ export default function FarmDetailCTA({
           onClick={onNext}
           disabled={disabled}
           style={{
-            minWidth: 184,
+            minWidth: "clamp(140px, 45vw, 184px)",
             padding: "11px 16px",
             background: disabled ? "#9ca3af" : "#1f7a36",
             color: "#fff",

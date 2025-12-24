@@ -1,165 +1,198 @@
-Public Farms（公開ページ）DTO 構造設計ルール
-目的
+Public ページ用 DTO（OpenAPI Generated）の設計文書
+1. 目的（Why）
 
-公開ページ（FarmsList / Map / FarmDetail）で使う データ構造を安定させる
+Public ページ（FarmsList / Map / FarmDetail / Confirm など）で使用するデータ構造を
+バックエンドの DTO（OpenAPI）と常に一致させることを目的とする。
 
-バックエンド変更によるフロント崩壊を 構造で防ぐ
+これにより：
 
-UI 都合のロジックを DTO に混入させない
+フロントで DTO を手書きしない
 
-基本レイヤ構造（最重要）
+型ズレ・取りこぼし・解釈違いを構造的に防ぐ
 
-Public ページでは 必ず 3 層で考える。
+バックエンド変更を build 時に検知できる
 
-[ Backend DTO ]
-      ↓（自動生成）
-[ OpenAPI Generated DTO ]
-      ↓（mapper）
-[ ViewModel（UI用） ]
-
-① Backend DTO（FastAPI 側）
-役割
-
-API の契約
-
-データの意味的な最小単位
-
-UI の都合は一切考えない
-
-例
-class PublicFarmCardDTO(BaseModel):
-    farm_id: int
-    owner_label: str
-    owner_address_label: str
-    price_10kg: int
-    face_image_url: str
-    pr_images: list[str]
-    pickup_lat: float
-    pickup_lng: float
-
+2. Single Source of Truth
 原則
 
-「何を返す API か」だけを表現
+Public ページの DTO の唯一の正は、
+FastAPI が出力する /openapi.json である
 
-表示文言・UI 状態は含めない
+フロント側で DTO を定義しない
 
-② OpenAPI Generated DTO（フロント自動生成）
-ファイル
-src/api/generated/public-farms.ts
+types.ts / interfaces.ts 的な手作業定義は禁止
 
-役割
+OpenAPI から生成された型のみを使用する
 
-バックエンド DTO の完全コピー
+3. DTO の生成元
+バックエンド
 
-フロントにおける唯一の「API の正」
+FastAPI
 
-特徴
+Pydantic Model → OpenAPI Schema
 
-openapi-typescript により自動生成
+エンドポイント例：
 
-手編集禁止
+/api/public/farms
 
-backend を変えたら再生成するだけ
+/api/public/farms/map
 
-export interface PublicFarmCardDTO {
+/api/public/farms/{id}
+
+これらが Public ページ用 DTO の起点となる。
+
+4. フロント側の生成物
+生成ファイル
+frontend/
+└─ src/
+   └─ api/
+      └─ generated/
+         └─ public-farms.ts
+
+生成ツール
+
+openapi-typescript
+
+OpenAPI JSON から 型のみを生成
+
+実行コマンド：
+
+npm run gen:public-farms
+
+5. public-farms.ts の中身（役割）
+
+public-farms.ts には以下が含まれる：
+
+Public API の Request / Response 型
+
+農家一覧・マップ・詳細で使う DTO
+
+例（概念）：
+
+export interface PublicFarm {
   farm_id: number;
   owner_label: string;
-  owner_address_label: string;
   price_10kg: number;
-  face_image_url: string;
   pr_images: string[];
-  pickup_lat: number;
-  pickup_lng: number;
+  owner_address_label: string;
+  next_pickup_display: string;
+  lat: number | null;
+  lng: number | null;
 }
 
-③ ViewModel（UI専用型）
-ファイル
-src/pages/public/FarmsList/models/farm.view.ts
 
-役割
+※ 実際の型名・構造は OpenAPI 定義に完全依存する。
 
-UI がそのまま使える形
+6. フロントでの使用ルール（重要）
+使用 OK
+import { components } from "@/api/generated/public-farms";
 
-表示・状態・派生値を含めてよい
+type PublicFarm =
+  components["schemas"]["PublicFarm"];
 
-API 構造変更を吸収する防波堤
 
-例
-export type FarmCardView = {
+generated 型をそのまま使う
+
+もしくは Pick<> / Omit<> による派生のみ許可
+
+使用 NG
+type FarmCardData = {
   id: number;
-  title: string;
-  address: string;
-  priceLabel: string;
-  thumbnailUrl: string;
-  images: string[];
-  distanceKm?: number;
-  isFavorite: boolean;
+  price: number;
+  ...
 };
 
-含めてよいもの
 
-表示用ラベル
+理由：
 
-boolean 状態（isFavorite / isSelected）
+バックエンドと乖離する
 
-UI 専用の整形済み値
+フィールド追加・削除を検知できない
 
-DTO と ViewModel を混ぜないルール
-❌ やってはいけないこと
+将来の不整合の温床
 
-DTO に UI 状態を追加する
+7. UI 用の内部変換について
+許可されるのは「構造変換」ではなく「表示変換」
 
-DTO のフィールド名を UI 用に変更する
+OK：
 
-API レスポンスをそのまま JSX で使う
+const priceLabel = `¥${farm.price_10kg.toLocaleString()}（10kg）`;
 
-⭕ 正しい流れ
-PublicFarmCardDTO
-  → farmsMapper.ts
-    → FarmCardView
-      → React Component
 
-Mapper の責務
-ファイル
-src/pages/public/FarmsList/services/farmsMapper.ts
+NG：
 
-役割
+const farmCard: FarmCardData = {
+  id: farm.farm_id,
+  price10kg: farm.price_10kg,
+  ...
+};
 
-DTO → ViewModel の唯一の変換地点
 
-表示ロジックをここに閉じ込める
+👉 DTO → DTO の再定義は禁止
+👉 DTO → 表示用値の計算は OK
 
-例
-export function mapFarmCard(dto: PublicFarmCardDTO): FarmCardView {
-  return {
-    id: dto.farm_id,
-    title: dto.owner_label,
-    address: dto.owner_address_label,
-    priceLabel: `10kg ¥${dto.price_10kg}`,
-    thumbnailUrl: dto.face_image_url,
-    images: dto.pr_images,
-    isFavorite: false,
-  };
-}
+8. 同期のタイミングと運用
+開発時（dev）
 
-この構造を採用する理由
+DTO 自動同期は 常時では行わない
 
-backend 変更時の影響範囲が限定される
+必要なときに明示的に実行：
 
-UI 側の refactor が安全
+npm run gen:public-farms:dev
 
-Map / List / Featured 表示を共通化できる
 
-DTO 削除・追加が「差分」として見える
+理由：
 
-運用ルールまとめ（短文版）
+dev 起動を壊さない
 
-API 型は OpenAPI が唯一の正
+OpenAPI 取得失敗でフロントが止まるのを防ぐ
 
-フロント DTO は generated/ に閉じ込める
+本番 / CI / Vercel
+npm run build
 
-UI は ViewModel しか触らない
 
-変換は mapper でのみ行う
+prebuild で 必ず DTO 再生成
 
-Public ページは この構造を必ず守る
+OpenAPI とズレていたら build 失敗
+
+ズレた DTO が本番に出ることはない
+
+9. public-farms.ts を git 管理する理由
+
+DTO の変更差分が PR で可視化される
+
+backend の破壊的変更をレビュー段階で検知できる
+
+backend が落ちていてもフロント開発が可能
+
+👉 生成物だが、あえて commit する
+
+10. この設計で防げる事故
+
+フィールド名の食い違い
+
+nullable の扱いミス
+
+backend 側での仕様変更の見落とし
+
+「なぜここ undefined？」問題
+
+11. 設計思想まとめ（短文）
+
+DTO は 定義しない、生成する
+
+フロントは 解釈しない、使う
+
+ズレは build で止める
+
+dev 体験は 壊さない
+
+12. 将来拡張
+
+Public 以外（Admin / Farmer）も同様に
+
+admin-*.ts
+
+farmer-*.ts
+
+API 境界ごとに generated DTO を分離

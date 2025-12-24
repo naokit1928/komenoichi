@@ -8,18 +8,20 @@ export function ConfirmHeader({ farmId }: Props) {
   return (
     <div
       style={{
+        position: "relative",
         display: "flex",
         alignItems: "center",
+        justifyContent: "center",
         marginBottom: 16,
-        position: "relative",
+        minHeight: 40,
       }}
     >
-      {/* 左の戻るボタン */}
+      {/* 左の戻るボタン（absolute） */}
       <Link
         to={`/farms/${farmId}`}
         style={{
-          width: 80,
-          display: "inline-block",
+          position: "absolute",
+          left: 0,
           textDecoration: "none",
         }}
       >
@@ -27,20 +29,17 @@ export function ConfirmHeader({ farmId }: Props) {
       </Link>
 
       {/* タイトル */}
-      <div style={{ flex: 1, textAlign: "center" }}>
-        <h1
-          style={{
-            fontSize: 20,
-            fontWeight: 800,
-            margin: 0,
-          }}
-        >
-          予約内容の確認
-        </h1>
-      </div>
-
-      {/* 右ダミー */}
-      <div style={{ width: 80 }} />
+      <h1
+        style={{
+          fontSize: 20,
+          fontWeight: 800,
+          margin: 0,
+          textAlign: "center",
+          lineHeight: 1.2,
+        }}
+      >
+        予約内容の確認
+      </h1>
     </div>
   );
 }
