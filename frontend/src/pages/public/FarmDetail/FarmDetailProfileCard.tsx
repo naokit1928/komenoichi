@@ -61,7 +61,7 @@ export default function FarmDetailProfileCard({
                 marginTop: 2,
               }}
             >
-              {shortLocation}の農家
+              {shortLocation}
             </div>
           )}
         </div>
