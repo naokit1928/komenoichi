@@ -112,29 +112,27 @@ export default function MapLayerPortal({
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   // =========================================================
-  // 境界ドラッグ処理（★ここだけ）
+  // 境界ドラッグ処理（PC + Android 両対応）
   // =========================================================
   const dragStartY = useRef<number | null>(null);
 
-  const onHandlePointerDown = (e: React.PointerEvent) => {
-    dragStartY.current = e.clientY;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  const startDrag = (y: number) => {
+    dragStartY.current = y;
   };
 
-  const onHandlePointerMove = (e: React.PointerEvent) => {
+  const moveDrag = (y: number) => {
     if (dragStartY.current == null) return;
-    const dy = e.clientY - dragStartY.current;
+    const dy = y - dragStartY.current;
 
-    // 下→上（dy < 0）のみ判定
+    // 下 → 上のみ
     if (dy < -CLOSE_THRESHOLD) {
       dragStartY.current = null;
       onRequestClose();
     }
   };
 
-  const onHandlePointerUp = (e: React.PointerEvent) => {
+  const endDrag = () => {
     dragStartY.current = null;
-    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
   // =========================================================
@@ -193,14 +191,20 @@ export default function MapLayerPortal({
             right: 0,
             bottom: 0,
             height: HANDLE_HEIGHT,
-            cursor: "ns-resize",
             zIndex: 40,
-            // 見えるハンドルにしたいなら下を有効化
-            // background: "linear-gradient(to top, rgba(0,0,0,0.08), transparent)",
+            cursor: "ns-resize",
+            touchAction: "none", // ★ Android 対策：必須
           }}
-          onPointerDown={onHandlePointerDown}
-          onPointerMove={onHandlePointerMove}
-          onPointerUp={onHandlePointerUp}
+          // PC
+          onPointerDown={(e) => startDrag(e.clientY)}
+          onPointerMove={(e) => moveDrag(e.clientY)}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          // Mobile
+          onTouchStart={(e) => startDrag(e.touches[0].clientY)}
+          onTouchMove={(e) => moveDrag(e.touches[0].clientY)}
+          onTouchEnd={endDrag}
+          onTouchCancel={endDrag}
         />
 
         <MapBottomSheet
