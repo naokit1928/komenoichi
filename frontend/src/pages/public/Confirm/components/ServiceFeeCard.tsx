@@ -33,7 +33,7 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
         <span>{money(serviceFee)}円</span>
       </div>
 
-      {/* ===== 2行目：元デザインのバッジ ===== */}
+      {/* ===== 2行目：状態バッジ（情報集約） ===== */}
       <div>
         <span
           style={{
@@ -46,19 +46,8 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
             fontWeight: 600,
           }}
         >
-          今オンラインで支払い
+          今すぐStripeを通じてオンラインで支払い
         </span>
-      </div>
-
-      {/* ===== 補足説明 ===== */}
-      <div
-        style={{
-          marginTop: 6,
-          color: "#6b7280",
-          fontSize: 12,
-        }}
-      >
-        Stripe を通じてオンラインでお支払い
       </div>
     </section>
   );

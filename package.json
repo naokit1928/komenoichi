@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "react-router-dom": "^7.9.5"
-  },
-  "devDependencies": {
-    "@types/lodash": "^4.17.21"
-  }
-}

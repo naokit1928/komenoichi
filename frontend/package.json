@@ -4,10 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run gen:public-farms || true",
     "dev": "vite",
+
+    "prebuild": "npm run gen:public-farms",
     "build": "vite build",
+
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+
+    "gen:public-farms": "openapi-typescript http://localhost:10000/openapi.json -o src/api/generated/public-farms.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

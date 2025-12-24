@@ -1,0 +1,165 @@
+Public Farms（公開ページ）DTO 構造設計ルール
+目的
+
+公開ページ（FarmsList / Map / FarmDetail）で使う データ構造を安定させる
+
+バックエンド変更によるフロント崩壊を 構造で防ぐ
+
+UI 都合のロジックを DTO に混入させない
+
+基本レイヤ構造（最重要）
+
+Public ページでは 必ず 3 層で考える。
+
+[ Backend DTO ]
+      ↓（自動生成）
+[ OpenAPI Generated DTO ]
+      ↓（mapper）
+[ ViewModel（UI用） ]
+
+① Backend DTO（FastAPI 側）
+役割
+
+API の契約
+
+データの意味的な最小単位
+
+UI の都合は一切考えない
+
+例
+class PublicFarmCardDTO(BaseModel):
+    farm_id: int
+    owner_label: str
+    owner_address_label: str
+    price_10kg: int
+    face_image_url: str
+    pr_images: list[str]
+    pickup_lat: float
+    pickup_lng: float
+
+原則
+
+「何を返す API か」だけを表現
+
+表示文言・UI 状態は含めない
+
+② OpenAPI Generated DTO（フロント自動生成）
+ファイル
+src/api/generated/public-farms.ts
+
+役割
+
+バックエンド DTO の完全コピー
+
+フロントにおける唯一の「API の正」
+
+特徴
+
+openapi-typescript により自動生成
+
+手編集禁止
+
+backend を変えたら再生成するだけ
+
+export interface PublicFarmCardDTO {
+  farm_id: number;
+  owner_label: string;
+  owner_address_label: string;
+  price_10kg: number;
+  face_image_url: string;
+  pr_images: string[];
+  pickup_lat: number;
+  pickup_lng: number;
+}
+
+③ ViewModel（UI専用型）
+ファイル
+src/pages/public/FarmsList/models/farm.view.ts
+
+役割
+
+UI がそのまま使える形
+
+表示・状態・派生値を含めてよい
+
+API 構造変更を吸収する防波堤
+
+例
+export type FarmCardView = {
+  id: number;
+  title: string;
+  address: string;
+  priceLabel: string;
+  thumbnailUrl: string;
+  images: string[];
+  distanceKm?: number;
+  isFavorite: boolean;
+};
+
+含めてよいもの
+
+表示用ラベル
+
+boolean 状態（isFavorite / isSelected）
+
+UI 専用の整形済み値
+
+DTO と ViewModel を混ぜないルール
+❌ やってはいけないこと
+
+DTO に UI 状態を追加する
+
+DTO のフィールド名を UI 用に変更する
+
+API レスポンスをそのまま JSX で使う
+
+⭕ 正しい流れ
+PublicFarmCardDTO
+  → farmsMapper.ts
+    → FarmCardView
+      → React Component
+
+Mapper の責務
+ファイル
+src/pages/public/FarmsList/services/farmsMapper.ts
+
+役割
+
+DTO → ViewModel の唯一の変換地点
+
+表示ロジックをここに閉じ込める
+
+例
+export function mapFarmCard(dto: PublicFarmCardDTO): FarmCardView {
+  return {
+    id: dto.farm_id,
+    title: dto.owner_label,
+    address: dto.owner_address_label,
+    priceLabel: `10kg ¥${dto.price_10kg}`,
+    thumbnailUrl: dto.face_image_url,
+    images: dto.pr_images,
+    isFavorite: false,
+  };
+}
+
+この構造を採用する理由
+
+backend 変更時の影響範囲が限定される
+
+UI 側の refactor が安全
+
+Map / List / Featured 表示を共通化できる
+
+DTO 削除・追加が「差分」として見える
+
+運用ルールまとめ（短文版）
+
+API 型は OpenAPI が唯一の正
+
+フロント DTO は generated/ に閉じ込める
+
+UI は ViewModel しか触らない
+
+変換は mapper でのみ行う
+
+Public ページは この構造を必ず守る

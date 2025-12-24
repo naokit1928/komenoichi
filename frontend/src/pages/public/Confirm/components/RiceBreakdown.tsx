@@ -51,7 +51,7 @@ export function RiceBreakdown({
         </div>
       )}
 
-      {/* ===== お米代ヘッダー ===== */}
+      {/* ===== お米代合計 ===== */}
       <div
         style={{
           display: "flex",
@@ -77,18 +77,28 @@ export function RiceBreakdown({
         </span>
       </div>
 
-      {/* ===== 合計金額（主役） ===== */}
       <div
         style={{
           fontSize: 22,
           fontWeight: 800,
-          marginBottom: 8,
+          marginBottom: 12, // ← 注文内容との段差
         }}
       >
         {money(riceSubtotal)}円
       </div>
 
-      {/* ===== 内訳（小計） ===== */}
+      {/* ===== 注文内容 ===== */}
+      <div
+        style={{
+          fontSize: 13,
+          fontWeight: 600,
+          marginBottom: 6,
+          color: "#374151",
+        }}
+      >
+        注文内容
+      </div>
+
       <div>
         {lines.map((l, i) => (
           <div
@@ -96,9 +106,10 @@ export function RiceBreakdown({
             style={{
               display: "flex",
               justifyContent: "space-between",
-              fontSize: 14,
-              color: "#374151",
-              marginTop: 2,
+              fontSize: 15,          // ← 少しだけ格上げ
+              fontWeight: 500,
+              color: "#111827",
+              padding: "4px 0",      // ← 行間を確保
             }}
           >
             <span>{l.label}</span>

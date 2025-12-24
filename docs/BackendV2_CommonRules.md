@@ -12,7 +12,7 @@ python -m app_v2.notifications.cron.send_pending_notifications
 
 git status
 git add .
-git commit -m
+git commit -m "メッセージ"
 git push origin main
 
 
