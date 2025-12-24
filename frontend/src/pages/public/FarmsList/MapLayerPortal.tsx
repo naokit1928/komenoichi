@@ -21,7 +21,10 @@ type Props = {
 };
 
 const DEFAULT_CENTER = { lat: 34.0703, lng: 134.5548 };
-const CLOSE_SWIPE_THRESHOLD = 90;
+
+// 境界ドラッグ設定
+const HANDLE_HEIGHT = 20;      // 境界ゾーンの高さ
+const CLOSE_THRESHOLD = 40;    // 上方向にこれ以上ドラッグしたら閉じる
 
 export default function MapLayerPortal({
   open,
@@ -97,7 +100,7 @@ export default function MapLayerPortal({
   };
 
   // =========================================================
-  // Map → Portal データ受信
+  // Map → Portal データ
   // =========================================================
   const [mapFarms, setMapFarms] = useState<PublicFarmCardDTO[]>([]);
 
@@ -109,24 +112,34 @@ export default function MapLayerPortal({
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   // =========================================================
-  // スワイプで閉じる
+  // 境界ドラッグ処理（★ここだけ）
   // =========================================================
-  const touchStartY = useRef<number | null>(null);
+  const dragStartY = useRef<number | null>(null);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    touchStartY.current = e.touches[0].clientY;
+  const onHandlePointerDown = (e: React.PointerEvent) => {
+    dragStartY.current = e.clientY;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartY.current == null) return;
-    const endY = e.changedTouches[0]?.clientY;
-    if (endY == null) return;
-    const dy = endY - touchStartY.current;
-    touchStartY.current = null;
-    if (dy > CLOSE_SWIPE_THRESHOLD) onRequestClose();
+  const onHandlePointerMove = (e: React.PointerEvent) => {
+    if (dragStartY.current == null) return;
+    const dy = e.clientY - dragStartY.current;
+
+    // 下→上（dy < 0）のみ判定
+    if (dy < -CLOSE_THRESHOLD) {
+      dragStartY.current = null;
+      onRequestClose();
+    }
   };
 
+  const onHandlePointerUp = (e: React.PointerEvent) => {
+    dragStartY.current = null;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  // =========================================================
+  // styles
+  // =========================================================
   const backdropStyle: React.CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -150,20 +163,16 @@ export default function MapLayerPortal({
     transition: "transform 260ms ease",
     overflow: "hidden",
     pointerEvents: open ? "auto" : "none",
-    touchAction: "pan-y",
   };
 
+  // =========================================================
+  // Render
+  // =========================================================
   return createPortal(
     <>
       <div style={backdropStyle} onClick={onRequestClose} />
 
-      <section
-        role="dialog"
-        aria-modal={open}
-        style={panelStyle}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <section role="dialog" aria-modal={open} style={panelStyle}>
         <MapCanvas
           center={center}
           selectedId={selectedId}
@@ -174,6 +183,24 @@ export default function MapLayerPortal({
             if (selectedId !== null) clearSelection();
           }}
           onFarmsChange={setMapFarms}
+        />
+
+        {/* ===== 境界ドラッグハンドル（ここだけが閉じる判定） ===== */}
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: HANDLE_HEIGHT,
+            cursor: "ns-resize",
+            zIndex: 40,
+            // 見えるハンドルにしたいなら下を有効化
+            // background: "linear-gradient(to top, rgba(0,0,0,0.08), transparent)",
+          }}
+          onPointerDown={onHandlePointerDown}
+          onPointerMove={onHandlePointerMove}
+          onPointerUp={onHandlePointerUp}
         />
 
         <MapBottomSheet
