@@ -176,10 +176,10 @@ export default function FarmDetailPriceCard({
         }
 
         .price-card {
-          /* ★最小95pxから開始。余白があれば均等に太る */
+          /* ★最小80pxから開始。余白があれば均等に太る */
           flex: 1 0 80px; /* grow=1 / shrink=0 / basis=80px */
           /* ★太りすぎ防止。これで「2枚しか入らない」事故を防ぐ */
-          max-width: 100px;
+          max-width: 140px;
           scroll-snap-align: start;
         }
 

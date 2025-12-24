@@ -23,15 +23,18 @@ export default function FarmDetailAreaMapCard({
         marginBottom: 0,
       }}
     >
+      {/* 見出し：通常サイズ・通常ウェイト */}
       <div
         style={{
-          fontSize: 15,
-          fontWeight: 600,
+          fontSize: 13,
+          fontWeight: 400,
+          color: "#6b7280",
           marginBottom: 8,
         }}
       >
         受け渡しエリア（概略）
       </div>
+
       <FarmDetailSoftMap
         centerLat={centerLat}
         centerLng={centerLng}
@@ -41,6 +44,7 @@ export default function FarmDetailAreaMapCard({
         markerIconUrl={riceBagIcon}
         markerTitle="受け渡し予定地点"
       />
+
       <p
         style={{
           fontSize: 13,

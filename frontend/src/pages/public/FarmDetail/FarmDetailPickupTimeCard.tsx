@@ -13,26 +13,29 @@ export default function FarmDetailPickupTimeCard({ pickupTextCard }: Props) {
         marginBottom: 12,
       }}
     >
+      {/* ラベル（常に1行目） */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
+          fontSize: 13,
+          fontWeight: 400, // 太字にしない
+          color: "#6b7280", // 少し薄め
+          marginBottom: 4,
         }}
       >
-        <div style={{ fontSize: 15, fontWeight: 600 }}>
-          次回受け渡し日時
-        </div>
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 800,
-            color: "#111827",
-          }}
-        >
-          {pickupTextCard}
-        </div>
+        次回受け渡し日時
+      </div>
+
+      {/* 日時（常に2行目） */}
+      <div
+        style={{
+          fontSize: 17,
+          fontWeight: 700,
+          color: "#111827",
+          lineHeight: 1.4,
+          wordBreak: "keep-all",
+        }}
+      >
+        {pickupTextCard}
       </div>
     </div>
   );

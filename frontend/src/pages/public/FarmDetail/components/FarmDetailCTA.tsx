@@ -1,6 +1,6 @@
 type Props = {
   riceSubtotal: number;
-  pickupTextCTA: string;
+  pickupTextCTA: string; // ← 使わないが契約維持
   onNext: () => void;
   money: (n: number) => string;
   disabled: boolean;
@@ -9,7 +9,7 @@ type Props = {
 
 export default function FarmDetailCTA({
   riceSubtotal,
-  pickupTextCTA,
+  pickupTextCTA, // ← unused（将来用）
   onNext,
   money,
   disabled,
@@ -39,25 +39,30 @@ export default function FarmDetailCTA({
           paddingLeft: 12,
         }}
       >
+        {/* ===== 左：金額情報 ===== */}
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, color: "#6b7280" }}>
             お米代合計
           </div>
+
           <div style={{ fontSize: 22, fontWeight: 800 }}>
             {money(riceSubtotal)}円
           </div>
 
-          {isOverLimit ? (
-            <div style={{ marginTop: 4, fontSize: 13, color: "#b91c1c" }}>
+          {isOverLimit && (
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: 13,
+                color: "#b91c1c",
+              }}
+            >
               ※ 注文は合計50kgまでです
-            </div>
-          ) : (
-            <div style={{ marginTop: 4, fontSize: 13, color: "#6b7280" }}>
-              {pickupTextCTA}
             </div>
           )}
         </div>
 
+        {/* ===== 右：CTA ===== */}
         <button
           onClick={onNext}
           disabled={disabled}
@@ -71,6 +76,7 @@ export default function FarmDetailCTA({
             fontWeight: 600,
             fontSize: 15,
             cursor: disabled ? "not-allowed" : "pointer",
+            whiteSpace: "nowrap",
           }}
         >
           予約内容を確認
