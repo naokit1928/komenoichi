@@ -18,32 +18,39 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
         borderColor: "rgba(31,122,54,0.55)",
       }}
     >
+      {/* ===== 1行目：費目 × 金額 ===== */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          fontWeight: 700,
           alignItems: "center",
+          fontWeight: 700,
+          fontSize: 16,
+          marginBottom: 6,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span>{termLabel}</span>
-          <span
-            style={{
-              background: "rgba(31,122,54,0.1)",
-              color: "#1f7a36",
-              borderRadius: 9999,
-              padding: "2px 8px",
-              fontSize: 11,
-              fontWeight: 600,
-            }}
-          >
-            今オンラインで支払い
-          </span>
-        </div>
+        <span>{termLabel}</span>
         <span>{money(serviceFee)}円</span>
       </div>
 
+      {/* ===== 2行目：元デザインのバッジ ===== */}
+      <div>
+        <span
+          style={{
+            display: "inline-block",
+            background: "rgba(31,122,54,0.1)",
+            color: "#1f7a36",
+            borderRadius: 9999,
+            padding: "2px 8px",
+            fontSize: 11,
+            fontWeight: 600,
+          }}
+        >
+          今オンラインで支払い
+        </span>
+      </div>
+
+      {/* ===== 補足説明 ===== */}
       <div
         style={{
           marginTop: 6,
@@ -51,7 +58,7 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
           fontSize: 12,
         }}
       >
-        Stripe を通じてオンラインでお支払いいただきます。
+        Stripe を通じてオンラインでお支払い
       </div>
     </section>
   );

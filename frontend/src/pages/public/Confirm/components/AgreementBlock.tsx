@@ -44,11 +44,9 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             ・連絡のため、LINE連携（友だち追加＋ログイン）が必要です。
           </p>
           <p style={{ margin: 0, marginBottom: 4 }}>
-            ・受け渡し時間内にお越しください。遅れる場合はLINEでご連絡ください。
+            ・受け渡し時間内にお越しください。
           </p>
-          <p style={{ margin: 0, marginBottom: 4 }}>
-            ・お米代は当日現金払い、運営サポート費（300円）はオンライン決済です。
-          </p>
+          
           <p style={{ margin: 0, marginBottom: 8 }}>
             ・無断キャンセルをした場合、次回以降の購入が制限されることがあります。
           </p>
@@ -73,7 +71,8 @@ export function AgreementBlock({ agreed, onChange }: Props) {
         style={{
           display: "flex",
           justifyContent: "center",
-          marginBottom: 16,
+          marginTop: 14,  
+          marginBottom: 0,
         }}
       >
         <label

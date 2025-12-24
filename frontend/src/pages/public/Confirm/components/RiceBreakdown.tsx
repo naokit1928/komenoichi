@@ -62,7 +62,7 @@ export function RiceBreakdown({
           marginBottom: 2,
         }}
       >
-        <span>お米代</span>
+        <span>お米代合計</span>
         <span
           style={{
             background: "#f3f4f6",
@@ -114,7 +114,7 @@ export function RiceBreakdown({
           fontSize: 12,
         }}
       >
-        ※ 受け渡し当日に、農家さんへ現金でお支払いください。
+        ※ 受け渡し当日に、農家さんに現金でお支払いください。
       </div>
     </section>
   );
