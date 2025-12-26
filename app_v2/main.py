@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
@@ -105,6 +108,7 @@ from app_v2.customer_booking.api.reservation_booked_api import (
 
 # --- Integrations ---
 from app_v2.integrations.line.api.line_api import router as line_router
+
 from app_v2.integrations.payments.stripe.stripe_checkout_api import (
     router as stripe_checkout_router,
 )
