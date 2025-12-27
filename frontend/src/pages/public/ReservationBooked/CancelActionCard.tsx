@@ -1,4 +1,5 @@
 // frontend/src/pages/public/ReservationBooked/CancelActionCard.tsx
+
 import React from "react";
 
 type Props = {
@@ -13,7 +14,7 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
       style={{
         border: "1px solid #e5e7eb",
         borderRadius: 12,
-        background: "#f9fafb",
+        background: "#ffffff",
         padding: 14,
         marginBottom: 4,
       }}
@@ -35,9 +36,10 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
           href={cancelActionUri}
           style={{
             display: "block",
-            width: "100%",
+            margin: "0 auto",          // ← 真ん中寄せ
+            maxWidth: 260,             // ← 横幅を少し抑える
             textAlign: "center",
-            padding: "12px 16px",
+            padding: "11px 16px",
             borderRadius: 9999,
             background: "#b91c1c",
             color: "#ffffff",

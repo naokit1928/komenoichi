@@ -1,4 +1,5 @@
 // frontend/src/pages/public/ReservationBooked/ReservationBookedPage.tsx
+
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { fetchReservationBooked, type ReservationBookedResponse } from "../../../lib/reservationBooked";
@@ -48,20 +49,16 @@ const ReservationBookedPage: React.FC = () => {
     })();
   }, [reservationIdParam]);
 
+  /**
+   * ページ全体のシェル
+   * - 薄灰色背景を廃止
+   * - 白い外枠カードを廃止
+   * - 幅制御のみ残す
+   */
   const renderShell = (child: React.ReactNode) => (
-    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-      <section style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 40px" }}>
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: 18,
-            padding: "24px 18px 20px",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-          }}
-        >
-          {child}
-        </div>
+    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+      <section style={{ maxWidth: 720, margin: "0 auto", padding: "16px 16px 40px" }}>
+        {child}
       </section>
     </div>
   );
@@ -72,15 +69,21 @@ const ReservationBookedPage: React.FC = () => {
 
   if (error) {
     return renderShell(
-      <div style={{ textAlign: "center", padding: "32px 4px", color: "#b91c1c" }}>{error}</div>
+      <div style={{ textAlign: "center", padding: "32px 4px", color: "#b91c1c" }}>
+        {error}
+      </div>
     );
   }
 
   if (!data) {
-    return renderShell(<div style={{ textAlign: "center", padding: "32px 4px" }}>予約情報が見つかりませんでした。</div>);
+    return renderShell(
+      <div style={{ textAlign: "center", padding: "32px 4px" }}>
+        予約情報が見つかりませんでした。
+      </div>
+    );
   }
 
-  // 外形だけを安全に取り出す（as any 縮小）
+  // 外形だけを安全に取り出す
   const reservationStatus =
     typeof data === "object" && data !== null
       ? (data as { reservation_status?: string }).reservation_status

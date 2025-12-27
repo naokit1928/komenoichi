@@ -18,7 +18,7 @@ const PickupSummaryCard: React.FC<Props> = ({
       style={{
         border: "1px solid #e5e7eb",
         borderRadius: 12,
-        background: "#f9fafb",
+        background: "#ffffff", // ← 他カードと完全統一
         padding: 14,
         marginBottom: 14,
       }}
@@ -71,9 +71,9 @@ const PickupSummaryCard: React.FC<Props> = ({
           {pickupPlaceName || "未設定"}
         </div>
 
-        {/* Googleマップボタン（FarmDetail と完全同じデザイン） */}
+        {/* Googleマップボタン */}
         {pickupMapUrl && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 10 }}>
             <a
               href={pickupMapUrl}
               target="_blank"
@@ -82,12 +82,12 @@ const PickupSummaryCard: React.FC<Props> = ({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "#1f7a36", // ← FarmDetail と同じ濃い緑
-                color: "#ffffff",      // ← 白文字
+                background: "#1f7a36",
+                color: "#ffffff",
                 fontWeight: 600,
-                fontSize: 15,
-                padding: "11px 16px",
-                borderRadius: 9999,    // ← 完全な pill shape
+                fontSize: 13,          // ← 少し小さく
+                padding: "8px 14px",   // ← 少し小さく
+                borderRadius: 9999,
                 textDecoration: "none",
                 border: "none",
                 outline: "none",
