@@ -47,16 +47,15 @@ class LineOAuthService:
         state = sign_state(payload, secret=self.channel_secret)
 
         return build_redirect_url(
-    LINE_AUTH_BASE,
-    query={
-        "response_type": "code",
-        "client_id": self.channel_id,
-        "redirect_uri": self.redirect_uri,
-        "state": state,
-        "scope": "profile openid",
-        "disable_auto_login": "true",  # ★ これ
-    },
-)
+            LINE_AUTH_BASE,
+            query={
+                "response_type": "code",
+                "client_id": self.channel_id,
+                "redirect_uri": self.redirect_uri,
+                "state": state,
+                "scope": "profile openid",
+            },
+        )
 
     # ============================================================
     # Callback
