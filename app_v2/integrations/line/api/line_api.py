@@ -59,6 +59,9 @@ def line_login(return_to: str):
     oauth = LineOAuthService()
     login_url = oauth.build_login_url(return_to=return_to)
 
+    # ★ 追加：LINEに投げている生URLを確認するためのログ
+    print("LINE_LOGIN_URL =", login_url)
+
     return RedirectResponse(login_url, status_code=302)
 
 
