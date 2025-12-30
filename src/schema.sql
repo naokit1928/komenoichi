@@ -1,3 +1,12 @@
+-- =========================================================
+-- schema.sql
+-- Single Source of Truth
+-- Generated from local app.db (.schema)
+-- =========================================================
+
+-- ---------------------------------------------------------
+-- consumers
+-- ---------------------------------------------------------
 CREATE TABLE consumers (
     consumer_id INTEGER PRIMARY KEY,
     created_at TEXT,
@@ -6,47 +15,66 @@ CREATE TABLE consumers (
     registration_status TEXT,
     is_friend INTEGER
 );
-CREATE TABLE farms (
+
+-- ---------------------------------------------------------
+-- farms
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS "farms" (
     farm_id INTEGER PRIMARY KEY,
+
     last_name TEXT,
     first_name TEXT,
     last_kana TEXT,
     first_kana TEXT,
     phone TEXT,
-    farmer_line_id TEXT,
-    is_friend INTEGER,
-    name TEXT NOT NULL,
+
+    name TEXT,
     description TEXT,
     postal_code TEXT,
     address TEXT,
     map_url TEXT,
     lat REAL,
     lng REAL,
+
     price_5kg INTEGER,
     price_10kg INTEGER,
     price_25kg INTEGER,
+
     pickup_location TEXT,
     pickup_time TEXT,
     pickup_lat REAL,
     pickup_lng REAL,
     pickup_place_name TEXT,
     pickup_notes TEXT,
+
     active_flag INTEGER NOT NULL DEFAULT 1,
     is_public INTEGER NOT NULL DEFAULT 0,
     is_accepting_reservations INTEGER NOT NULL DEFAULT 0,
+
     admin_note TEXT,
     rice_variety_label TEXT,
     harvest_year TEXT,
+
     pr_title TEXT,
     pr_text TEXT,
     face_image_url TEXT,
     cover_image_url TEXT,
     pr_images_json TEXT,
+
     monthly_upload_bytes INTEGER DEFAULT 0,
     monthly_upload_limit INTEGER DEFAULT 150000000,
     next_reset_at TEXT,
-    first_activated_at TEXT
+
+    first_activated_at TEXT,
+    owner_farmer_id INTEGER,
+
+    email TEXT NOT NULL,
+    registration_status TEXT NOT NULL
 );
+
+-- ---------------------------------------------------------
+-- reservations
+-- ---------------------------------------------------------
 CREATE TABLE reservations (
     reservation_id INTEGER PRIMARY KEY AUTOINCREMENT,
     consumer_id INTEGER,
@@ -69,6 +97,10 @@ CREATE TABLE reservations (
     FOREIGN KEY (consumer_id) REFERENCES consumers(consumer_id),
     FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
 );
+
+-- ---------------------------------------------------------
+-- notification_jobs
+-- ---------------------------------------------------------
 CREATE TABLE notification_jobs (
     job_id INTEGER PRIMARY KEY AUTOINCREMENT,
     reservation_id INTEGER NOT NULL,
@@ -84,3 +116,22 @@ CREATE TABLE notification_jobs (
     FOREIGN KEY (reservation_id)
         REFERENCES reservations(reservation_id)
 );
+
+-- ---------------------------------------------------------
+-- email_otp_tokens
+-- ---------------------------------------------------------
+CREATE TABLE email_otp_tokens (
+    otp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    consumed_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_email_otp_tokens_email
+    ON email_otp_tokens (email);
+
+CREATE INDEX idx_email_otp_tokens_expires_at
+    ON email_otp_tokens (expires_at);
