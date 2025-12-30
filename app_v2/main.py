@@ -80,6 +80,7 @@ app.add_middleware(
     secret_key=os.getenv("SESSION_SECRET", "dev-secret-key"),
     same_site="none" if IS_RENDER else "lax",
     https_only=True if IS_RENDER else False,
+    max_age=60 * 60 * 24 * 30,  # ← 追加（30日）
 )
 
 # ============================
