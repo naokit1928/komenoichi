@@ -1,3 +1,4 @@
+import os
 import random
 import sqlite3
 from datetime import datetime, timedelta
@@ -20,7 +21,6 @@ ALLOWED_OTP_STATUSES = {
     "PROFILE_COMPLETED",
     "PUBLISH_READY",
 }
-    
 
 
 # ======================================================
@@ -33,9 +33,18 @@ def _now() -> datetime:
 
 def _generate_otp_code() -> str:
     """
-    6桁の数値 OTP を生成（000000 は除外）
+    6桁の数値 OTP を生成
+    OTP_FIXED=1 の場合は固定値を返す（テスト用）
     """
-    return str(random.randint(10 ** (OTP_DIGITS - 1), 10 ** OTP_DIGITS - 1))
+    if os.getenv("OTP_FIXED") == "1":
+        return "123456"
+
+    return str(
+        random.randint(
+            10 ** (OTP_DIGITS - 1),
+            10 ** OTP_DIGITS - 1,
+        )
+    )
 
 
 def _get_farm_registration_status(email: str) -> str | None:
@@ -133,5 +142,4 @@ def _send_otp_email(email: str, code: str) -> None:
     OTP メール送信
     本番では SendGrid / SES 等に差し替える
     """
-    # TODO: 実装
     print(f"[OTP] send to {email}: {code}")
