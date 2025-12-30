@@ -382,10 +382,12 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
       for (const f of toAdd) fd.append("files", f);
       // ★ v2: PR画像アップロード
       const res = await fetch(
-        `${API_BASE}/api/farmer/settings-v2/pr-images?farm_id=${encodeURIComponent(
-          farmId
-        )}`,
-        { method: "POST", body: fd }
+        `${API_BASE}/api/farmer/settings-v2/me/pr-images`,
+        {
+         method: "POST",
+         credentials: "include",
+         body: fd,
+         }
       );
       if (!res.ok) {
         // エラーテキストを取得して Error に詰める
@@ -405,9 +407,7 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
           msg.includes("monthly upload limit exceeded")
         ) {
           const res2 = await fetch(
-            `${API_BASE}/api/farmer/settings-v2?farm_id=${encodeURIComponent(
-              farmId
-            )}`
+            `${API_BASE}/api/farmer/settings-v2/me`
           );
           if (res2.ok) {
             const data = await res2.json();
@@ -445,12 +445,11 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
       .map((p) => p.id);
     // ★ v2: 並び順更新
     const res = await fetch(
-      `${API_BASE}/api/farmer/settings-v2/pr-images/order?farm_id=${encodeURIComponent(
-        farmId
-      )}`,
+       `${API_BASE}/api/farmer/settings-v2/me/pr-images/order`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ image_ids }),
       }
     );
@@ -791,10 +790,13 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
                     onClick={async () => {
                       try {
                         // ★ v2: 削除エンドポイント
-                        const url = `${API_BASE}/api/farmer/settings-v2/pr-images?farm_id=${encodeURIComponent(
-                          farmId
-                        )}&image_id=${encodeURIComponent(preview.img.id)}`;
-                        const res = await fetch(url, { method: "DELETE" });
+                        const url = `${API_BASE}/api/farmer/settings-v2/me/pr-images?image_id=${encodeURIComponent(
+                          preview.img.id
+                        )}`;
+                        const res = await fetch(url, {
+                          method: "DELETE",
+                          credentials: "include",
+                        });
                         if (!res.ok) throw new Error(await res.text());
                       } catch (e) {
                         console.error(e);

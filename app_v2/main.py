@@ -3,6 +3,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.routing import APIRoute
 import os
 from urllib.parse import urlparse
@@ -76,15 +77,28 @@ app.add_middleware(
     expose_headers=["X-Existing-Farm-Id", "X-Settings-URL"],
 )
 
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET", "dev-secret-key"),
+    same_site="lax",
+    https_only=False,  # 本番では True + HTTPS
+)
+
 # ============================
 # Routers
 # ============================
+
+
+# --- Auth ---
+from app_v2.auth.auth_api import router as auth_router
+from app_v2.auth.register_email_api import router as register_email_router
 
 # --- Farmer ---
 from app_v2.farmer.api.registration_api import router as registration_router
 from app_v2.farmer.api.pickup_settings_api import router as pickup_settings_router
 from app_v2.farmer.api.farmer_settings_api import router as farmer_settings_router
 from app_v2.farmer.api.geocode_api import router as geocode_router
+from app_v2.farmer.farmer_me_api import router as farmer_me_router
 
 # --- Customer Booking ---
 from app_v2.customer_booking.api.public_farms_api import router as public_farms_router
@@ -105,6 +119,7 @@ from app_v2.customer_booking.api.cancel_api import router as cancel_router
 from app_v2.customer_booking.api.reservation_booked_api import (
     router as reservation_booked_router,
 )
+
 
 # --- Integrations ---
 from app_v2.integrations.line.api.line_api import router as line_router
@@ -128,7 +143,7 @@ from app_v2.notifications.api.line_incoming_api import (
 )
 
 # --- Admin / Dev / Feedback ---
-from app_v2.dev.dev_api import router as dev_router
+
 from app_v2.feedback.api.feedback_api import router as feedback_router
 from app_v2.admin.api.admin_reservation_api import (
     router as admin_reservations_router,
@@ -141,17 +156,23 @@ from app_v2.admin.api.admin_farm_api import (
 # Router Registration
 # ============================
 
+# Auth (Email + OTP)
+app.include_router(auth_router, prefix="/api")
+app.include_router(register_email_router, prefix="/api")
+
 # ReservationBooked（予約確認ページ専用）
 app.include_router(
     reservation_booked_router,
     prefix="/api",
 )
 
+
 # Farmer
 app.include_router(registration_router, prefix="/api")
 app.include_router(pickup_settings_router, prefix="/api")
 app.include_router(farmer_settings_router, prefix="/api")
 app.include_router(geocode_router, prefix="/api")
+app.include_router(farmer_me_router, prefix="/api")
 
 # Customer
 app.include_router(public_farms_router)
@@ -171,7 +192,6 @@ app.include_router(line_incoming_router)
 
 # Feedback / Admin / Dev
 app.include_router(feedback_router)
-app.include_router(dev_router, prefix="/dev")
 app.include_router(notification_dev_router, prefix="/dev")
 app.include_router(notification_admin_router)
 app.include_router(admin_reservations_router)

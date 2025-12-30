@@ -8,14 +8,13 @@ stripe listen --forward-to http://localhost:10000/stripe/webhook
 python -m app_v2.notifications.cron.send_pending_notifications
 .\sqlite3.exe app.db
 
-
-
 git status
 git add .
 git commit -m "メッセージ"
 git push origin main
 
 
+test+19@example.com
 
 
 

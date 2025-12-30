@@ -1,0 +1,235 @@
+consumer モジュール
+LINE 認証廃止 → email 認証導入 仕様書（確定）
+0. 方針（最重要・前提）
+
+consumer モジュールにおける LINE 認証は完全廃止
+
+LINE 実装・テーブル・API は バックアップ後、主系から削除
+
+今後の consumer 認証は Web（email + session）に一本化
+
+farmer / consumer は
+認証基盤のみ共通化し、セッション・画面・責務は完全分離
+
+1. consumer 認証の基本思想
+1.1 認証の目的
+
+consumer 認証の目的は 本人確認と予約フローの継続のみ。
+
+プロフィール登録ではない
+
+ユーザー管理の完成ではない
+
+予約成立のための 前処理
+
+1.2 初回認証で取得する情報
+
+必須：
+
+email のみ
+
+取得しない：
+
+名前
+
+電話番号
+
+住所
+
+その他プロフィール情報
+
+※ これらは 予約成立後に任意入力とする。
+
+2. 予約フロー全体（確定）
+2.1 フロー概要（LINE 時代と同一構造）
+商品・数量選択
+↓
+予約内容確認（confirm）
+↓
+「支払いへ」
+↓
+consumer 未認証の場合：
+  email 認証へ遷移
+↓
+認証成功
+↓
+自動で Stripe（300円）へ
+↓
+決済成功
+↓
+予約確定
+
+
+confirm 後に認証はしない
+
+認証後に confirm に戻さない
+
+認証成功後は 直接 Stripe に遷移
+
+3. email 認証 UI の仕様
+3.1 UI 方式
+
+別ページ方式（必須）
+
+見た目はモーダル風でもよい
+
+実体は URL を持つ独立ページ
+
+理由：
+
+iOS Safari 安定性
+
+リロード耐性
+
+大手（Airbnb / Stripe / Uber）と同方式
+
+3.2 UI コンポーネント
+
+farmer 用 email 認証 UI を そのまま流用
+
+文言のみ consumer 用に差し替え
+
+例：
+
+タイトル
+「メール認証」
+
+説明文
+「予約確認のためにメールアドレスを入力してください」
+
+4. 認証後の自動処理フラグ設計
+4.1 フラグの扱い
+
+consumer 専用フラグを使用
+
+farmer と共通フラグは使わない
+
+AUTO_PAY_AFTER_CONSUMER_AUTH = true
+
+
+理由：
+
+業務フローが異なる
+
+consumer は Stripe（金銭処理）を含む
+
+再現不能バグを防ぐため
+
+5. CONFIRM_CONTEXT の仕様（重要）
+5.1 保存目的
+
+認証を挟んでも
+Stripe 決済を安全に再開するため
+
+5.2 保存する最小項目（確定）
+CONFIRM_CONTEXT = {
+  farm_id: number,
+  pickup_event_id: number,
+  items: Array<{
+    product_id: number,
+    quantity: number
+  }>
+}
+
+5.3 保存しないもの（明確に禁止）
+
+Stripe 金額（300円固定）
+
+米代合計
+
+表示用テキスト
+
+consumer 情報
+
+LINE ID / LINE 関連データ
+
+6. Stripe 決済の位置づけ（再確認）
+
+Stripe 決済対象：300円固定のサービス料のみ
+
+米代：
+
+受取日に
+
+ユーザーが
+
+農家に直接支払う
+
+👉 この設計は 変更しない
+
+7. Stripe への遷移仕様
+
+認証成功後：
+
+AUTO_PAY_AFTER_CONSUMER_AUTH === true を検知
+
+CONFIRM_CONTEXT を復元
+
+即 Stripe Checkout を作成
+
+confirm 画面には戻さない
+
+決済成功後：
+
+フラグと context を必ず削除
+
+8. エラー・例外時の扱い
+8.1 認証失敗
+
+email 認証ページに留まる
+
+再送・再試行可能
+
+8.2 CONFIRM_CONTEXT 不正・欠損
+
+自動決済は行わない
+
+confirm ページへ戻す
+
+ユーザーに再操作を促す
+
+9. LINE 関連の扱い（確定）
+
+consumer 用 LINE 認証・連携：
+
+完全廃止
+
+LINE 実装：
+
+バックアップ保存のみ
+
+主系コードからは削除
+
+LINE を前提とした UX・設計は今後行わない
+
+10. farmer / consumer の関係整理
+項目	farmer	consumer
+認証方式	email	email
+認証基盤	共通	共通
+セッション	分離	分離
+UI	別	別
+業務	管理	予約
+
+👉 認証エンジンのみ共通化
+
+11. この仕様で得られる状態（ゴール）
+
+LINE 依存ゼロ
+
+iOS / Web で安定
+
+farmer / consumer 両方が同一思想
+
+ユーザーが迷わない
+
+開発・保守コストが最小
+
+12. 重要な非目標（やらないこと）
+
+初回で名前・電話番号を取る
+
+認証後に confirm に戻す
+
+farmer / consumer フラグ共通化
+
+LINE を補助として残す

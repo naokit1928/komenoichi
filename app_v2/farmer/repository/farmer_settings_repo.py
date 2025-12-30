@@ -81,6 +81,24 @@ class FarmerSettingsRepository:
     def update_profile_fields(self, farm_id: int, **fields: Any) -> None:
         self.update_farm_fields(farm_id, **fields)
 
+    # ★★★★★ 追加：registration_status 更新（今回の唯一の変更点） ★★★★★
+
+    def set_registration_status(
+        self,
+        *,
+        farm_id: int,
+        registration_status: str,
+    ) -> None:
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                UPDATE farms
+                   SET registration_status = ?
+                 WHERE farm_id = ?
+                """,
+                (registration_status, farm_id),
+            )
+
     # ============================================================
     # PR images
     # ============================================================

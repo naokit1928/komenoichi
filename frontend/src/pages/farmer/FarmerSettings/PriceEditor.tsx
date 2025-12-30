@@ -61,14 +61,13 @@ const withComma = (digitsOnly: string) => {
 };
 
 type Props = {
-  farmId: number;
   initialPrice10?: number;
   onSaved?: () => void;
   disabled?: boolean;
-  /** 入力・保存許容範囲（必要に応じて呼び出し側で上書き可） */
-  minPrice?: number; // default 5000
-  maxPrice?: number; // default 9999
+  minPrice?: number;
+  maxPrice?: number;
 };
+
 
 const MAX_DIGITS = 4;
 
@@ -402,7 +401,6 @@ function PriceEditModal({
 
 /* ---------- main ---------- */
 export default function PriceEditor({
-  farmId,
   initialPrice10,
   onSaved,
   disabled,
@@ -481,10 +479,11 @@ export default function PriceEditor({
 
     try {
       setBusy(true);
-      const res = await fetch(`${API_BASE}/api/farmer/settings-v2`, {
+      const res = await fetch(`${API_BASE}/api/farmer/settings-v2/me`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ farm_id: farmId, price_10kg: n }),
+        credentials: "include",
+        body: JSON.stringify({ price_10kg: n }),
       });
       if (!res.ok) throw new Error(await res.text());
 

@@ -8,15 +8,6 @@ from app_v2.farmer.dtos import OwnerDTO, FarmPickupDTO
 
 
 class RegistrationRepository:
-    """
-    Registration Repository
-
-    Responsibilities:
-    - Connect to DB via single shared route
-    - Query existence of farm
-    - Persist farm data exactly as instructed
-    """
-
     def __init__(self) -> None:
         db_path = resolve_db_path()
         self.conn = sqlite3.connect(db_path)
@@ -26,18 +17,15 @@ class RegistrationRepository:
     # Query
     # -------------------------------------------------
 
-    def get_existing_farm_id_by_line_id(
-        self,
-        farmer_line_id: str,
-    ) -> Optional[int]:
+    def get_farm_by_id(self, farm_id: int) -> Optional[int]:
         cur = self.conn.execute(
             """
             SELECT farm_id
             FROM farms
-            WHERE farmer_line_id = ?
+            WHERE farm_id = ?
             LIMIT 1
             """,
-            (farmer_line_id,),
+            (farm_id,),
         )
         row = cur.fetchone()
         if row is None:
@@ -48,11 +36,10 @@ class RegistrationRepository:
     # Command
     # -------------------------------------------------
 
-    def create_farm(
+    def update_farm_registration(
         self,
         *,
-        farmer_line_id: str,
-        is_friend: int,
+        farm_id: int,
         owner: OwnerDTO,
         pickup: FarmPickupDTO,
         owner_lat: float,
@@ -60,47 +47,35 @@ class RegistrationRepository:
         active_flag: int,
         is_public: int,
         is_accepting_reservations: int,
-    ) -> int:
-        """
-        Insert a new farm record.
-        """
-
+    ) -> None:
         full_name = f"{owner.owner_last_name}{owner.owner_first_name}"
         full_address = f"{owner.owner_pref}{owner.owner_city}{owner.owner_addr_line}"
 
-        cur = self.conn.execute(
+        self.conn.execute(
             """
-            INSERT INTO farms (
-                name,
-                last_name,
-                first_name,
-                last_kana,
-                first_kana,
-                phone,
-                postal_code,
-                address,
-                lat,
-                lng,
+            UPDATE farms
+            SET
+                name = ?,
+                last_name = ?,
+                first_name = ?,
+                last_kana = ?,
+                first_kana = ?,
+                phone = ?,
+                postal_code = ?,
+                address = ?,
+                lat = ?,
+                lng = ?,
 
-                farmer_line_id,
-                is_friend,
+                pickup_lat = ?,
+                pickup_lng = ?,
+                pickup_place_name = ?,
+                pickup_notes = ?,
+                pickup_time = ?,
 
-                pickup_lat,
-                pickup_lng,
-                pickup_place_name,
-                pickup_notes,
-                pickup_time,
-
-                active_flag,
-                is_public,
-                is_accepting_reservations
-            )
-            VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?, ?
-            )
+                active_flag = ?,
+                is_public = ?,
+                is_accepting_reservations = ?
+            WHERE farm_id = ?
             """,
             (
                 full_name,
@@ -113,8 +88,6 @@ class RegistrationRepository:
                 full_address,
                 owner_lat,
                 owner_lng,
-                farmer_line_id,
-                is_friend,
                 pickup.pickup_lat,
                 pickup.pickup_lng,
                 pickup.pickup_place_name,
@@ -123,18 +96,40 @@ class RegistrationRepository:
                 active_flag,
                 is_public,
                 is_accepting_reservations,
+                farm_id,
             ),
         )
 
-        farm_id = cur.lastrowid
-        if farm_id is None:
-            cur2 = self.conn.execute("SELECT last_insert_rowid() AS id")
-            row = cur2.fetchone()
-            if row is None:
-                raise RuntimeError("failed to obtain farm_id after INSERT")
-            farm_id = int(row["id"])
+    def set_owner_farmer_id(
+        self,
+        *,
+        farm_id: int,
+        owner_farmer_id: int,
+    ) -> None:
+        self.conn.execute(
+            """
+            UPDATE farms
+            SET owner_farmer_id = ?
+            WHERE farm_id = ?
+            """,
+            (owner_farmer_id, farm_id),
+        )
 
-        return int(farm_id)
+    # ★★★ 追加：registration_status 更新（ここだけが変更点） ★★★
+    def set_registration_status(
+        self,
+        *,
+        farm_id: int,
+        registration_status: str,
+    ) -> None:
+        self.conn.execute(
+            """
+            UPDATE farms
+            SET registration_status = ?
+            WHERE farm_id = ?
+            """,
+            (registration_status, farm_id),
+        )
 
     # -------------------------------------------------
     # Transaction

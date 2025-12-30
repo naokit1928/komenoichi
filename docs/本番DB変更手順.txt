@@ -1,0 +1,197 @@
+DB Migration 運用手順（KOMET / Render + SQLite）
+目的
+
+Render 本番の 永続ディスク（SQLite） を安全に変更する
+
+shell での import / path エラーを完全に防ぐ
+
+「どこで・何を・どう実行するか」を固定化する
+
+ディレクトリ構成（前提）
+komet/
+├─ app_v2/
+│  └─ db/
+│     └─ core.py        # resolve_db_path()
+├─ scripts/
+│  ├─ migrations/
+│  │  ├─ mig_farms_email.py
+│  │  └─ （今後の migration）
+│  └─ DB_MIGRATION_GUIDE.md  ← このファイル
+
+絶対ルール（重要）
+① DB 変更は migration ファイルでのみ行う
+
+❌ 手動で sqlite3 に ALTER を打たない
+
+❌ アプリ起動時に CREATE / ALTER しない
+
+✅ 1 変更 = 1 migration ファイル
+
+② migration は「単体実行できるスクリプト」にする
+
+すべての migration ファイルは 以下を必ず含める。
+
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+
+理由：
+
+Render shell / ローカル / CI すべてで
+
+PYTHONPATH を打たずに 一発実行するため
+
+migration ファイルの置き場所・命名
+置き場所（固定）
+scripts/migrations/
+
+命名規則（短く・意味が通る）
+mig_<table>_<purpose>.py
+
+
+例：
+
+mig_farms_email.py
+
+mig_reservations_items_json.py
+
+mig_notification_jobs_refactor.py
+
+※ 日付は入れない
+※ shell でタイプしやすいことを最優先
+
+migration ファイルの基本テンプレ（必須）
+# scripts/migrations/mig_xxx.py
+
+import sys
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+import sqlite3
+from app_v2.db.core import resolve_db_path
+
+
+def migrate():
+    db_path = resolve_db_path()
+    print(f"[migrate] db = {db_path}")
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    try:
+        print("[migrate] begin")
+        cur.execute("PRAGMA foreign_keys = OFF;")
+
+        # ---- ここに migration 処理を書く ----
+
+        conn.commit()
+        print("[migrate] success")
+
+    except Exception as e:
+        conn.rollback()
+        print("[migrate] failed:", e)
+        raise
+
+    finally:
+        cur.execute("PRAGMA foreign_keys = ON;")
+        conn.close()
+
+
+if __name__ == "__main__":
+    migrate()
+
+SQLite でやってよい変更 / ダメな変更
+OK（推奨）
+
+CREATE TABLE → INSERT → DROP → RENAME
+
+カラム追加
+
+カラム削除
+
+制約変更（NOT NULL / DEFAULT など）
+
+NG（事故りやすい）
+
+ALTER TABLE MODIFY COLUMN
+
+既存テーブルへの直接 ALTER
+
+foreign key を跨いだ同時変更
+
+実行手順（本番 / Render）
+① GitHub に push 済みであること
+git log -1 --oneline
+
+② Render Dashboard → Shell
+
+Shell のカレントは必ず：
+
+/opt/render/project/src
+
+③ migration 実行（一発で通す）
+python scripts/migrations/mig_xxx.py
+
+
+※ PYTHONPATH は不要
+
+④ 成功ログの条件
+[migrate] db = /var/data/app.db
+[migrate] begin
+[migrate] success
+
+
+これが出たら 即終了。
+
+実行後チェック（必須）
+sqlite3 /var/data/app.db "PRAGMA table_info(<table>);"
+
+
+または
+
+sqlite3 /var/data/app.db ".schema <table>"
+
+よくあるミス（これを防ぐためのルール）
+❌ import エラー
+
+原因：
+
+app_v2 が PYTHONPATH に乗っていない
+
+対策：
+
+migration 内で sys.path を強制追加
+
+❌ 間違った DB を触る
+
+原因：
+
+sqlite3 app.db をローカルで叩いた
+
+対策：
+
+migration は 必ず Render shell
+
+ログの db = /var/data/app.db を確認
+
+❌ 何回も migration を流してしまう
+
+対策：
+
+migration は 原則 1 回のみ
+
+再実行前提にしない
+
+再実行が必要な場合は「新しい migration」を作る
+
+判断に迷ったら
+
+「これは migration か？」→ DB構造が変わるなら migration
+
+「settings / 認証で使うだけ？」→ DB 変更不要
+
+「一時しのぎ？」→ migration を切らない

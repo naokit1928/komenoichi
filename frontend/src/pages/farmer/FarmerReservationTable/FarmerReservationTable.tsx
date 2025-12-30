@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
 import styles from "./FarmerReservationTable.module.css";
 import FarmerReservationNoticeModal from "./FarmerReservationNoticeModal";
 import { API_BASE } from "@/config/api";
@@ -127,10 +126,6 @@ const FarmerReservationTable: React.FC<Props> = ({
   reservationId,
   mode = "farmer",
 }) => {
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const farmIdParam = searchParams.get("farm_id");
-  const farmId = farmIdParam ? Number(farmIdParam) : NaN;
 
   const [data, setData] =
     useState<ExpandedReservationResponse | null>(null);
@@ -201,11 +196,6 @@ const FarmerReservationTable: React.FC<Props> = ({
   useEffect(() => {
     if (mode === "admin") return; // ★追加：Admin のときは一覧取得しない
 
-    if (!farmIdParam || Number.isNaN(farmId)) {
-      setError("farm_id が指定されていません。URL を確認してください。");
-      setLoading(false);
-      return;
-    }
 
     let cancelled = false;
 
@@ -214,7 +204,8 @@ const FarmerReservationTable: React.FC<Props> = ({
       setError(null);
       try {
         const res = await fetch(
-          `${API_BASE}/reservations/expanded?farm_id=${farmId}`
+          `${API_BASE}/reservations/expanded`,
+          { credentials: "include" }
         );
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
@@ -246,7 +237,7 @@ const FarmerReservationTable: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [mode, farmId, farmIdParam]);
+  }, [mode]);
 
   // ---------------------------------------------------
   // 既存 ― 初回アクセス時に説明モーダルを表示

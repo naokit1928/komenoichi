@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from pydantic import BaseModel
 
 from app_v2.farmer.services.registration_service import (
     RegistrationService,
     RegistrationError,
-    FarmAlreadyExistsError,
-    FarmerNotFriendError,
 )
 
 router = APIRouter(
@@ -17,8 +15,6 @@ router = APIRouter(
 
 
 class RegistrationRequest(BaseModel):
-    line_user_id: str
-
     owner_last_name: str
     owner_first_name: str
     owner_last_kana: str
@@ -47,13 +43,22 @@ class RegistrationResponse(BaseModel):
     "/finish_registration",
     response_model=RegistrationResponse,
 )
-def finish_registration(payload: RegistrationRequest) -> RegistrationResponse:
+def finish_registration(
+    payload: RegistrationRequest,
+    request: Request,
+) -> RegistrationResponse:
+    farm_id = request.session.get("farm_id")
+    if not farm_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="farm session not found",
+        )
+
     service = RegistrationService()
 
     try:
-        result = service.register_new_farm(
-            farmer_line_id=payload.line_user_id,
-            is_friend=1,
+        result = service.complete_registration(
+            session_farm_id=farm_id,
             owner_last_name=payload.owner_last_name,
             owner_first_name=payload.owner_first_name,
             owner_last_kana=payload.owner_last_kana,
@@ -68,18 +73,6 @@ def finish_registration(payload: RegistrationRequest) -> RegistrationResponse:
             pickup_place_name=payload.pickup_place_name,
             pickup_notes=payload.pickup_notes,
             pickup_time=payload.pickup_time,
-        )
-
-    except FarmerNotFriendError:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="friendship required",
-        )
-
-    except FarmAlreadyExistsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"farm already exists (farm_id={e.farm_id})",
         )
 
     except RegistrationError as e:

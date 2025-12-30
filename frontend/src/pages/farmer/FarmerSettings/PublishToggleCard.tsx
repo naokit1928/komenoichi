@@ -16,8 +16,8 @@ export default function PublishToggleCard({
     const next = !isOn;
     const ok = window.confirm(
       next
-        ? "公開を開始します。既存の予約はキャンセルされません。よろしいですか？"
-        : "公開を停止します。既存の予約はキャンセルされません。よろしいですか？"
+        ? "公開を開始します。よろしいですか？"
+        : "公開を一時停止します。既存の予約はキャンセルされません。よろしいですか？"
     );
     if (!ok) return;
     onToggle(next);

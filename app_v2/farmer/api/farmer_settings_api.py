@@ -8,6 +8,7 @@ from fastapi import (
     status,
     UploadFile,
     File,
+    Request,
 )
 from pydantic import BaseModel, field_validator
 
@@ -30,8 +31,6 @@ class FarmerSettingsUpdatePayload(BaseModel):
     農家本人が編集できる可変情報のみ。
     registration 由来の固定情報は含めない。
     """
-
-    farm_id: int
 
     is_accepting_reservations: Optional[bool] = None
     rice_variety_label: Optional[str] = None
@@ -67,20 +66,34 @@ class PRImagesOrderPayload(BaseModel):
 
 
 # ============================================================
-# GET: Farmer Settings
+# Helpers
 # ============================================================
 
 
-@router.get("", response_model=FarmerSettingsDTO)
-def get_farmer_settings(
-    farm_id: int,
-):
-    """
-    Farmer Settings v2 - GET
+def _require_farm_id_from_session(request: Request) -> int:
+    farm_id = request.session.get("farm_id")
+    if not farm_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    return farm_id
 
-    - 農家 UI / 管理 UI 共通
-    - 公開可否判定（missing_fields 等）も含む
-    """
+
+# ============================================================
+# GET: Farmer Settings（ME）
+# ============================================================
+
+
+@router.get(
+    "/me",
+    response_model=FarmerSettingsDTO,
+)
+def get_farmer_settings_me(
+    request: Request,
+):
+    farm_id = _require_farm_id_from_session(request)
+
     service = FarmerSettingsService()
     try:
         return service.load_settings(farm_id)
@@ -92,33 +105,30 @@ def get_farmer_settings(
 
 
 # ============================================================
-# POST: Farmer Settings 更新（農家用）
+# POST: Farmer Settings 更新（ME）
 # ============================================================
 
 
-@router.post("", response_model=FarmerSettingsDTO)
-def update_farmer_settings(
+@router.post(
+    "/me",
+    response_model=FarmerSettingsDTO,
+)
+def update_farmer_settings_me(
+    request: Request,
     payload: FarmerSettingsUpdatePayload,
 ):
-    """
-    Farmer Settings v2 - POST
+    farm_id = _require_farm_id_from_session(request)
 
-    - 農家本人が操作する編集 API
-    - active_flag は変更不可
-    """
     service = FarmerSettingsService()
     try:
         return service.save_settings(
-            farm_id=payload.farm_id,
+            farm_id=farm_id,
             is_accepting_reservations=payload.is_accepting_reservations,
             rice_variety_label=payload.rice_variety_label,
             pr_title=payload.pr_title,
             pr_text=payload.pr_text,
             price_10kg=payload.price_10kg,
             face_image_url=payload.face_image_url,
-            # NOTE:
-            # cover_image_url は「PR画像先頭=カバー」という運用に寄せるなら、
-            # save_settings 側で算出・保存するのが筋（API からは渡さない）。
         )
     except ValueError as e:
         raise HTTPException(
@@ -128,7 +138,7 @@ def update_farmer_settings(
 
 
 # ============================================================
-# Admin: active_flag 直接変更
+# Admin: active_flag 直接変更（farm_id 明示）
 # ============================================================
 
 
@@ -140,12 +150,6 @@ def update_farmer_settings(
 def admin_update_active_flag(
     payload: AdminActiveFlagPayload,
 ):
-    """
-    運営専用 API。
-
-    - BAN / BAN解除
-    - BAN 時は is_accepting_reservations も自動で false
-    """
     service = FarmerSettingsService()
     try:
         return service.set_active_flag_for_admin(
@@ -160,21 +164,20 @@ def admin_update_active_flag(
 
 
 # ============================================================
-# 画像アップロード（顔 / カバー）
+# 画像アップロード（旧: pr-images/me）
 # ============================================================
 
 
 @router.post(
-    "/face-image",
+    "/face-image/me",
     response_model=FarmerSettingsDTO,
 )
-async def upload_face_image(
-    farm_id: int,
+async def upload_face_image_me(
+    request: Request,
     file: UploadFile = File(...),
 ):
-    """
-    顔写真アップロード（multipart/form-data）
-    """
+    farm_id = _require_farm_id_from_session(request)
+
     service = FarmerSettingsService()
     try:
         file_bytes = await file.read()
@@ -197,16 +200,15 @@ async def upload_face_image(
 
 
 @router.post(
-    "/cover-image",
+    "/cover-image/me",
     response_model=FarmerSettingsDTO,
 )
-async def upload_cover_image(
-    farm_id: int,
+async def upload_cover_image_me(
+    request: Request,
     file: UploadFile = File(...),
 ):
-    """
-    カバー画像アップロード（multipart/form-data）
-    """
+    farm_id = _require_farm_id_from_session(request)
+
     service = FarmerSettingsService()
     try:
         file_bytes = await file.read()
@@ -229,13 +231,15 @@ async def upload_cover_image(
 
 
 @router.post(
-    "/pr-images",
+    "/pr-images/me",
     response_model=FarmerSettingsDTO,
 )
-async def upload_pr_images(
-    farm_id: int,
+async def upload_pr_images_me(
+    request: Request,
     files: List[UploadFile] = File(...),
 ):
+    farm_id = _require_farm_id_from_session(request)
+
     service = FarmerSettingsService()
     try:
         data = []
@@ -259,13 +263,15 @@ async def upload_pr_images(
 
 
 @router.put(
-    "/pr-images/order",
+    "/pr-images/order/me",
     response_model=FarmerSettingsDTO,
 )
-def reorder_pr_images(
-    farm_id: int,
+def reorder_pr_images_me(
+    request: Request,
     payload: PRImagesOrderPayload,
 ):
+    farm_id = _require_farm_id_from_session(request)
+
     service = FarmerSettingsService()
     try:
         return service.reorder_pr_images(
@@ -280,13 +286,15 @@ def reorder_pr_images(
 
 
 @router.delete(
-    "/pr-images",
+    "/pr-images/me",
     response_model=FarmerSettingsDTO,
 )
-def delete_pr_image(
-    farm_id: int,
+def delete_pr_image_me(
+    request: Request,
     image_id: str,
 ):
+    farm_id = _require_farm_id_from_session(request)
+
     service = FarmerSettingsService()
     try:
         return service.delete_pr_image(
@@ -298,3 +306,41 @@ def delete_pr_image(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
+
+
+# ============================================================
+# ★ alias（正: /me/pr-images） ← ここだけ追加
+# ============================================================
+
+
+@router.post(
+    "/me/pr-images",
+    response_model=FarmerSettingsDTO,
+)
+async def upload_pr_images_me_alias(
+    request: Request,
+    files: List[UploadFile] = File(...),
+):
+    return await upload_pr_images_me(request=request, files=files)
+
+
+@router.put(
+    "/me/pr-images/order",
+    response_model=FarmerSettingsDTO,
+)
+def reorder_pr_images_me_alias(
+    request: Request,
+    payload: PRImagesOrderPayload,
+):
+    return reorder_pr_images_me(request=request, payload=payload)
+
+
+@router.delete(
+    "/me/pr-images",
+    response_model=FarmerSettingsDTO,
+)
+def delete_pr_image_me_alias(
+    request: Request,
+    image_id: str,
+):
+    return delete_pr_image_me(request=request, image_id=image_id)

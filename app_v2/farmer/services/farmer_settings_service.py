@@ -52,6 +52,34 @@ class FarmerSettingsService:
         now = datetime.now()
         return now.year if now.month >= 9 else now.year - 1
 
+    def _advance_to_publish_ready_if_needed(
+        self,
+        *,
+        farm_id: int,
+        settings: FarmerSettingsDTO,
+    ) -> None:
+        if not settings.is_ready_to_publish:
+            return
+
+        farm = self.repo.get_farm(farm_id)
+        if not farm:
+            return
+
+        # PROFILE_COMPLETED のときのみ PUBLISH_READY に進める
+        if farm.get("registration_status") != "PROFILE_COMPLETED":
+            return
+
+        if farm.get("registration_status") == "PUBLISH_READY":
+            return
+
+        self.repo.set_registration_status(
+            farm_id=farm_id,
+            registration_status="PUBLISH_READY",
+        )
+
+
+        
+
     # ============================================================
     # 公開条件チェック（UI 用）
     # ============================================================
@@ -73,7 +101,6 @@ class FarmerSettingsService:
         if not profile.get("face_image_url"):
             missing.append("face_image_url")
 
-        # PR画像が必須（＝カバー必須）
         if not pr_images:
             missing.append("pr_images")
 
@@ -109,7 +136,6 @@ class FarmerSettingsService:
             for item in pr_sorted
         ]
 
-        # ===== カバー決定（唯一の場所） =====
         cover_image_url = pr_images[0].url if pr_images else None
 
         price_10kg = farm.get("price_10kg")
@@ -191,10 +217,15 @@ class FarmerSettingsService:
         if profile_updates:
             self.repo.update_profile_fields(farm_id, **profile_updates)
 
-        return self.load_settings(farm_id)
+        settings = self.load_settings(farm_id)
+        self._advance_to_publish_ready_if_needed(
+            farm_id=farm_id,
+            settings=settings,
+        )
+        return settings
 
     # ============================================================
-    # PR images（★ここで cover を永続化）
+    # PR images
     # ============================================================
 
     def upload_pr_images_from_bytes(
@@ -237,7 +268,6 @@ class FarmerSettingsService:
             monthly_upload_bytes=used,
         )
 
-        # ★ cover 永続化
         pr_sorted = sorted(pr_list, key=lambda x: int(x.get("order", 0)))
         if pr_sorted:
             self.repo.update_farm_fields(
@@ -245,7 +275,12 @@ class FarmerSettingsService:
                 cover_image_url=pr_sorted[0]["url"],
             )
 
-        return self.load_settings(farm_id)
+        settings = self.load_settings(farm_id)
+        self._advance_to_publish_ready_if_needed(
+            farm_id=farm_id,
+            settings=settings,
+        )
+        return settings
 
     def reorder_pr_images(
         self,
@@ -267,14 +302,18 @@ class FarmerSettingsService:
 
         self.repo.save_pr_images_list(farm_id, new_list)
 
-        # ★ cover 永続化
         if new_list:
             self.repo.update_farm_fields(
                 farm_id,
                 cover_image_url=new_list[0]["url"],
             )
 
-        return self.load_settings(farm_id)
+        settings = self.load_settings(farm_id)
+        self._advance_to_publish_ready_if_needed(
+            farm_id=farm_id,
+            settings=settings,
+        )
+        return settings
 
     def delete_pr_image(
         self,
@@ -284,7 +323,6 @@ class FarmerSettingsService:
     ) -> FarmerSettingsDTO:
         pr_list = self.repo.load_pr_images_list(farm_id)
 
-        # ★ 制約：PR画像は最低1枚必須（= カバー必須）
         if len(pr_list) <= 1:
             raise ValueError("at least one pr image is required")
 
@@ -298,15 +336,17 @@ class FarmerSettingsService:
 
         self.repo.save_pr_images_list(farm_id, new_list)
 
-        # ★ cover 永続化（必ず new_list[0] が存在）
         self.repo.update_farm_fields(
             farm_id,
             cover_image_url=new_list[0]["url"],
         )
 
-        return self.load_settings(farm_id)
-
-
+        settings = self.load_settings(farm_id)
+        self._advance_to_publish_ready_if_needed(
+            farm_id=farm_id,
+            settings=settings,
+        )
+        return settings
 
     # ============================================================
     # Face image
@@ -343,4 +383,9 @@ class FarmerSettingsService:
             monthly_upload_bytes=used + size,
         )
 
-        return self.load_settings(farm_id)
+        settings = self.load_settings(farm_id)
+        self._advance_to_publish_ready_if_needed(
+            farm_id=farm_id,
+            settings=settings,
+        )
+        return settings

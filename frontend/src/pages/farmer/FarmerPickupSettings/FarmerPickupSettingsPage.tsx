@@ -1,13 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import PickupLocationCard from "./PickupLocationCard";
 import PickupPlaceNameCard from "./PickupPlaceNameCard";
 import PickupNotesCard from "./PickupNotesCard";
 import PickupTimeCard from "./PickupTimeCard";
 import FarmerSettingsHeader from "../FarmerSettings/FarmerSettingsHeader";
-
 import { API_BASE } from "@/config/api";
-
-
 
 // =============================
 // 共通 fetch
@@ -15,35 +12,34 @@ import { API_BASE } from "@/config/api";
 async function requestJson(path: string, options?: RequestInit) {
   const res = await fetch(API_BASE + path, {
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     ...options,
   });
+
   const ct = res.headers.get("content-type") || "";
   let data: any = null;
   try {
     data = ct.includes("application/json") ? await res.json() : await res.text();
   } catch {}
+
   return { ok: res.ok, status: res.status, data };
 }
 
 // =============================
-// v2 settings GET
+// GET /me
 // =============================
-async function fetchPickupSettings(farmId: string) {
-  const res = await requestJson(
-    `/api/farmer/pickup-settings?farm_id=${encodeURIComponent(farmId)}`
-  );
+async function fetchPickupSettingsMe() {
+  const res = await requestJson("/api/farmer/pickup-settings/me");
   if (!res.ok) return null;
-  const data = res.data;
-  if (!data || !data.farm || !data.status) return null;
-  return data;
+  if (!res.data?.farm || !res.data?.status) return null;
+  return res.data;
 }
 
 // =============================
-// v2 settings POST
+// POST /me
 // =============================
-async function savePickupSettings(farmId: string, current: any, changes: any) {
+async function savePickupSettings(current: any, changes: any) {
   const payload = {
-    farm_id: Number(farmId),
     pickup_lat:
       changes.pickup_lat !== undefined ? changes.pickup_lat : current.pickup_lat,
     pickup_lng:
@@ -62,22 +58,20 @@ async function savePickupSettings(farmId: string, current: any, changes: any) {
         : current.pickup_time,
   };
 
-  const res = await requestJson(`/api/farmer/pickup-settings`, {
+  const res = await requestJson("/api/farmer/pickup-settings/me", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
   if (!res.ok) throw new Error("保存に失敗しました");
-
-  const data = res.data;
-  if (!data || !data.farm || !data.status)
+  if (!res.data?.farm || !res.data?.status)
     throw new Error("レスポンス不正");
 
-  return data;
+  return res.data;
 }
 
 // =============================
-// メイン
+// Main
 // =============================
 const FarmerPickupSettingsPage: React.FC = () => {
   const [pickupLat, setPickupLat] = useState<number | null>(null);
@@ -97,11 +91,6 @@ const FarmerPickupSettingsPage: React.FC = () => {
   const [savingNotes, setSavingNotes] = useState(false);
   const [savingTime, setSavingTime] = useState(false);
 
-  const farmId = useMemo(() => {
-    return new URLSearchParams(window.location.search).get("farm_id");
-  }, []);
-
-  // owner_lat / owner_lng を優先してアンカーに使うためのユーティリティ
   const parseNumberOrNull = (v: any): number | null => {
     if (typeof v === "number") return v;
     if (typeof v === "string" && v.trim() !== "") {
@@ -112,23 +101,15 @@ const FarmerPickupSettingsPage: React.FC = () => {
   };
 
   const applyFarmStateFromResponse = (farm: any, status: any) => {
-    const pickupLatRaw = farm.pickup_lat ?? null;
-    const pickupLngRaw = farm.pickup_lng ?? null;
-    const ownerLatRaw = farm.owner_lat ?? null;
-    const ownerLngRaw = farm.owner_lng ?? null;
-
-    const parsedPickupLat = parseNumberOrNull(pickupLatRaw);
-    const parsedPickupLng = parseNumberOrNull(pickupLngRaw);
-    const parsedOwnerLat = parseNumberOrNull(ownerLatRaw);
-    const parsedOwnerLng = parseNumberOrNull(ownerLngRaw);
+    const parsedPickupLat = parseNumberOrNull(farm.pickup_lat);
+    const parsedPickupLng = parseNumberOrNull(farm.pickup_lng);
+    const parsedOwnerLat = parseNumberOrNull(farm.owner_lat);
+    const parsedOwnerLng = parseNumberOrNull(farm.owner_lng);
 
     setPickupLat(parsedPickupLat);
     setPickupLng(parsedPickupLng);
-
-    const anchorLat = parsedOwnerLat ?? parsedPickupLat;
-    const anchorLng = parsedOwnerLng ?? parsedPickupLng;
-    setBaseLat(anchorLat);
-    setBaseLng(anchorLng);
+    setBaseLat(parsedOwnerLat ?? parsedPickupLat);
+    setBaseLng(parsedOwnerLng ?? parsedPickupLng);
 
     setPickupPlaceName(farm.pickup_place_name ?? "");
     setPickupNotes(farm.pickup_notes ?? "");
@@ -141,43 +122,24 @@ const FarmerPickupSettingsPage: React.FC = () => {
     setActiveReservationsCount(status.active_reservations_count ?? 0);
   };
 
-  // =============================
   // 初期ロード
-  // =============================
   useEffect(() => {
     let canceled = false;
 
-    async function run() {
-      if (!farmId) {
-        setInitialLoading(false);
-        return;
-      }
-
-      const result = await fetchPickupSettings(farmId);
+    (async () => {
+      const result = await fetchPickupSettingsMe();
       if (!result || canceled) return;
 
-      const farm = result.farm;
-      const status = result.status;
-
-      applyFarmStateFromResponse(farm, status);
+      applyFarmStateFromResponse(result.farm, result.status);
       setInitialLoading(false);
-    }
+    })();
 
-    run();
     return () => {
       canceled = true;
     };
-  }, [farmId]);
+  }, []);
 
-  // =============================
-  // 編集可能かどうか
-  // =============================
   const canEdit = activeReservationsCount === 0;
-
-  const locDisabled = initialLoading || !canEdit || savingLocation;
-  const placeDisabled = initialLoading || !canEdit || savingPlaceName;
-  const notesDisabled = initialLoading || !canEdit || savingNotes;
-
   const lockReason =
     !canEdit && activeReservationsCount > 0
       ? "今週すでに予約が入っているため、今は編集できません。"
@@ -197,7 +159,6 @@ const FarmerPickupSettingsPage: React.FC = () => {
       <div style={{ height: "72px" }} />
 
       <div className="mx-auto max-w-md px-4 py-6 space-y-6">
-        {/* 受け渡し場所（地図） */}
         <PickupLocationCard
           initialLat={pickupLat}
           initialLng={pickupLng}
@@ -205,26 +166,16 @@ const FarmerPickupSettingsPage: React.FC = () => {
           baseLng={baseLng}
           radiusMeters={400}
           saving={savingLocation}
-          disabled={locDisabled}
-          cannotChangeReason={
-            lockReason
-              ? "今週すでに予約が入っているため、今は受け渡し場所を変更できません。"
-              : undefined
-          }
+          disabled={initialLoading || !canEdit || savingLocation}
+          cannotChangeReason={lockReason}
           onSave={async (lat, lng) => {
-            if (!farmId) return;
-
             try {
               setSavingLocation(true);
-              const data = await savePickupSettings(farmId, currentForSave, {
+              const data = await savePickupSettings(currentForSave, {
                 pickup_lat: lat,
                 pickup_lng: lng,
               });
-
-              const farm = data.farm;
-              const status = data.status;
-
-              applyFarmStateFromResponse(farm, status);
+              applyFarmStateFromResponse(data.farm, data.status);
             } catch {
               alert("受け渡し場所の保存に失敗しました");
             } finally {
@@ -233,29 +184,18 @@ const FarmerPickupSettingsPage: React.FC = () => {
           }}
         />
 
-        {/* 受け渡し場所名 */}
         <PickupPlaceNameCard
           value={pickupPlaceName}
           saving={savingPlaceName}
-          disabled={placeDisabled}
-          cannotChangeReason={
-            lockReason
-              ? "今週すでに予約が入っているため、今は受け渡し場所名を変更できません。"
-              : undefined
-          }
+          disabled={initialLoading || !canEdit || savingPlaceName}
+          cannotChangeReason={lockReason}
           onSave={async (v) => {
-            if (!farmId) return;
-
             try {
               setSavingPlaceName(true);
-              const data = await savePickupSettings(farmId, currentForSave, {
+              const data = await savePickupSettings(currentForSave, {
                 pickup_place_name: v,
               });
-
-              const farm = data.farm;
-              const status = data.status;
-
-              applyFarmStateFromResponse(farm, status);
+              applyFarmStateFromResponse(data.farm, data.status);
             } catch {
               alert("受け渡し場所名の保存に失敗しました");
             } finally {
@@ -264,29 +204,18 @@ const FarmerPickupSettingsPage: React.FC = () => {
           }}
         />
 
-        {/* 補足メモ */}
         <PickupNotesCard
           value={pickupNotes}
           saving={savingNotes}
-          disabled={notesDisabled}
-          cannotChangeReason={
-            lockReason
-              ? "今週すでに予約が入っているため、今は補足メモを変更できません。"
-              : undefined
-          }
+          disabled={initialLoading || !canEdit || savingNotes}
+          cannotChangeReason={lockReason}
           onSave={async (v) => {
-            if (!farmId) return;
-
             try {
               setSavingNotes(true);
-              const data = await savePickupSettings(farmId, currentForSave, {
+              const data = await savePickupSettings(currentForSave, {
                 pickup_notes: v,
               });
-
-              const farm = data.farm;
-              const status = data.status;
-
-              applyFarmStateFromResponse(farm, status);
+              applyFarmStateFromResponse(data.farm, data.status);
             } catch {
               alert("補足メモの保存に失敗しました");
             } finally {
@@ -295,29 +224,18 @@ const FarmerPickupSettingsPage: React.FC = () => {
           }}
         />
 
-        {/* 受け取り日時 */}
         <PickupTimeCard
           value={pickupTime as any}
           saving={savingTime}
-          disabled={!canEdit || savingTime || initialLoading}
-          cannotChangeReason={
-            lockReason
-              ? "今週すでに予約が入っているため、今は受け取り日時を変更できません。"
-              : undefined
-          }
+          disabled={initialLoading || !canEdit || savingTime}
+          cannotChangeReason={lockReason}
           onSave={async (slot: any) => {
-            if (!farmId) return;
-
             try {
               setSavingTime(true);
-              const data = await savePickupSettings(farmId, currentForSave, {
+              const data = await savePickupSettings(currentForSave, {
                 pickup_time: String(slot),
               });
-
-              const farm = data.farm;
-              const status = data.status;
-
-              applyFarmStateFromResponse(farm, status);
+              applyFarmStateFromResponse(data.farm, data.status);
             } catch {
               alert("受け取り時間の保存に失敗しました");
             } finally {
@@ -325,11 +243,6 @@ const FarmerPickupSettingsPage: React.FC = () => {
             }
           }}
         />
-
-        <p className="text-xs text-gray-500 mt-3">
-          active_reservations_count: {activeReservationsCount} / canEdit:{" "}
-          {canEdit ? "true" : "false"}
-        </p>
       </div>
     </div>
   );

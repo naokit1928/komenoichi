@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { RegistrationValues } from "../../../lib/registration";
 import { validate } from "../../../lib/registration";
 import type { TimeSlotOption } from "./PickupTimeCardForRegistration";
-import { API_BASE, DEV_MODE } from "@/config/api";
+import { API_BASE } from "@/config/api";
+
 
 /* ======================
-   util（元コード完全踏襲）
+   util（元コード踏襲）
 ====================== */
 
 async function postRaw(url: string, body: any) {
@@ -13,6 +15,7 @@ async function postRaw(url: string, body: any) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body ?? {}),
+    credentials: "include", // ★ 追加：session(cookie) を必ず送る
   });
 
   const ct = res.headers.get("content-type") || "";
@@ -27,7 +30,10 @@ async function postRaw(url: string, body: any) {
   return { status: res.status, ok: res.ok, data, headers };
 }
 
-// 住所チェック
+/* ======================
+   validation helpers
+====================== */
+
 function computeAddressErrors(v: RegistrationValues): string[] {
   const res: string[] = [];
   const postalDigits = (v.ownerPostal || "").replace(/\D/g, "");
@@ -42,7 +48,6 @@ function computeAddressErrors(v: RegistrationValues): string[] {
   return res;
 }
 
-// 電話番号チェック
 function computePhoneError(phone: string): string | null {
   const digits = (phone || "").replace(/[^\d]/g, "");
   if (!digits) return "携帯電話番号を入力してください";
@@ -52,7 +57,10 @@ function computePhoneError(phone: string): string | null {
   return null;
 }
 
-// geocode 用住所生成
+/* ======================
+   geocode
+====================== */
+
 function buildFullAddressForGeocoding(v: RegistrationValues): string | null {
   if (computeAddressErrors(v).length > 0) return null;
 
@@ -84,7 +92,6 @@ async function geocodeAddress(fullAddress: string) {
   return { lat: res.data.lat, lng: res.data.lng };
 }
 
-// lat/lng エラー正規化
 function normalizeErrorMessage(msg: string): string {
   if (
     msg.includes("受け渡し場所の緯度（lat）") ||
@@ -96,13 +103,13 @@ function normalizeErrorMessage(msg: string): string {
 }
 
 /* ======================
-   hook 本体
+   hook 本体（最終）
 ====================== */
 
 export function useRegistration() {
-  const [lineUserId] = useState(
-    "dev_" + Math.random().toString(36).slice(2, 10)
-  );
+  const navigate = useNavigate();
+
+ 
 
   const [values, setValues] = useState<RegistrationValues>({
     lastName: "",
@@ -205,7 +212,7 @@ export function useRegistration() {
     };
   }, [fullAddressForMap]);
 
-  /* ---------- submit（★完全復元） ---------- */
+  /* ---------- submit（確定） ---------- */
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -217,19 +224,11 @@ export function useRegistration() {
     try {
       setLoading(true);
 
-      if (DEV_MODE) {
-        await postRaw("/dev/test_login", { line_user_id: lineUserId });
-        await postRaw("/dev/friendship_override", {
-          line_user_id: lineUserId,
-          is_friend: true,
-        });
-      }
+    
 
       const res = await postRaw(
         "/api/farmer/registration/finish_registration",
         {
-          line_user_id: lineUserId,
-
           owner_last_name: values.lastName.trim(),
           owner_first_name: values.firstName.trim(),
           owner_last_kana: values.lastKana.trim(),
@@ -255,18 +254,8 @@ export function useRegistration() {
       );
 
       if (res.ok) {
-        const farmId = res.data?.farm_id || res.data?.id || "";
-        if (farmId) {
-          localStorage.setItem("last_farm_id", String(farmId));
-        }
-
-        const settingsUrlHint =
-          (res.data &&
-            typeof res.data.settings_url_hint === "string" &&
-            res.data.settings_url_hint) ||
-          (farmId ? `/farmer/settings?farm_id=${farmId}` : "/farmer/settings");
-
-        window.location.href = settingsUrlHint;
+        // ★ farm_id は扱わない。ガードに全委譲
+        navigate("/farmer/settings", { replace: true });
         return;
       }
 
