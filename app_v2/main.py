@@ -7,20 +7,15 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.routing import APIRoute
 import os
 from urllib.parse import urlparse
-import asyncio
-from contextlib import suppress
 from typing import Optional
 
 from app_v2.db.core import resolve_db_path
 
-from dotenv import load_dotenv
-load_dotenv()
 
 # ============================
-# DEV MODE
+# ENV 判定（cookie 用・本番判定）
 # ============================
-if os.getenv("DEV_MODE", "0") == "1":
-    os.environ["ADMIN_TOKEN"] = "devtoken123"
+IS_RENDER = os.getenv("RENDER", "") == "true"
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -35,14 +30,14 @@ app = FastAPI(
 )
 
 # ============================
-#  DB PATH RESOLUTION (重要)
+# DB PATH RESOLUTION（重要）
 # ============================
 db_path = resolve_db_path()
 print(f"[BOOT] resolved DB_PATH = {db_path}")
 
 
 # ============================
-#  CORS
+# CORS
 # ============================
 origins = [
     "http://localhost:5173",
@@ -77,17 +72,19 @@ app.add_middleware(
     expose_headers=["X-Existing-Farm-Id", "X-Settings-URL"],
 )
 
+# ============================
+# Session Middleware（★ 修正済み）
+# ============================
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET", "dev-secret-key"),
-    same_site="lax",
-    https_only=False,  # 本番では True + HTTPS
+    same_site="none" if IS_RENDER else "lax",
+    https_only=True if IS_RENDER else False,
 )
 
 # ============================
 # Routers
 # ============================
-
 
 # --- Auth ---
 from app_v2.auth.auth_api import router as auth_router
@@ -120,10 +117,8 @@ from app_v2.customer_booking.api.reservation_booked_api import (
     router as reservation_booked_router,
 )
 
-
 # --- Integrations ---
 from app_v2.integrations.line.api.line_api import router as line_router
-
 from app_v2.integrations.payments.stripe.stripe_checkout_api import (
     router as stripe_checkout_router,
 )
@@ -142,8 +137,7 @@ from app_v2.notifications.api.line_incoming_api import (
     router as line_incoming_router,
 )
 
-# --- Admin / Dev / Feedback ---
-
+# --- Admin / Feedback ---
 from app_v2.feedback.api.feedback_api import router as feedback_router
 from app_v2.admin.api.admin_reservation_api import (
     router as admin_reservations_router,
@@ -161,11 +155,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(register_email_router, prefix="/api")
 
 # ReservationBooked（予約確認ページ専用）
-app.include_router(
-    reservation_booked_router,
-    prefix="/api",
-)
-
+app.include_router(reservation_booked_router, prefix="/api")
 
 # Farmer
 app.include_router(registration_router, prefix="/api")
@@ -182,7 +172,6 @@ app.include_router(consumer_history_router)
 app.include_router(confirm_router)
 app.include_router(expanded_router)
 app.include_router(cancel_router, prefix="/api")
-
 
 # Integrations
 app.include_router(line_router)
