@@ -33,14 +33,22 @@ export default function FarmerMenu() {
     (async () => {
       try {
         const res = await fetch("/api/farmer/me", {
-          credentials: "include",
+         credentials: "include",
         });
-        if (!res.ok) return;
 
-        const data: FarmerMeResponse = await res.json();
-        if (!canceled) {
-          setEmail(data.email ?? null);
-        }
+      if (res.status === 401) {
+       // セッションなし = 未ログイン
+       navigate("/auth/login", { replace: true });
+       return;
+      }
+
+      if (!res.ok) return;
+
+      const data: FarmerMeResponse = await res.json();
+      if (!canceled) {
+       setEmail(data.email ?? null);
+      }
+
       } catch {
         // 失敗時は何もしない
       } finally {
