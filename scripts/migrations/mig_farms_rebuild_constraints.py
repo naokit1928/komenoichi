@@ -1,5 +1,3 @@
-# scripts/migrations/mig_farms_rebuild_constraints.py
-
 import sqlite3
 from app_v2.db.core import resolve_db_path
 
@@ -14,6 +12,19 @@ def main():
     try:
         print("[migrate] begin")
         cur.execute("BEGIN")
+
+        # --- legacy NULL cleanup (one-time, for rebuild safety) ---
+        cur.execute("""
+        UPDATE farms
+        SET email = '__legacy__' || farm_id || '@invalid.local'
+        WHERE email IS NULL;
+        """)
+
+        cur.execute("""
+        UPDATE farms
+        SET registration_status = 'EMAIL_REGISTERED'
+        WHERE registration_status IS NULL;
+        """)
 
         # 1. 既存 farms を元に、新テーブルを最終形で作成
         cur.execute("""
