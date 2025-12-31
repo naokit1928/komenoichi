@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import FarmerSettingsHeader from "./FarmerSettingsHeader";
 import FaceAvatar from "./FaceAvatar";
 import PrGallery from "./PrGallery";
@@ -54,43 +54,33 @@ type SettingsResponse = {
 type SettingsV2Response = {
   farm_id: number;
   farm_name?: string | null;
-
   rice_variety_label?: string | null;
   price_10kg?: number | null;
   price_5kg?: number | null;
   price_25kg?: number | null;
-
   pr_title?: string | null;
   pr_text?: string | null;
-
   face_image_url?: string | null;
   cover_image_url?: string | null;
   pr_images?: PrImage[];
-
   is_ready_to_publish?: boolean;
   missing_fields?: string[];
   thumbnail_url?: string | null;
-
   active_flag?: number;
   is_accepting_reservations?: boolean;
-
   monthly_upload_bytes?: number;
   monthly_upload_limit?: number;
   next_reset_at?: string | null;
-
   pickup_place_name?: string | null;
   pickup_lat?: number | null;
   pickup_lng?: number | null;
 };
 
 export default function FarmerSettingsPage() {
-  
-
   const [initial, setInitial] = useState<SettingsResponse | null>(null);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [riceVariety, setRiceVariety] = useState("");
-
   const [busy, setBusy] = useState(false);
   const [uploadingFace, setUploadingFace] = useState(false);
   const [deletingFace, setDeletingFace] = useState(false);
@@ -102,14 +92,10 @@ export default function FarmerSettingsPage() {
   async function fetchAll() {
     try {
       setBusy(true);
-
       const res = await fetch(`${API_BASE}/api/farmer/settings-v2/me`, {
         credentials: "include",
       });
-      if (!res.ok) {
-        console.error("fetch settings-v2/me failed", res.status);
-        return;
-      }
+      if (!res.ok) return;
 
       const v2: SettingsV2Response = await res.json();
 
@@ -146,92 +132,50 @@ export default function FarmerSettingsPage() {
       };
 
       setInitial(mapped);
-      setTitle(mapped.profile.pr_title ?? "");
-      setText(mapped.profile.pr_text ?? "");
+      setTitle(mapped.profile.pr_title);
+      setText(mapped.profile.pr_text);
       setRiceVariety(mapped.farm.rice_variety_label ?? "");
-    } catch (e) {
-      console.error(e);
     } finally {
       setBusy(false);
     }
   }
 
   async function postMe(payload: any) {
-    const res = await fetch(`${API_BASE}/api/farmer/settings-v2/me`, {
+    await fetch(`${API_BASE}/api/farmer/settings-v2/me`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error(await res.text());
     await fetchAll();
   }
 
-  async function toggleAccepting(next: boolean) {
-    try {
-      setBusy(true);
-      await postMe({ is_accepting_reservations: next });
-    } finally {
-      setBusy(false);
-    }
+  async function uploadSingle(kind: "face" | "cover", file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const endpoint =
+      kind === "face"
+        ? `${API_BASE}/api/farmer/settings-v2/face-image/me`
+        : `${API_BASE}/api/farmer/settings-v2/cover-image/me`;
+
+    await fetch(endpoint, {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    });
   }
-
-  async function saveTitle(next: string) {
-    await postMe({ pr_title: next });
-  }
-
-  async function savePrText(next: string) {
-    await postMe({ pr_text: next });
-  }
-
-  async function saveRiceVariety(next: string) {
-    await postMe({ rice_variety_label: next });
-  }
-
-  // FarmerSettingsPage.tsx
-
-async function uploadSingle(kind: "face" | "cover", file: File) {
-  const fd = new FormData();
-  fd.append("file", file);
-
-  const endpoint =
-    kind === "face"
-      ? `${API_BASE}/api/farmer/settings-v2/face-image/me`
-      : `${API_BASE}/api/farmer/settings-v2/cover-image/me`;
-
-  const res = await fetch(endpoint, {
-    method: "POST",
-    credentials: "include",
-    body: fd,
-  });
-  if (!res.ok) throw new Error(await res.text());
-}
-
-
-  async function deleteFace() {
-    await postMe({ face_image_url: "" });
-  }
-
-  const publishReady = initial?.status?.is_ready_to_publish ?? false;
-  const activeFlag = initial?.status?.active_flag ?? 1;
-  const isToggleOn =
-    activeFlag === 1 && !!initial?.farm?.is_accepting_reservations;
-  const toggleDisabled =
-    !initial || busy || activeFlag !== 1 || !publishReady;
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7] pt-[80px] sm:pt-[96px]">
-      <FarmerSettingsHeader
-        title="公開用プロフィール設定"
-        backTo="/farmer"
-      />
+    <div className="min-h-screen bg-[#F7F7F7]">
+      <FarmerSettingsHeader title="公開用プロフィール設定" />
 
-      <div className="pb-12 sm:mx-auto sm:max-w-3xl">
-        <section className="px-0 sm:px-6">
+      <div className="mx-auto max-w-3xl pb-12">
+        <section className="px-4 sm:px-6 mt-6">
           <PublishToggleCard
-            isOn={isToggleOn}
-            disabled={toggleDisabled}
-            onToggle={toggleAccepting}
+            isOn={!!initial?.farm.is_accepting_reservations}
+            disabled={!initial || busy}
+            onToggle={(v) => postMe({ is_accepting_reservations: v })}
           />
         </section>
 
@@ -252,7 +196,7 @@ async function uploadSingle(kind: "face" | "cover", file: File) {
           saving={busy}
           disabled={!initial}
           onChange={setRiceVariety}
-          onSave={saveRiceVariety}
+          onSave={(v) => postMe({ rice_variety_label: v })}
         />
 
         <FaceAvatar
@@ -267,8 +211,7 @@ async function uploadSingle(kind: "face" | "cover", file: File) {
           }}
           onDelete={async () => {
             setDeletingFace(true);
-            await deleteFace();
-            await fetchAll();
+            await postMe({ face_image_url: "" });
             setDeletingFace(false);
           }}
         />
@@ -277,14 +220,14 @@ async function uploadSingle(kind: "face" | "cover", file: File) {
           value={title}
           saving={busy}
           onChange={setTitle}
-          onSave={saveTitle}
+          onSave={(v) => postMe({ pr_title: v })}
         />
 
         <PrTextEditor
           value={text}
           saving={busy}
           onChange={setText}
-          onSave={savePrText}
+          onSave={(v) => postMe({ pr_text: v })}
         />
       </div>
     </div>

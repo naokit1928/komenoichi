@@ -177,20 +177,22 @@ export default function FaceAvatar({
         .fa-busy-wrap { display:flex; flex-direction:column; align-items:center; }
       `}</style>
 
-      <div
-        className="w-full"
+      <button
+        type="button"
+        className="w-full bg-white"
         style={{
-          background: "#FFFFFF",
+          backgroundColor: "#FFFFFF",
           border: "1px solid rgba(0,0,0,0.07)",
           borderRadius: 24,
-          padding: "18px 20px 24px",
+          padding: "44px 46px", // ← 他カードと完全一致
           boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
-          marginTop: 24,
-          marginBottom: 24
+          cursor: "default", // 外枠は押せるが何もしない
+          textAlign: "center",
         }}
         aria-busy={isBusy}
         aria-live="polite"
       >
+
         {/* タイトル中央・余白は詰め気味 */}
         <h2 className="text-[26px] font-extrabold tracking-tight text-gray-800 text-center">
           プロフィール写真
@@ -249,7 +251,8 @@ export default function FaceAvatar({
 
         {/* input */}
         <input ref={inputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden" />
-      </div>
+      </button>
+
 
       {/* ===== Crop モーダル ===== */}
       {isCropOpen && cropSrc && (

@@ -495,7 +495,7 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
   }
 
   return (
-    <section className="mb-10">
+    <section className="mb-10 px-4 sm:px-6">
       <style>{`
         @keyframes prg-wiggle-kf {
           0% { transform: rotate(-0.35deg) }
@@ -505,15 +505,17 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
         .prg-wiggle { animation: prg-wiggle-kf 0.35s ease-in-out infinite; }
       `}</style>
 
-      {/* ▼▼ カード化：ヘッダー＋グリッドを白カードで囲む ▼▼ */}
-      <div
-        className="w-full"
+      <button
+        type="button"
+        className="w-full bg-white"
         style={{
-          background: "#FFFFFF",
+          backgroundColor: "#FFFFFF",
           border: "1px solid rgba(0,0,0,0.07)",
           borderRadius: 24,
-          padding: "18px 20px 24px",
+          padding: "44px 46px",
           boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
+          textAlign: "left",
+          cursor: "default",
         }}
       >
         {/* header */}
@@ -528,7 +530,10 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
           >
             <button
               type="button"
-              onClick={nudgeWiggle}
+              onClick={(e) => {
+                e.stopPropagation();
+                nudgeWiggle();
+              }}
               className="inline-flex items-center rounded-full text-[14px] font-medium"
               style={{
                 background: "#F2F2F2",
@@ -562,6 +567,7 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
                 opacity: uploading ? 0.6 : 1,
                 marginLeft: 8,
               }}
+              onClick={(e) => e.stopPropagation()}
             >
               {uploading ? (
                 <Spinner />
@@ -595,64 +601,66 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
         </div>
 
         {/* grid */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={ids} strategy={rectSortingStrategy}>
-            <div
-              className="mt-4 grid"
-              style={{
-                gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-                gap: 12,
-              }}
-            >
-              {images
-                .slice()
-                .sort(byOrder)
-                .map((img, idx) => (
-                  <SortableItem
-                    key={img.id}
-                    img={{
-                      ...img,
-                      url: optimizeCloudinary(img.url, 600),
-                    }}
-                    index={idx}
-                    wiggle={wiggle}
-                    onOpenPreview={openPreview}
-                  />
-                ))}
-              {images.length < MAX_IMAGES && (
-                <label
-                  className="relative rounded-[18px] overflow-hidden grid place-items-center text-sm text-gray-700 cursor-pointer"
-                  style={{ aspectRatio: "3 / 2", background: "#F7F7F7" }}
-                  title="写真を追加"
-                >
-                  <div className="text-center">
-                    <div className="text-base font-medium">＋ 追加</div>
-                    <div className="text-[11px] mt-1 text-gray-500">
-                      残り {Math.max(0, MAX_IMAGES - images.length)} /{" "}
-                      {MAX_IMAGES}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext items={ids} strategy={rectSortingStrategy}>
+              <div
+                className="mt-4 grid"
+                style={{
+                  gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                {images
+                  .slice()
+                  .sort(byOrder)
+                  .map((img, idx) => (
+                    <SortableItem
+                      key={img.id}
+                      img={{
+                        ...img,
+                        url: optimizeCloudinary(img.url, 600),
+                      }}
+                      index={idx}
+                      wiggle={wiggle}
+                      onOpenPreview={openPreview}
+                    />
+                  ))}
+                {images.length < MAX_IMAGES && (
+                  <label
+                    className="relative rounded-[18px] overflow-hidden grid place-items-center text-sm text-gray-700 cursor-pointer"
+                    style={{ aspectRatio: "3 / 2", background: "#F7F7F7" }}
+                    title="写真を追加"
+                  >
+                    <div className="text-center">
+                      <div className="text-base font-medium">＋ 追加</div>
+                      <div className="text-[11px] mt-1 text-gray-500">
+                        残り {Math.max(0, MAX_IMAGES - images.length)} /{" "}
+                        {MAX_IMAGES}
+                      </div>
                     </div>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={(e) => handleChooseFiles(e.currentTarget.files)}
-                    disabled={busy}
-                    aria-label="写真を追加"
-                  />
-                </label>
-              )}
-            </div>
-          </SortableContext>
-        </DndContext>
-      </div>
-      {/* ▲▲ カードここまで。以下はページ全体オーバーレイ等（カード外のまま） ▲▲ */}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={(e) => handleChooseFiles(e.currentTarget.files)}
+                      disabled={busy}
+                      aria-label="写真を追加"
+                    />
+                  </label>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+      </button>
 
+      {/* ▲▲ カードここまで。以下はページ全体オーバーレイ等（カード外のまま） ▲▲ */}
       {uploading && <UploadToast text="画像をアップロードしています…" />}
 
       {preview && preview.img && (
