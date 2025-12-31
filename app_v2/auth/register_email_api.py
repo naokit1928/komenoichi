@@ -84,7 +84,14 @@ def _create_empty_farm(email: str) -> int:
     "/request-otp",
     response_model=OkResponse,
 )
-def request_otp(payload: RequestOtpRequest):
+def request_otp(
+    payload: RequestOtpRequest,
+    request: Request,
+):
+    # ★ 新規メール登録は必ず「匿名状態」から開始する
+    # 既存セッションが混入するのを原理的に防ぐ
+    request.session.clear()
+
     # email が既に使われていたらNG
     if _farm_exists(payload.email):
         raise HTTPException(
@@ -147,6 +154,7 @@ def verify_otp(payload: VerifyOtpRequest, request: Request):
 
     farm_id = _create_empty_farm(payload.email)
 
+    # 新規登録された farm をこのセッションの主体として確定
     request.session["farm_id"] = farm_id
 
     return OkResponse()

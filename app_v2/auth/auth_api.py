@@ -47,6 +47,9 @@ def request_otp(payload: RequestOtpRequest):
     response_model=VerifyOtpResponse,
 )
 def verify_otp(payload: VerifyOtpRequest, request: Request):
+    # ★ ログインは「主体の切替」なので、まず既存セッションを破棄
+    request.session.clear()
+
     try:
         otp_service.verify_otp(
             email=payload.email,
@@ -98,6 +101,7 @@ def verify_otp(payload: VerifyOtpRequest, request: Request):
             detail="farm not found",
         )
 
+    # このログインで確定した主体をセッションにセット
     request.session["farm_id"] = row[0]
 
     return VerifyOtpResponse()
