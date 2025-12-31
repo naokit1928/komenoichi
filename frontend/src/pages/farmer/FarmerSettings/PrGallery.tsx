@@ -547,6 +547,28 @@ const ids = images
             className="flex items-center"
             style={{ gap: 10, transform: "translateX(-5px)" }}
           >
+
+            <button
+              type="button"
+              onClick={nudgeWiggle}
+              className="inline-flex items-center rounded-full text-[14px] font-medium"
+              style={{
+                background: "#F2F2F2",
+                color: "#222222",
+                padding: "10px 16px",
+                border: "none",
+                boxShadow: "0 1px 0 rgba(0,0,0,.04)",
+              }}
+              title="写真をドラッグして順番を変えられます"
+            >
+              {uploading ? (
+                <span className="inline-flex items-center gap-2">
+                  <Spinner size={16} /> アップロード中…
+                </span>
+              ) : (
+                "順番入れ替え"
+              )}
+            </button>
             
             <label
               className="grid place-items-center rounded-full"
