@@ -249,46 +249,47 @@ export default function RiceVarietyLabelEditor({
 
   return (
     <section className={`w-full ${className}`} style={{ marginTop: 24 }}>
-      <button
-        type="button"
-        onClick={() => !disabled && setOpen(true)}
-        className="w-full bg-white"
-        style={{
-          backgroundColor: "#FFFFFF",
-          border: "1px solid rgba(0,0,0,0.07)",
-          borderRadius: 24,
-          padding: "44px 46px",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
-          cursor: disabled ? "not-allowed" : "pointer",
-          textAlign: "center",
-        }}
-        aria-label="お米の品種（銘柄）を編集"
-      >
-        <div
-          className="text-gray-800"
-          style={{ fontSize: 16, fontWeight: 700, letterSpacing: ".01em" }}
-        >
-          お米の品種（銘柄）
-        </div>
+<button
+  type="button"
+  onClick={() => !disabled && setOpen(true)}
+  className="w-full bg-white"
+  style={{
+    backgroundColor: "#FFFFFF",
+    border: "1px solid rgba(0,0,0,0.07)",
+    borderRadius: 24,
+    padding: "44px 46px",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
+    cursor: disabled ? "not-allowed" : "pointer",
+  }}
+  aria-label="お米の品種（銘柄）を編集"
+>
+  {/* ★ 追加：inner ラッパー */}
+  <div className="w-full sm:max-w-[560px] sm:mx-auto text-center">
+    <div
+      className="text-gray-800"
+      style={{ fontSize: 16, fontWeight: 700, letterSpacing: ".01em" }}
+    >
+      お米の品種（銘柄）
+    </div>
 
-        <div
-          className="text-black"
-          style={{
-            fontWeight: 800,
-            fontSize: 20,
-            lineHeight: 1.3,
-            letterSpacing: "-.01em",
-            marginTop: 6,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            overflowWrap: "anywhere",
-            textAlign: "center",
-          }}
-        >
-          {/* カード上には常に「20xx年産 ＋ 銘柄名」を表示 */}
-          {displayText}
-        </div>
-      </button>
+    <div
+      className="text-black"
+      style={{
+        fontWeight: 800,
+        fontSize: 20,
+        lineHeight: 1.3,
+        letterSpacing: "-.01em",
+        marginTop: 6,
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        overflowWrap: "anywhere",
+      }}
+    >
+      {displayText}
+    </div>
+  </div>
+</button>
+
 
       <RiceVarietyModal
         open={open}
