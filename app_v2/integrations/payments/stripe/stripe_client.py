@@ -22,10 +22,14 @@ def create_checkout_session(
     farm_id: int | None,
     service_fee_amount_jpy: int,
     term_service_name: str,
-    frontend_base_url: str,
+    success_url: str,
+    cancel_url: str,
 ):
     """
     Stripe Checkout Session を作成する純粋な外部呼び出し関数
+
+    - URL の正当性・構築は Service の責務
+    - この関数は受け取った値を Stripe に渡すだけ
     """
     return stripe.checkout.Session.create(
         mode="payment",
@@ -46,8 +50,8 @@ def create_checkout_session(
                 "quantity": 1,
             }
         ],
-        success_url=f"{frontend_base_url}/payment_success",
-        cancel_url=f"{frontend_base_url}/farms/{farm_id}/confirm",
+        success_url=success_url,
+        cancel_url=cancel_url,
         payment_intent_data={
             "metadata": {
                 "reservation_id": str(reservation_id),

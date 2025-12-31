@@ -70,6 +70,10 @@ async function createReservationV2(
 async function startCheckout(reservationId: number) {
   const res = await fetch(`${API_BASE}/stripe/checkout/${reservationId}`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      frontend_origin: window.location.origin,
+    }),
   });
   if (!res.ok) throw new Error("Stripe 接続に失敗しました。");
 
