@@ -250,10 +250,11 @@ function SortableItem(props: {
       {...attributes}
       {...listeners}
       style={{
-        touchAction: "manipulation",               // ← ★ここ
-        transform: CSS.Transform.toString(transform),
-        transition,
+       touchAction: "none", // ★ Android 必須
+       transform: CSS.Transform.toString(transform),
+       transition,
       }}
+
       className={[
         "relative overflow-hidden rounded-[18px]",
         "shadow-sm hover:shadow-md transition-shadow",
@@ -261,7 +262,11 @@ function SortableItem(props: {
         wiggle ? "prg-wiggle" : "",
       ].join(" ")}
       aria-label={`写真 ${index + 1}${isCover ? "（カバー）" : ""}`}
-      onClickCapture={() => onOpenPreview(img, index)}
+      onClickCapture={() => {
+       if (isDragging) return;   // ★ これがないと Android で死ぬ
+       onOpenPreview(img, index);
+      }}
+
     >
 
       <div
