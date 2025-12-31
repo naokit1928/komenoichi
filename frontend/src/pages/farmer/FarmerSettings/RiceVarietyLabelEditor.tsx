@@ -252,17 +252,21 @@ export default function RiceVarietyLabelEditor({
 <button
   type="button"
   onClick={() => !disabled && setOpen(true)}
-  className="w-full bg-white"
+  className="
+    w-full bg-white
+    px-4 py-10
+    sm:px-[46px] sm:py-[44px]
+  "
   style={{
     backgroundColor: "#FFFFFF",
     border: "1px solid rgba(0,0,0,0.07)",
     borderRadius: 24,
-    padding: "44px 46px",
     boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
     cursor: disabled ? "not-allowed" : "pointer",
   }}
   aria-label="お米の品種（銘柄）を編集"
 >
+
   {/* ★ 追加：inner ラッパー */}
   <div className="w-full sm:max-w-[560px] sm:mx-auto text-center">
     <div
