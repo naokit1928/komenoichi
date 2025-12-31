@@ -81,7 +81,6 @@ app.add_middleware(
     same_site="none" if IS_RENDER else "lax",
     https_only=True if IS_RENDER else False,
     max_age=60 * 60 * 24 * 30,  # ← 追加（30日）
-    domain=".vercel.app" if IS_RENDER else None,
 )
 
 # ============================
