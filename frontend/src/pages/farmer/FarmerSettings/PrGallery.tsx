@@ -538,14 +538,21 @@ const ids = images
         }}
       >
         {/* header */}
-        <div className="flex items-center justify-between">
+        <div
+          className="flex items-center justify-between"
+          style={{
+           marginLeft: -16,
+           marginRight: -16,
+          }}
+        >
+
           <h2 className="text-[20px] font-extrabold tracking-tight">
             スライド写真
           </h2>
 
           <div
             className="flex items-center"
-            style={{ gap: 10, transform: "translateX(-5px)" }}
+            style={{ gap: 10 }}
           >
 
             <button
@@ -566,10 +573,11 @@ const ids = images
                   <Spinner size={16} /> アップロード中…
                 </span>
               ) : (
-                "順番入れ替え"
+                "順番入替え"
               )}
             </button>
             
+            {/*
             <label
               className="grid place-items-center rounded-full"
               title="写真を追加"
@@ -614,6 +622,7 @@ const ids = images
                 aria-label="写真を追加"
               />
             </label>
+            */}
           </div>
         </div>
 
