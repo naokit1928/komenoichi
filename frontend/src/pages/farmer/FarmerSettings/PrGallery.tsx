@@ -539,7 +539,7 @@ const ids = images
       >
         {/* header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-[26px] font-extrabold tracking-tight">
+          <h2 className="text-[20px] font-extrabold tracking-tight">
             スライド写真
           </h2>
 
@@ -551,7 +551,7 @@ const ids = images
             <button
               type="button"
               onClick={nudgeWiggle}
-              className="inline-flex items-center rounded-full text-[14px] font-medium"
+              className="inline-flex items-center rounded-full text-[12px] font-medium"
               style={{
                 background: "#F2F2F2",
                 color: "#222222",
@@ -617,64 +617,73 @@ const ids = images
           </div>
         </div>
 
-        {/* grid */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={onDragEnd}
+{/* grid */}
+<div
+  onClick={(e) => e.stopPropagation()}
+  style={{
+    marginLeft: -46,
+    marginRight: -46,
+  }}
+>
+  <DndContext
+    sensors={sensors}
+    collisionDetection={closestCenter}
+    onDragEnd={onDragEnd}
+  >
+    <SortableContext items={ids} strategy={rectSortingStrategy}>
+      <div
+        className="mt-4 grid"
+        style={{
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: 12,
+          paddingLeft: 12,
+          paddingRight: 12,
+        }}
+      >
+        {images
+          .slice()
+          .sort(byOrder)
+          .map((img, idx) => (
+            <SortableItem
+              key={img.id}
+              img={{
+                ...img,
+                url: optimizeCloudinary(img.url, 600),
+              }}
+              index={idx}
+              wiggle={wiggle}
+              onOpenPreview={openPreview}
+            />
+          ))}
+
+        {images.length < MAX_IMAGES && (
+          <label
+            className="relative rounded-[18px] overflow-hidden grid place-items-center text-sm text-gray-700 cursor-pointer"
+            style={{ aspectRatio: "3 / 2", background: "#F7F7F7" }}
+            title="写真を追加"
           >
-            <SortableContext items={ids} strategy={rectSortingStrategy}>
-              <div
-                className="mt-4 grid"
-                style={{
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))", // ★ スマホは必ず2列
-                  gap: 12,
-                }}
-              >
-                {images
-                  .slice()
-                  .sort(byOrder)
-                  .map((img, idx) => (
-                    <SortableItem
-                      key={img.id}
-                      img={{
-                        ...img,
-                        url: optimizeCloudinary(img.url, 600),
-                      }}
-                      index={idx}
-                      wiggle={wiggle}
-                      onOpenPreview={openPreview}
-                    />
-                  ))}
-                {images.length < MAX_IMAGES && (
-                  <label
-                    className="relative rounded-[18px] overflow-hidden grid place-items-center text-sm text-gray-700 cursor-pointer"
-                    style={{ aspectRatio: "3 / 2", background: "#F7F7F7" }}
-                    title="写真を追加"
-                  >
-                    <div className="text-center">
-                      <div className="text-base font-medium">＋ 追加</div>
-                      <div className="text-[11px] mt-1 text-gray-500">
-                        残り {Math.max(0, MAX_IMAGES - images.length)} /{" "}
-                        {MAX_IMAGES}
-                      </div>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={(e) => handleChooseFiles(e.currentTarget.files)}
-                      disabled={busy}
-                      aria-label="写真を追加"
-                    />
-                  </label>
-                )}
+            <div className="text-center">
+              <div className="text-base font-medium">＋ 追加</div>
+              <div className="text-[11px] mt-1 text-gray-500">
+                残り {Math.max(0, MAX_IMAGES - images.length)} / {MAX_IMAGES}
               </div>
-            </SortableContext>
-          </DndContext>
-        </div>
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              onChange={(e) => handleChooseFiles(e.currentTarget.files)}
+              disabled={busy}
+              aria-label="写真を追加"
+            />
+          </label>
+        )}
+      </div>
+    </SortableContext>
+  </DndContext>
+</div>
+
       </button>
 
       {/* ▲▲ カードここまで。以下はページ全体オーバーレイ等（カード外のまま） ▲▲ */}
