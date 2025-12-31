@@ -606,7 +606,7 @@ const ids = images
               <div
                 className="mt-4 grid"
                 style={{
-                  gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))", // ★ スマホは必ず2列
                   gap: 12,
                 }}
               >
