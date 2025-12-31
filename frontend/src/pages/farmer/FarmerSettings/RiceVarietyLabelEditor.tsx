@@ -252,7 +252,7 @@ export default function RiceVarietyLabelEditor({
 <button
   type="button"
   onClick={() => !disabled && setOpen(true)}
-  className="w-full bg-white"
+  className="block w-full bg-white"
   style={{
     backgroundColor: "#FFFFFF",
     border: "1px solid rgba(0,0,0,0.07)",
