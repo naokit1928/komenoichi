@@ -4,6 +4,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -243,12 +244,16 @@ function SortableItem(props: {
 
   const isCover = index === 0;
 
-  return (
+    return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={{
+        touchAction: "manipulation",               // ← ★ここ
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
       className={[
         "relative overflow-hidden rounded-[18px]",
         "shadow-sm hover:shadow-md transition-shadow",
@@ -258,6 +263,7 @@ function SortableItem(props: {
       aria-label={`写真 ${index + 1}${isCover ? "（カバー）" : ""}`}
       onClickCapture={() => onOpenPreview(img, index)}
     >
+
       <div
         className="grid w-full h-full"
         style={{
@@ -321,13 +327,21 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
     setImages([...(initialImages ?? [])].sort(byOrder));
   }, [initialImages]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
-  const ids = useMemo(
-    () => images.slice().sort(byOrder).map((x) => x.id),
-    [images]
-  );
+const sensors = useSensors(
+  useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 120,
+      tolerance: 5,
+    },
+  })
+);
+
+const ids = images
+  .slice()
+  .sort(byOrder)
+  .map((img) => img.id);
+
 
   async function handleChooseFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -528,31 +542,7 @@ export default function PrGallery({ farmId, initialImages, onChanged }: Props) {
             className="flex items-center"
             style={{ gap: 10, transform: "translateX(-5px)" }}
           >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                nudgeWiggle();
-              }}
-              className="inline-flex items-center rounded-full text-[14px] font-medium"
-              style={{
-                background: "#F2F2F2",
-                color: "#222222",
-                padding: "10px 16px",
-                border: "none",
-                boxShadow: "0 1px 0 rgba(0,0,0,.04)",
-              }}
-              title="写真をドラッグして順番を変えられます"
-            >
-              {uploading ? (
-                <span className="inline-flex items-center gap-2">
-                  <Spinner size={16} /> アップロード中…
-                </span>
-              ) : (
-                "順番入れ替え"
-              )}
-            </button>
-
+            
             <label
               className="grid place-items-center rounded-full"
               title="写真を追加"
