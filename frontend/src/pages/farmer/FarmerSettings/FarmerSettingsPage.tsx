@@ -226,8 +226,8 @@ async function uploadSingle(kind: "face" | "cover", file: File) {
         backTo="/farmer"
       />
 
-      <div className="mx-auto max-w-3xl pb-12">
-        <section className="px-4 sm:px-6">
+      <div className="pb-12 sm:mx-auto sm:max-w-3xl">
+        <section className="px-0 sm:px-6">
           <PublishToggleCard
             isOn={isToggleOn}
             disabled={toggleDisabled}
