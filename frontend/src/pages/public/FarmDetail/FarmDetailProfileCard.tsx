@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { PublicFarmDetailDTO } from "../../../types/publicFarmDetail";
 
 type Props = {
@@ -14,8 +13,6 @@ export default function FarmDetailProfileCard({
   shortLocation,
   faceImageUrl,
 }: Props) {
-  const [prExpanded, setPrExpanded] = useState(false);
-
   const displayName = ownerFullName ? `${ownerFullName}さんのお米` : null;
 
   // 顔写真も名前もPR文も無ければカード自体を出さない
@@ -50,7 +47,9 @@ export default function FarmDetailProfileCard({
 
         <div>
           {displayName && (
-            <div style={{ fontSize: 15, color: "#111827" }}>{displayName}</div>
+            <div style={{ fontSize: 15, color: "#111827" }}>
+              {displayName}
+            </div>
           )}
 
           {shortLocation && (
@@ -70,44 +69,13 @@ export default function FarmDetailProfileCard({
       {farm?.pr_text && (
         <div style={{ marginTop: 10 }}>
           <div
-            style={
-              prExpanded
-                ? {
-                    fontSize: 14,
-                    color: "#374151",
-                    lineHeight: 1.6,
-                  }
-                : {
-                    fontSize: 14,
-                    color: "#374151",
-                    lineHeight: 1.6,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 8,
-                    WebkitBoxOrient: "vertical" as any,
-                    overflow: "hidden",
-                  }
-            }
+            style={{
+              fontSize: 16,
+              color: "#374151",
+              lineHeight: 1.6,
+            }}
           >
             {farm.pr_text}
-          </div>
-
-          <div style={{ marginTop: 6, textAlign: "center" }}>
-            <button
-              type="button"
-              onClick={() => setPrExpanded((v) => !v)}
-              style={{
-                background: "transparent",
-                border: "none",
-                padding: 0,
-                fontSize: 12.5,
-                color: "#2563eb",
-                cursor: "pointer",
-              }}
-              aria-expanded={prExpanded}
-              aria-controls="pr-text"
-            >
-              {prExpanded ? "閉じる" : "続きを読む"}
-            </button>
           </div>
         </div>
       )}
