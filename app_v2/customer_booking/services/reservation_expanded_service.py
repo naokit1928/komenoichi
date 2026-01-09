@@ -213,12 +213,17 @@ class ReservationExpandedService:
             )
 
         pickup_slot_code = farm.pickup_time
+        
+
 
         # DB から confirmed 予約を取得
         reservation_records: List[ReservationRecord] = self.repo.get_confirmed_reservations_for_farm(
             farm_id=farm_id,
             pickup_slot_code=pickup_slot_code,
         )
+
+        print("DEBUG records from repo:", [r.id for r in reservation_records])
+
 
         now = datetime.now(JST)
         export_event_start, export_event_end = _calc_event_for_export(now, pickup_slot_code)

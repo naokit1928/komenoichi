@@ -2,20 +2,19 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import date
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 from app_v2.db.core import resolve_db_path
 
 
 class AdminReservationRepository:
     """
-    フェーズ2対応・確定版
 
     - users 参照なし
     - reservations.reservation_id を正
     - farms.farm_id を正
-    - admin repo は「事実取得のみ」
-    - 通知ステータス（– / NONE）の意味付けは service 層で行う
+    - admin repo は「事実（予約・農家情報）の取得」のみを責務とする
+   
     """
 
     def __init__(self) -> None:
@@ -82,8 +81,6 @@ class AdminReservationRepository:
                 f.last_kana AS owner_last_kana,
                 f.first_kana AS owner_first_kana,
                 f.postal_code AS owner_postcode,
-                '' AS owner_pref,
-                '' AS owner_city,
                 f.address AS owner_addr_line,
                 f.phone AS owner_phone,
 
@@ -102,6 +99,9 @@ class AdminReservationRepository:
         cur = self.conn.execute(sql, params + [limit, offset])
         return [dict(row) for row in cur.fetchall()]
 
+    # ------------------------------------------------------------------
+    # 件数カウント
+    # ------------------------------------------------------------------
     def count_reservations(
         self,
         *,
@@ -144,7 +144,7 @@ class AdminReservationRepository:
         return int(row["cnt"]) if row else 0
 
     # ------------------------------------------------------------------
-    # 単一予約
+    # 単一予約取得
     # ------------------------------------------------------------------
     def fetch_reservation_by_id(self, reservation_id: int) -> Optional[Dict[str, Any]]:
         sql = """
@@ -167,8 +167,6 @@ class AdminReservationRepository:
                 f.last_kana AS owner_last_kana,
                 f.first_kana AS owner_first_kana,
                 f.postal_code AS owner_postcode,
-                '' AS owner_pref,
-                '' AS owner_city,
                 f.address AS owner_addr_line,
                 f.phone AS owner_phone,
 
@@ -183,43 +181,3 @@ class AdminReservationRepository:
         """
         row = self.conn.execute(sql, (reservation_id,)).fetchone()
         return dict(row) if row else None
-
-    # ------------------------------------------------------------------
-    # notification_jobs（新設計）
-    # ------------------------------------------------------------------
-    def fetch_notification_jobs_by_reservation_ids(
-        self, reservation_ids: Sequence[int]
-    ) -> Dict[int, List[Dict[str, Any]]]:
-        """
-        reservation_id ごとに notification_jobs を取得する。
-
-        ※ ここでは一切の意味付けを行わない
-        ※ – / NONE / PENDING などの判定は service 層の責務
-        """
-
-        if not reservation_ids:
-            return {}
-
-        placeholders = ",".join("?" for _ in reservation_ids)
-        sql = f"""
-            SELECT
-                job_id,
-                reservation_id,
-                kind,
-                scheduled_at,
-                status,
-                attempt_count,
-                last_error,
-                created_at
-            FROM notification_jobs
-            WHERE reservation_id IN ({placeholders})
-            ORDER BY reservation_id, scheduled_at, job_id
-        """
-
-        rows = self.conn.execute(sql, list(reservation_ids)).fetchall()
-
-        result: Dict[int, List[Dict[str, Any]]] = {}
-        for row in rows:
-            rid = int(row["reservation_id"])
-            result.setdefault(rid, []).append(dict(row))
-        return result

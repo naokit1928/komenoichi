@@ -1,4 +1,3 @@
-# app_v2/customer_booking/repository/reservation_status_repo.py
 from __future__ import annotations
 
 import sqlite3
@@ -14,6 +13,7 @@ class ReservationStatusRepository:
     責務:
     - status の取得
     - status の更新
+    - reservation と consumer の紐づけ更新
     - トランザクション管理
 
     業務判断（どの遷移が正しいか）は Service に委ねる。
@@ -45,7 +45,7 @@ class ReservationStatusRepository:
             conn.close()
 
     # -----------------------------
-    # WRITE
+    # WRITE : status
     # -----------------------------
     def update_status_cancelled(self, reservation_id: int) -> None:
         conn = sqlite3.connect(self.db_path)
@@ -78,6 +78,39 @@ class ReservationStatusRepository:
                 WHERE reservation_id = ?
                 """,
                 (reservation_id,),
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    # -----------------------------
+    # WRITE : consumer binding
+    # -----------------------------
+    def update_consumer_id(
+        self,
+        *,
+        reservation_id: int,
+        consumer_id: int,
+    ) -> None:
+        """
+        reservation を consumer に正式に紐づける
+
+        Magic Link consume 時など、
+        「誰の予約か」を確定させるために使用する。
+        """
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE reservations
+                SET consumer_id = ?
+                WHERE reservation_id = ?
+                """,
+                (consumer_id, reservation_id),
             )
             conn.commit()
         except Exception:

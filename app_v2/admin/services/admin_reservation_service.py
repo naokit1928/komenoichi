@@ -11,10 +11,6 @@ from app_v2.admin.dto.admin_reservation_dtos import (
     AdminReservationListItemDTO,
 )
 
-# ★ 追加：通知ステータス集約は resolver に委譲
-from app_v2.admin.services.admin_notification_resolver import (
-    build_notification_summary,
-)
 from app_v2.admin.services.admin_items_formatter import (
     build_items_display,
     calc_amounts,
@@ -27,13 +23,12 @@ from app_v2.admin.services.admin_event_resolver import (
 )
 
 
-
 class AdminReservationService:
     """
     /api/admin/reservations 用 Service。
 
     役割:
-      - reservations + line_notification_jobs + farms + users から生データを取得
+      - reservations + farms (+必要なら他) から生データを取得
       - reservation_expanded_service のロジックを再利用して
         「本当の受け渡し日(event_start/event_end)」を計算
       - AdminReservationListItemDTO に整形して返す
@@ -90,10 +85,6 @@ class AdminReservationService:
                 date_from=None,
                 date_to=None,
             )
-            reservation_ids = [row["id"] for row in raw_rows]
-            jobs_by_reservation = self.repo.fetch_notification_jobs_by_reservation_ids(
-                reservation_ids
-            )
 
             dtos: List[AdminReservationListItemDTO] = []
             for row in raw_rows:
@@ -110,14 +101,11 @@ class AdminReservationService:
                     pickup_slot_code=pickup_slot_code,
                 )
 
-
                 # 完全一致する受け渡し回だけ残す
                 if row_event_start != event_start:
                     continue
 
-                rid = row["id"]
-                jobs = jobs_by_reservation.get(rid, [])
-                dto = self._build_admin_dto(row, jobs)
+                dto = self._build_admin_dto(row)
                 dtos.append(dto)
 
             # event_start モードの場合、total_count はメモリ上でフィルタした件数
@@ -141,16 +129,9 @@ class AdminReservationService:
             date_to=date_to,
         )
 
-        reservation_ids = [row["id"] for row in raw_rows]
-        jobs_by_reservation = self.repo.fetch_notification_jobs_by_reservation_ids(
-            reservation_ids
-        )
-
         dtos: List[AdminReservationListItemDTO] = []
         for row in raw_rows:
-            rid = row["id"]
-            jobs = jobs_by_reservation.get(rid, [])
-            dto = self._build_admin_dto(row, jobs)
+            dto = self._build_admin_dto(row)
             dtos.append(dto)
 
         return dtos, total_count
@@ -198,7 +179,6 @@ class AdminReservationService:
             )
             key = (pickup_slot_code, event_start)
 
-
             if key not in grouped:
                 grouped[key] = {
                     "farm_id": farm_id,
@@ -242,17 +222,14 @@ class AdminReservationService:
     def _build_admin_dto(
         self,
         row: Dict[str, Any],
-        jobs: List[Dict[str, Any]],
     ) -> AdminReservationListItemDTO:
         """
-        reservations + line_notification_jobs の生データから
-        AdminReservationListItemDTO を組み立てる。
+        reservations の生データから AdminReservationListItemDTO を組み立てる。
         """
         # --- event_start / event_end / pickup_display ---
         pickup_slot_code = str(row.get("pickup_slot_code") or "")
         created_raw = row.get("created_at")
         created_at = parse_created_at(created_raw)
-
 
         event_start, event_end = resolve_event(
             created_at=created_at,
@@ -263,11 +240,9 @@ class AdminReservationService:
             event_end=event_end,
         )
 
-
         # --- items_display / rice_subtotal / total_amount ---
         items_display = build_items_display(row.get("items_json"))
         rice_subtotal, service_fee, total_amount = calc_amounts(row)
-
 
         # --- 予約ステータスなど ---
         reservation_status = str(row.get("status") or "")
@@ -279,22 +254,12 @@ class AdminReservationService:
         else:
             payment_succeeded_at = None
 
-
         created_at = created_at  # 上で計算済み
         updated_raw = row.get("updated_at")
         if updated_raw is not None:
-         updated_at = parse_created_at(updated_raw)
+            updated_at = parse_created_at(updated_raw)
         else:
             updated_at = None
-
-
-        # --- 通知ステータス集約（★差し替え：resolver 呼び出し） ---
-        notification_summary = build_notification_summary(
-            jobs=jobs,
-            reservation_status=reservation_status,
-            created_at=created_at,
-            event_start=event_start,
-        )
 
         # ------------------------------------------------------------------
         # ここから「予約者ID＋農家情報＋受け渡し場所情報」の拡張フィールドを組み立てる
@@ -307,18 +272,13 @@ class AdminReservationService:
         owner_last_kana = (row.get("owner_last_kana") or "").strip()
         owner_first_kana = (row.get("owner_first_kana") or "").strip()
 
-        # フルネームは UI 側で owner_* から組み立ててもらえばよいが、
-        # 将来の拡張のためにここで保持しておいてもよい。
-        farmer_full_name = (owner_last_name + " " + owner_first_name).strip()
-        farmer_full_name_kana = (owner_last_kana + " " + owner_first_kana).strip()
-
         # 住所（Registration の owner_* 系）
         farmer_postcode = (row.get("owner_postcode") or "").strip()
         pref = (row.get("owner_pref") or "").strip()
         city = (row.get("owner_city") or "").strip()
         addr_line = (row.get("owner_addr_line") or "").strip()
 
-        # 受け渡し場所（Notification と同じ情報ソース）
+        # 受け渡し場所
         pickup_place_name = (row.get("pickup_place_name") or "").strip()
         pickup_detail_memo = (row.get("pickup_notes") or "").strip()
 
@@ -364,14 +324,12 @@ class AdminReservationService:
             total_amount=total_amount,
             # --- 予約ステータス ---
             reservation_status=reservation_status,
-            # 支払いステータスは DTO に含めていない場合は無視される（extra=ignore）
-            notification_summary=notification_summary,
             # --- メタ情報 ---
             created_at=created_at,
             updated_at=updated_at or created_at,
         )
 
-    # NotificationService と同じルールで Google Map URL を作る
+    # Google Map URL
     @staticmethod
     def _build_google_maps_url(lat: float, lng: float) -> str:
         return f"https://www.google.com/maps?q={lat},{lng}"

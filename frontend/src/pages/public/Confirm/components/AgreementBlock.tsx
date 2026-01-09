@@ -40,9 +40,7 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             lineHeight: 1.7,
           }}
         >
-          <p style={{ margin: 0, marginBottom: 4 }}>
-            ・連絡のため、LINE連携（友だち追加＋ログイン）が必要です。
-          </p>
+          
           <p style={{ margin: 0, marginBottom: 4 }}>
             ・受け渡し時間内にお越しください。
           </p>

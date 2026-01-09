@@ -12,16 +12,17 @@ from app_v2.integrations.payments.stripe.stripe_webhook_repository import (
 
 class StripeWebhookService:
     """
-    Stripe Webhook Service（V2 最終形）
+    Stripe Webhook Service（V2 最終形・LINE完全非依存）
 
     責務：
       - Stripe event を解釈する
       - 対象 reservation を特定する
-      - ReservationStatusService に委譲する
+      - ReservationStatusService に状態遷移を委譲する
 
     方針：
       - DB には直接触らない
       - Repository を唯一の DB 入口とする
+      
     """
 
     def __init__(
@@ -56,7 +57,7 @@ class StripeWebhookService:
             except Exception:
                 pass
 
-        # 優先② payment_intent
+        # 優先② payment_intent id
         pi_id = obj.get("id") or obj.get("payment_intent")
         if isinstance(pi_id, str):
             reservation = self._repo.fetch_reservation_by_payment_intent(
@@ -75,6 +76,9 @@ class StripeWebhookService:
 
         conn = self._repo.open_connection()
         try:
+            # -----------------------------
+            # payment_intent.succeeded
+            # -----------------------------
             if event_type == "payment_intent.succeeded":
                 reservation = self._load_reservation_from_event(conn, event)
                 if not reservation:
@@ -87,6 +91,9 @@ class StripeWebhookService:
                         payment_intent_id=pi_id,
                     )
 
+            # -----------------------------
+            # checkout.session.completed
+            # -----------------------------
             elif event_type == "checkout.session.completed":
                 session = event["data"]["object"]
                 meta = session.get("metadata") or {}
@@ -101,17 +108,13 @@ class StripeWebhookService:
                 if not reservation:
                     return
 
-                # LINE consumer 紐付け
-                self._status_service.attach_consumer_by_line_id(
-                    reservation_id=int(rid),
-                    line_consumer_id=meta.get("line_consumer_id"),
-                )
-
                 pi_id = session.get("payment_intent")
                 if isinstance(pi_id, str):
                     self._status_service.handle_payment_succeeded(
                         reservation=reservation,
                         payment_intent_id=pi_id,
                     )
+
+            # それ以外のイベントは無視
         finally:
             conn.close()

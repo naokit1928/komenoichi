@@ -1,5 +1,3 @@
-# app_v2/integrations/payments/stripe/stripe_client.py
-
 import os
 from dotenv import load_dotenv
 import stripe
@@ -24,6 +22,7 @@ def create_checkout_session(
     term_service_name: str,
     success_url: str,
     cancel_url: str,
+    consumer_email: str | None = None,  # ★ 追加
 ):
     """
     Stripe Checkout Session を作成する純粋な外部呼び出し関数
@@ -31,6 +30,20 @@ def create_checkout_session(
     - URL の正当性・構築は Service の責務
     - この関数は受け取った値を Stripe に渡すだけ
     """
+
+    # ★ Webhook 側で確実に拾えるように metadata に email を入れる
+    session_meta = {
+        "reservation_id": str(reservation_id),
+    }
+    if consumer_email:
+        session_meta["consumer_email"] = consumer_email
+
+    pi_meta = {
+        "reservation_id": str(reservation_id),
+    }
+    if consumer_email:
+        pi_meta["consumer_email"] = consumer_email
+
     return stripe.checkout.Session.create(
         mode="payment",
         payment_method_types=["card"],
@@ -53,13 +66,9 @@ def create_checkout_session(
         success_url=success_url,
         cancel_url=cancel_url,
         payment_intent_data={
-            "metadata": {
-                "reservation_id": str(reservation_id),
-            }
+            "metadata": pi_meta,
         },
-        metadata={
-            "reservation_id": str(reservation_id),
-        },
+        metadata=session_meta,
         custom_text={
             "submit": {
                 "message": "この決済はStripeで安全に処理されます。カード情報は当サイトに保存されません。"

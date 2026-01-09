@@ -30,16 +30,22 @@ export default function PaymentSuccessPage() {
         <h1 style={sx.title}>予約が完了しました</h1>
 
         <p style={sx.subtext}>
-          ご予約内容・受け渡し場所などの必要な情報は、
-          LINE 内の「予約確認メニュー」から必ずご確認ください。
+          ご予約内容・受け渡し場所などの詳細は、
+          下のボタンからいつでもご確認いただけます。
         </p>
 
-        <div style={{ marginTop: 28 }}>
+        <div
+          style={{
+            marginTop: 28,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
           <a
-            href="https://line.me/R/ti/p/@your_line_id"
+            href="/reservation/booked"
             style={sx.confirmBtn}
           >
-            LINEで予約内容を確認する
+            予約内容を確認する
           </a>
         </div>
       </div>

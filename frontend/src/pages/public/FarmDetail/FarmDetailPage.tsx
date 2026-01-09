@@ -1,11 +1,16 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { API_BASE } from "@/config/api";
+
 import { useFarmDetail } from "./hooks/useFarmDetail";
 
 import FarmDetailHero from "./components/FarmDetailHero";
 import FarmDetailBody from "./components/FarmDetailBody";
 import FarmDetailCTA from "./components/FarmDetailCTA";
+
+/* ★ 共通ヘッダー */
+import { FarmsListHeader as PublicPageHeader } from "@/components/PublicPageHeader";
 
 // ★ 追加：注文ルール
 import {
@@ -38,10 +43,36 @@ const saveFavoriteIds = (ids: string[]) => {
 
 type Kg = 5 | 10 | 25;
 
+/* ===== ConfirmPage と同一 ===== */
+async function fetchIdentity(): Promise<{
+  is_logged_in: boolean;
+  email: string | null;
+} | null> {
+  const res = await fetch(`${API_BASE}/api/consumers/identity`, {
+    credentials: "include",
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export default function FarmDetailPage() {
   const { farmId } = useParams();
   const farmIdStr = String(farmId ?? "");
   const navigate = useNavigate();
+
+  // ===== consumer identity（ConfirmPage と同一） =====
+  const [consumerEmail, setConsumerEmail] =
+    useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    async function run() {
+      const data = await fetchIdentity();
+      if (data?.is_logged_in && data.email) {
+        setConsumerEmail(data.email);
+      }
+    }
+    run();
+  }, []);
 
   // ===== data (hook) =====
   const {
@@ -133,16 +164,10 @@ export default function FarmDetailPage() {
     setQtyByKg((p) => ({ ...p, [kg]: Math.max(0, p[kg] - 1) }));
   };
 
-  // ===== バリデーション（★追加・既存ロジック不変） =====
-
-  // 不変ルール：0kg は不可
+  // ===== バリデーション =====
   const totalKg = calcTotalKg(qtyByKg);
   const isEmptySelection = totalKg === 0;
-
-  // 可変ルール：最大kg制限（50kg は OK）
   const isOverLimit = isOverMaxKg(qtyByKg);
-
-  // CTA 無効条件
   const isNextDisabled = isEmptySelection || isOverLimit;
 
   // ===== 次へ =====
@@ -153,7 +178,7 @@ export default function FarmDetailPage() {
 
   const handleNext = () => {
     if (!farm) return;
-    if (isNextDisabled) return; // ★ ガード追加
+    if (isNextDisabled) return;
 
     const total = riceSubtotal + serviceFee;
 
@@ -181,6 +206,15 @@ export default function FarmDetailPage() {
   // ===== render =====
   return (
     <>
+      {/* ★ Public Header（ConfirmPage と同一挙動） */}
+      <PublicPageHeader
+        title=""
+        consumerEmail={consumerEmail}
+      />
+
+      {/* ヘッダー高さ分 */}
+      <div style={{ height: 0 }} />
+
       {/* ===== Hero ===== */}
       <FarmDetailHero
         farmId={farmIdStr}
@@ -191,7 +225,7 @@ export default function FarmDetailPage() {
         onShare={doShare}
       />
 
-      {/* ===== Body（白100vw） ===== */}
+      {/* ===== Body ===== */}
       <section
         style={{
           width: "100vw",
@@ -236,8 +270,8 @@ export default function FarmDetailPage() {
         pickupTextCTA={pickupTextCTA}
         onNext={handleNext}
         money={money}
-        disabled={isNextDisabled}   // ★ 追加
-        isOverLimit={isOverLimit}  // ★ 追加
+        disabled={isNextDisabled}
+        isOverLimit={isOverLimit}
       />
     </>
   );

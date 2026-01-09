@@ -90,6 +90,7 @@ app.add_middleware(
 # --- Auth ---
 from app_v2.auth.auth_api import router as auth_router
 from app_v2.auth.register_email_api import router as register_email_router
+from app_v2.auth_consumer.magic.api import router as consumer_magic_router
 
 # --- Farmer ---
 from app_v2.farmer.api.registration_api import router as registration_router
@@ -117,9 +118,22 @@ from app_v2.customer_booking.api.cancel_api import router as cancel_router
 from app_v2.customer_booking.api.reservation_booked_api import (
     router as reservation_booked_router,
 )
+from app_v2.customer_booking.api.consumer_me_api import (
+    router as consumer_me_router,
+)
 
+from app_v2.customer_booking.api.consumer_identity_api import (
+    router as consumer_identity_router,
+)
+
+from app_v2.customer_booking.api.consumer_session_api import (
+    router as consumer_session_router,
+)
+
+from app_v2.customer_booking.api.secret_logout_api import (
+    router as secret_logout_router,
+)
 # --- Integrations ---
-from app_v2.integrations.line.api.line_api import router as line_router
 from app_v2.integrations.payments.stripe.stripe_checkout_api import (
     router as stripe_checkout_router,
 )
@@ -127,19 +141,12 @@ from app_v2.integrations.payments.stripe.stripe_webhook_api import (
     router as stripe_webhook_router,
 )
 
-# --- Notifications ---
-from app_v2.notifications.api.notification_dev_api import (
-    router as notification_dev_router,
-)
-from app_v2.notifications.api.notification_admin_api import (
-    router as notification_admin_router,
-)
-from app_v2.notifications.api.line_incoming_api import (
-    router as line_incoming_router,
+from app_v2.integrations.payments.stripe.stripe_checkout_from_confirm_api import (
+    router as stripe_checkout_from_confirm_router,
 )
 
-# --- Admin / Feedback ---
-from app_v2.feedback.api.feedback_api import router as feedback_router
+
+
 from app_v2.admin.api.admin_reservation_api import (
     router as admin_reservations_router,
 )
@@ -154,9 +161,22 @@ from app_v2.admin.api.admin_farm_api import (
 # Auth (Email + OTP)
 app.include_router(auth_router, prefix="/api")
 app.include_router(register_email_router, prefix="/api")
+app.include_router(consumer_magic_router, prefix="/api")
 
 # ReservationBooked（予約確認ページ専用）
 app.include_router(reservation_booked_router, prefix="/api")
+
+# Consumer whoami API
+app.include_router(consumer_me_router, prefix="/api")
+
+# Consumer identity API（表示専用）
+app.include_router(consumer_identity_router, prefix="/api")
+
+# Consumer session API (logout)
+app.include_router(consumer_session_router, prefix="/api")
+
+# Consumer secret logout API (UI非公開)
+app.include_router(secret_logout_router, prefix="/api")
 
 # Farmer
 app.include_router(registration_router, prefix="/api")
@@ -175,15 +195,14 @@ app.include_router(expanded_router)
 app.include_router(cancel_router, prefix="/api")
 
 # Integrations
-app.include_router(line_router)
+app.include_router(stripe_checkout_from_confirm_router)
 app.include_router(stripe_checkout_router)
 app.include_router(stripe_webhook_router)
-app.include_router(line_incoming_router)
+
+
 
 # Feedback / Admin / Dev
-app.include_router(feedback_router)
-app.include_router(notification_dev_router, prefix="/dev")
-app.include_router(notification_admin_router)
+
 app.include_router(admin_reservations_router)
 app.include_router(admin_farm_router)
 

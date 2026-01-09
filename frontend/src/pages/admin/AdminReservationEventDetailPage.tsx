@@ -8,8 +8,6 @@ import { API_BASE } from "@/config/api";
 import type {
   AdminReservationListItemDTO,
   AdminReservationListResponse,
-  NotificationStatusSummaryDTO,
-  NotificationStatusValue,
 } from "../../types/adminReservations";
 
 const AdminReservationEventDetailPage: React.FC = () => {
@@ -154,25 +152,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
 
   const formatNumber = (n: number) =>
     new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }).format(n);
-
-  // 通知ステータス表示用
-  const pill = (value: NotificationStatusValue) => {
-
-    let colorClass = "text-gray-500";
-
-    if (value === "FAILED") colorClass = "text-green-700"; // 緑
-    else if (value === "NONE") colorClass = "text-red-700"; // 赤
-    else if (value === "SENT") colorClass = "text-gray-700";
-    else if (value === "PENDING") colorClass = "text-yellow-700";
-
-    const label = (value as any) === "DASH" ? "–" : value;
-
-    return (
-      <span className="text-[13px] font-medium">
-        <span className={colorClass}>{label}</span>
-      </span>
-    );
-  };
 
 
   // クエリ不足
@@ -363,16 +342,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
                     ステータス
                   </th>
 
-                  {/* 通知ステータス（3列） */}
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">
-                    予約確定
-                  </th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">
-                    リマインダー
-                  </th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">
-                    キャンセル完了
-                  </th>
                 </tr>
               </thead>
 
@@ -391,10 +360,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
                       : r.reservation_status === "cancelled"
                       ? "bg-red-50 text-red-700"
                       : "bg-gray-100 text-gray-600";
-
-                  const notif: NotificationStatusSummaryDTO = r.notification_summary;
-
-                  
 
 
                   return (
@@ -442,17 +407,7 @@ const AdminReservationEventDetailPage: React.FC = () => {
                           {statusLabel}
                         </span>
                       </td>
-
-                      {/* 通知 3列（cancel_template は UI から削除） */}
-                      <td className="px-4 py-2 text-center text-sm">
-                        {pill(notif.confirmation)}
-                      </td>
-                      <td className="px-4 py-2 text-center text-sm">
-                        {pill(notif.reminder)}
-                      </td>
-                      <td className="px-4 py-2 text-center text-sm">
-                        {pill(notif.cancel_completed)}
-                      </td>
+                      
                     </tr>
                   );
                 })}

@@ -84,7 +84,6 @@ export default function FarmDetailHero({
         background: "#000",
         overflow: "hidden",
         userSelect: "none",
-        marginTop: "-8px",
       }}
     >
       {/* === image area (3:2) === */}
@@ -130,31 +129,6 @@ export default function FarmDetailHero({
         </div>
       )}
 
-      {/* === back button === */}
-      <Link
-        to="/farms"
-        aria-label="農家一覧に戻る"
-        title="戻る"
-        style={{
-          position: "absolute",
-          left: 12,
-          top: 12,
-          width: 38,
-          height: 38,
-          borderRadius: 9999,
-          border: "1px solid rgba(0,0,0,0.08)",
-          background: "rgba(255,255,255,0.95)",
-          color: "#111827",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          textDecoration: "none",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
-          fontSize: 18,
-        }}
-      >
-        ‹
-      </Link>
 
       {/* === share / favorite === */}
       <div

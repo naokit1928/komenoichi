@@ -1,8 +1,8 @@
-// frontend/src/pages/public/ReservationBooked/ReservationBookedPage.tsx
-
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { fetchReservationBooked, type ReservationBookedResponse } from "../../../lib/reservationBooked";
+import {
+  fetchReservationBookedMe,
+  type ReservationBookedResponse,
+} from "../../../lib/reservationBooked";
 
 import PickupSummaryCard from "./PickupSummaryCard";
 import BookingItemsCard from "./BookingItemsCard";
@@ -13,63 +13,79 @@ import NoticeCard from "./NoticeCard";
 import CancelActionCard from "./CancelActionCard";
 
 const ReservationBookedPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-
   const [data, setData] = useState<ReservationBookedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const reservationIdParam = searchParams.get("reservation_id");
+  // ★ whoami（表示専用）
+  const [consumerId, setConsumerId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!reservationIdParam) {
-      setError("予約IDが指定されていません。");
-      setLoading(false);
-      return;
-    }
-
-    const id = Number(reservationIdParam);
-    if (!Number.isFinite(id) || id <= 0) {
-      setError("予約IDが不正です。");
-      setLoading(false);
-      return;
-    }
-
     (async () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetchReservationBooked(id);
+
+        // ① 予約情報（consumer セッション前提）
+        const res = await fetchReservationBookedMe();
         setData(res);
-      } catch {
+
+        // ② consumer_id（表示用）
+        const apiBase = import.meta.env.VITE_API_BASE;
+        if (apiBase) {
+          const whoamiRes = await fetch(
+            `${apiBase}/api/consumers/me`,
+            { credentials: "include" }
+          );
+          if (whoamiRes.ok) {
+            const whoami = await whoamiRes.json();
+            if (typeof whoami.consumer_id === "number") {
+              setConsumerId(whoami.consumer_id);
+            }
+          }
+        }
+      } catch (e) {
         setError("予約情報の取得に失敗しました。");
       } finally {
         setLoading(false);
       }
     })();
-  }, [reservationIdParam]);
+  }, []);
 
   /**
    * ページ全体のシェル
-   * - 薄灰色背景を廃止
-   * - 白い外枠カードを廃止
-   * - 幅制御のみ残す
    */
   const renderShell = (child: React.ReactNode) => (
     <div style={{ minHeight: "100vh", background: "#ffffff" }}>
-      <section style={{ maxWidth: 720, margin: "0 auto", padding: "16px 16px 40px" }}>
+      <section
+        style={{
+          maxWidth: 720,
+          margin: "0 auto",
+          padding: "16px 16px 40px",
+        }}
+      >
         {child}
       </section>
     </div>
   );
 
   if (loading) {
-    return renderShell(<div style={{ textAlign: "center", padding: "40px 0" }}>読み込み中です…</div>);
+    return renderShell(
+      <div style={{ textAlign: "center", padding: "40px 0" }}>
+        読み込み中です…
+      </div>
+    );
   }
 
   if (error) {
     return renderShell(
-      <div style={{ textAlign: "center", padding: "32px 4px", color: "#b91c1c" }}>
+      <div
+        style={{
+          textAlign: "center",
+          padding: "32px 4px",
+          color: "#b91c1c",
+        }}
+      >
         {error}
       </div>
     );
@@ -83,7 +99,7 @@ const ReservationBookedPage: React.FC = () => {
     );
   }
 
-  // 外形だけを安全に取り出す
+  // ---- 状態判定 ----
   const reservationStatus =
     typeof data === "object" && data !== null
       ? (data as { reservation_status?: string }).reservation_status
@@ -91,18 +107,64 @@ const ReservationBookedPage: React.FC = () => {
 
   const isExpiredForDisplay =
     typeof data === "object" && data !== null
-      ? (data as { is_expired_for_display?: boolean }).is_expired_for_display
+      ? (data as { is_expired_for_display?: boolean })
+          .is_expired_for_display
       : undefined;
 
+  // 予約が confirmed でない場合
   if (reservationStatus && reservationStatus !== "confirmed") {
-    return renderShell(<div>現在、ご予約中の受け渡しはありません。</div>);
+    return renderShell(
+      <div style={{ textAlign: "center", padding: "32px 4px" }}>
+        現在、ご予約中の受け渡しはありません。
+      </div>
+    );
   }
 
+  // ★ 受け渡し完了後の専用 UI
   if (isExpiredForDisplay) {
-    return renderShell(<div>現在、予定している受け渡しはありません。</div>);
+    return renderShell(
+      <div style={{ textAlign: "center", padding: "40px 0" }}>
+        <h2
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            marginBottom: 12,
+          }}
+        >
+          受け渡しは完了しました
+        </h2>
+
+        <p
+          style={{
+            fontSize: 14,
+            color: "#4b5563",
+            marginBottom: 28,
+          }}
+        >
+          また次回のご利用をお待ちしています。
+        </p>
+
+        <a
+          href="/farms"
+          style={{
+            display: "inline-block",
+            padding: "12px 20px",
+            background: "#10B981",
+            color: "#ffffff",
+            textDecoration: "none",
+            borderRadius: 10,
+            fontWeight: 600,
+            fontSize: 15,
+          }}
+        >
+          次の予約を探す
+        </a>
+      </div>
+    );
   }
 
-  const { reservation_id, context } = data;
+  // ---- 通常（受け渡し前）表示 ----
+  const { context } = data;
 
   const {
     pickup_display,
@@ -133,7 +195,10 @@ const ReservationBookedPage: React.FC = () => {
 
   return renderShell(
     <div>
-      <p style={{ fontSize: 11 }}>予約ID：{reservation_id}</p>
+      {/* ★ consumer_id（問い合わせ・デバッグ用） */}
+      <p style={{ fontSize: 10, color: "#9ca3af" }}>
+        consumer_id: {consumerId ?? "-"}
+      </p>
 
       <PickupSummaryCard
         pickupDisplay={pickup_display}

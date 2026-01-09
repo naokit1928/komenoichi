@@ -8,10 +8,11 @@ from app_v2.db.core import resolve_db_path
 
 class ReservationStatusRepository:
     """
-    ReservationStatusRepository（最終形）
+    ReservationStatusRepository（Stripe 配下・最終形）
 
     責務：
       - reservations / consumers テーブルへの CRUD
+      - DB接続と commit 管理
       - 状態遷移ロジックは一切持たない
     """
 
@@ -27,7 +28,9 @@ class ReservationStatusRepository:
     # Fetch
     # ==================================================
     def fetch_reservation_by_id(
-        self, conn: sqlite3.Connection, reservation_id: int
+        self,
+        conn: sqlite3.Connection,
+        reservation_id: int,
     ) -> Optional[Dict[str, Any]]:
         row = conn.execute(
             "SELECT * FROM reservations WHERE reservation_id = ?",
@@ -36,7 +39,9 @@ class ReservationStatusRepository:
         return dict(row) if row else None
 
     def fetch_reservation_by_payment_intent(
-        self, conn: sqlite3.Connection, payment_intent_id: str
+        self,
+        conn: sqlite3.Connection,
+        payment_intent_id: str,
     ) -> Optional[Dict[str, Any]]:
         row = conn.execute(
             "SELECT * FROM reservations WHERE payment_intent_id = ?",
@@ -45,7 +50,9 @@ class ReservationStatusRepository:
         return dict(row) if row else None
 
     def fetch_consumer_by_line_id(
-        self, conn: sqlite3.Connection, line_consumer_id: str
+        self,
+        conn: sqlite3.Connection,
+        line_consumer_id: str,
     ) -> Optional[Dict[str, Any]]:
         row = conn.execute(
             """
@@ -87,6 +94,9 @@ class ReservationStatusRepository:
         reservation_id: int,
         consumer_id: int,
     ) -> None:
+        """
+        reservation を consumer に紐づける（正式）
+        """
         conn.execute(
             """
             UPDATE reservations

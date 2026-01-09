@@ -16,17 +16,9 @@ from app_v2.customer_booking.services.reservation_expanded_service import (
     _format_event_display_label,
 )
 
-# ★ 状態遷移はここに集約
+# ★ 状態遷移はここに集約（キャンセルの本体）
 from app_v2.customer_booking.services.reservation_status_service import (
     ReservationStatusService,
-)
-
-# ★★ REMINDER 削除に必要
-from app_v2.notifications.repository.line_notification_job_repo import (
-    LineNotificationJobRepository,
-)
-from app_v2.notifications.services.line_notification_service import (
-    LineNotificationService,
 )
 
 JST = timezone(timedelta(hours=9))
@@ -75,8 +67,7 @@ class CancelPageData:
 class CancelService:
 
     def __init__(self) -> None:
-        self.job_repo = LineNotificationJobRepository()
-        self.notification_service = LineNotificationService()
+        # ★ LINE / 通知系は完全に撤去
         self.status_service = ReservationStatusService()
 
     # -------------------------------------------------
@@ -116,7 +107,9 @@ class CancelService:
             raise CancelDomainError("INVALID_RESERVATION_DATA")
 
         created_at_dt = _parse_db_datetime(created_at_raw)
-        event_start, event_end = _calc_event_for_booking(created_at_dt, pickup_slot_code)
+        event_start, event_end = _calc_event_for_booking(
+            created_at_dt, pickup_slot_code
+        )
         pickup_display = _format_event_display_label(event_start, event_end)
 
         now_jst = datetime.now(JST)
@@ -181,22 +174,6 @@ class CancelService:
         # -------------------------------------------------
         self.status_service.cancel(data.reservation_id)
 
-        # -------------------------------------------------
-        # REMINDER(PENDING) 削除
-        # -------------------------------------------------
-        deleted = self.job_repo.delete_pending_reminder_jobs(data.reservation_id)
-        print(f"[CancelService] deleted pending REMINDER jobs: {deleted}")
-
-        # -------------------------------------------------
-        # キャンセル完了通知（CANCEL_COMPLETED）
-        # -------------------------------------------------
-        job_id = self.notification_service.schedule_cancel_completed(data.reservation_id)
-
-        if job_id:
-            try:
-                self.notification_service.send_single_job(job_id, dry_run=False)
-            except Exception as e:
-                # ★ 通知失敗は致命的ではない
-                print(f"[CancelService] CANCEL_COMPLETED send failed: {e}")
+        # ★ 通知・REMINDER・LINE などの副作用は一切行わない
 
         return data

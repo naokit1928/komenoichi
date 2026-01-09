@@ -156,7 +156,7 @@ const FarmerPickupSettingsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F7F7F7]">
       <FarmerSettingsHeader title="受け渡し設定" />
-      <div style={{ height: "72px" }} />
+      <div style={{ height: "24px" }} />
 
       <div className="mx-auto max-w-md px-4 py-6 space-y-6">
         <PickupLocationCard

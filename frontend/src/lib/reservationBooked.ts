@@ -27,6 +27,11 @@ export type ReservationBookedResponse = {
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 
+// ============================================================
+// 既存互換：reservation_id 指定版（残す）
+// GET /api/reservations/booked?reservation_id=xx
+// ============================================================
+
 export async function fetchReservationBooked(
   reservationId: number
 ): Promise<ReservationBookedResponse> {
@@ -43,7 +48,36 @@ export async function fetchReservationBooked(
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Failed to fetch reservation booked: ${res.status} ${text}`);
+    throw new Error(
+      `Failed to fetch reservation booked: ${res.status} ${text}`
+    );
+  }
+
+  return res.json();
+}
+
+// ============================================================
+// 新正式：consumer セッション基点版
+// GET /api/reservations/booked/me
+// ============================================================
+
+export async function fetchReservationBookedMe(): Promise<ReservationBookedResponse> {
+  if (!API_BASE) {
+    throw new Error("VITE_API_BASE is not defined");
+  }
+
+  const res = await fetch(
+    `${API_BASE}/api/reservations/booked/me`,
+    {
+      credentials: "include",
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(
+      `Failed to fetch my reservation booked: ${res.status} ${text}`
+    );
   }
 
   return res.json();

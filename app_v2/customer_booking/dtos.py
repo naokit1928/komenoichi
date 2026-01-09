@@ -191,7 +191,6 @@ class LastConfirmedFarmResponse(BaseModel):
 class ReservationContextDTO(BaseModel):
     """
     ReservationBooked ページおよび Web キャンセル導線専用の Context DTO
-    ※ notifications とは独立した customer_booking の所有物
     """
 
     reservation_id: int
@@ -220,3 +219,32 @@ class ReservationContextDTO(BaseModel):
     # キャンセル
     cancel_token_exp: int
     cancel_token: Optional[str] = None
+
+
+class BookingContextDTO(BaseModel):
+    """
+    ReservationBooked（予約完了ページ）専用 Context DTO
+    - 表示専用（副作用ゼロ）
+    """
+
+    reservation_id: int
+
+    # 表示用
+    pickup_display: str
+    pickup_place_name: Optional[str] = None
+    pickup_map_url: Optional[str] = None
+    pickup_detail_memo: Optional[str] = None
+
+    # 数量
+    qty_5: int = 0
+    qty_10: int = 0
+    qty_25: int = 0
+
+    # ラベル
+    label_5kg: str
+    label_10kg: str
+    label_25kg: str
+
+    # 金額・コード
+    rice_subtotal: int
+    pickup_code: str

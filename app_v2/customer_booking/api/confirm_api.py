@@ -48,7 +48,6 @@ def confirm_reservation(
 
     注意:
     - Stripe 決済は行わない
-    - LINE 連携も行わない
     """
 
     # --- 最低限の入力チェック（API責務） ---
