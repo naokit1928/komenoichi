@@ -1,25 +1,60 @@
 -- =========================================================
 -- schema.sql
--- Single Source of Truth
--- Generated from local app.db (.schema)
+-- Generated from current SQLite .schema (single source of truth)
 -- =========================================================
 
--- ---------------------------------------------------------
--- consumers
--- ---------------------------------------------------------
-CREATE TABLE consumers (
-    consumer_id INTEGER PRIMARY KEY,
-    created_at TEXT,
-    line_consumer_id TEXT UNIQUE,
-    stripe_customer_id TEXT,
-    registration_status TEXT,
-    is_friend INTEGER
+-- =========================================================
+-- reservations
+-- =========================================================
+CREATE TABLE reservations (
+    reservation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    consumer_id INTEGER,
+    farm_id INTEGER,
+    item TEXT,
+    quantity INTEGER,
+    price FLOAT,
+    amount FLOAT,
+    status VARCHAR(32),
+    created_at DATETIME,
+    paid_service_fee BOOLEAN DEFAULT 0,
+    payment_intent_id VARCHAR(100),
+    payment_status VARCHAR(50),
+    payment_succeeded_at DATETIME,
+    pickup_slot_code VARCHAR(32),
+    items_json TEXT,
+    rice_subtotal INTEGER,
+    service_fee INTEGER,
+    currency VARCHAR(10) DEFAULT 'jpy',
+    FOREIGN KEY (consumer_id) REFERENCES consumers(consumer_id),
+    FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
 );
 
--- ---------------------------------------------------------
+-- =========================================================
+-- email_otp_tokens
+-- =========================================================
+CREATE TABLE email_otp_tokens (
+    otp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+
+    expires_at TEXT NOT NULL,
+    consumed_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_email_otp_tokens_email
+    ON email_otp_tokens (email);
+
+CREATE INDEX idx_email_otp_tokens_expires_at
+    ON email_otp_tokens (expires_at);
+
+-- =========================================================
 -- farms
--- ---------------------------------------------------------
-CREATE TABLE IF NOT EXISTS "farms" (
+-- =========================================================
+CREATE TABLE farms (
     farm_id INTEGER PRIMARY KEY,
 
     last_name TEXT,
@@ -72,66 +107,36 @@ CREATE TABLE IF NOT EXISTS "farms" (
     registration_status TEXT NOT NULL
 );
 
--- ---------------------------------------------------------
--- reservations
--- ---------------------------------------------------------
-CREATE TABLE reservations (
-    reservation_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    consumer_id INTEGER,
-    farm_id INTEGER,
-    item TEXT,
-    quantity INTEGER,
-    price FLOAT,
-    amount FLOAT,
-    status VARCHAR(32),
-    created_at DATETIME,
-    paid_service_fee BOOLEAN DEFAULT 0,
-    payment_intent_id VARCHAR(100),
-    payment_status VARCHAR(50),
-    payment_succeeded_at DATETIME,
-    pickup_slot_code VARCHAR(32),
-    items_json TEXT,
-    rice_subtotal INTEGER,
-    service_fee INTEGER,
-    currency VARCHAR(10) DEFAULT 'jpy',
-    FOREIGN KEY (consumer_id) REFERENCES consumers(consumer_id),
-    FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
-);
-
--- ---------------------------------------------------------
--- notification_jobs
--- ---------------------------------------------------------
-CREATE TABLE notification_jobs (
-    job_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    reservation_id INTEGER NOT NULL,
-    kind TEXT NOT NULL CHECK (
-        kind IN ('CONFIRMATION', 'REMINDER', 'CANCEL_COMPLETED')
-    ),
-    scheduled_at TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'PENDING',
-    attempt_count INTEGER NOT NULL DEFAULT 0,
-    last_error TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (reservation_id)
-        REFERENCES reservations(reservation_id)
-);
-
--- ---------------------------------------------------------
--- email_otp_tokens
--- ---------------------------------------------------------
-CREATE TABLE email_otp_tokens (
-    otp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+-- =========================================================
+-- magic_link_tokens
+-- =========================================================
+CREATE TABLE magic_link_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL,
-    code TEXT NOT NULL,
+    confirm_context_json TEXT NOT NULL,
+    agreed INTEGER NOT NULL CHECK (agreed IN (0, 1)),
+    used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0, 1)),
     expires_at TEXT NOT NULL,
-    consumed_at TEXT,
-    attempt_count INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    used_at TEXT,
+    reservation_id INTEGER,
+    consumer_id INTEGER
 );
 
-CREATE INDEX idx_email_otp_tokens_email
-    ON email_otp_tokens (email);
+CREATE INDEX idx_magic_link_tokens_token
+    ON magic_link_tokens (token);
 
-CREATE INDEX idx_email_otp_tokens_expires_at
-    ON email_otp_tokens (expires_at);
+CREATE INDEX idx_magic_link_tokens_expires_at
+    ON magic_link_tokens (expires_at);
+
+-- =========================================================
+-- consumers
+-- =========================================================
+CREATE TABLE consumers (
+    consumer_id INTEGER PRIMARY KEY,
+    created_at TEXT,
+    stripe_customer_id TEXT,
+    registration_status TEXT,
+    email TEXT
+);
