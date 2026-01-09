@@ -63,44 +63,11 @@ const CancelConfirmPage: React.FC = () => {
   // 初回：token の存在チェック＋有効性チェック
   useEffect(() => {
     if (!token) {
-      setError("キャンセル用のリンクが不正か、有効期限が切れている可能性があります。");
-      setLoading(false);
-      return;
+      setError("キャンセル用のリンクが不正です。");
     }
-
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // ★ 仮実装：
-        //   - GET /api/reservation/cancel?token=... でトークン有効性だけチェックする想定
-        //   - レスポンス内容は画面には出さず、「エラーかどうか」だけ判定に使う
-        const res = await fetch(
-          `${CANCEL_API_URL}?token=${encodeURIComponent(token)}`,
-          {
-            method: "GET",
-          }
-        );
-
-        if (!res.ok) {
-          throw new Error("invalid token");
-        }
-
-        // 必要ならここで JSON を読んで状態表示に使うことも可能
-        // const data = await res.json();
-        // console.log("cancel preview:", data);
-
-        setLoading(false);
-      } catch (e) {
-        console.error(e);
-        setError(
-          "キャンセル用のリンクが無効か、有効期限が切れている可能性があります。"
-        );
-        setLoading(false);
-      }
-    })();
+    setLoading(false);
   }, [token]);
+    
 
   // キャンセル実行
   const handleConfirm = async () => {

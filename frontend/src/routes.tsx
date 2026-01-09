@@ -209,10 +209,12 @@ export default function AppRoutes() {
             path="/reservation/booked"
             element={<ReservationBookedPage />}
           />
+          // routes.tsx（一部抜粋）
+          
           <Route
-            path="/reservation/cancel"
+            path="/cancel/confirm"
             element={<CancelConfirmPage />}
-          />
+          />   
           <Route
             path="/payment_success"
             element={<PaymentSuccessPage />}

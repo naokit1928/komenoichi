@@ -1,13 +1,33 @@
 // frontend/src/pages/public/ReservationBooked/CancelActionCard.tsx
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
   cancelActionUri: string | null;
 };
 
 const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
+  const navigate = useNavigate();
   const disabled = !cancelActionUri;
+
+  const handleClick = () => {
+    if (!cancelActionUri) return;
+
+    // cancelActionUri は
+    // /api/reservation/cancel?token=xxxx
+    // の想定なので token だけ抜く
+    const url = new URL(cancelActionUri, window.location.origin);
+    const token = url.searchParams.get("token");
+
+    if (!token) {
+      alert("キャンセル用トークンが見つかりません");
+      return;
+    }
+
+    // フロントのキャンセル確認ページへ遷移
+    navigate(`/cancel/confirm?token=${token}`);
+  };
 
   return (
     <section
@@ -32,12 +52,13 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
           この予約はキャンセルできません。
         </div>
       ) : (
-        <a
-          href={cancelActionUri}
+        <button
+          onClick={handleClick}
           style={{
             display: "block",
-            margin: "0 auto",          // ← 真ん中寄せ
-            maxWidth: 260,             // ← 横幅を少し抑える
+            margin: "0 auto",
+            maxWidth: 260,
+            width: "100%",
             textAlign: "center",
             padding: "11px 16px",
             borderRadius: 9999,
@@ -45,11 +66,12 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
             color: "#ffffff",
             fontSize: 14,
             fontWeight: 600,
-            textDecoration: "none",
+            border: "none",
+            cursor: "pointer",
           }}
         >
           この予約をキャンセルする
-        </a>
+        </button>
       )}
     </section>
   );

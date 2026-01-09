@@ -190,7 +190,7 @@ const ReservationBookedPage: React.FC = () => {
   const riceSubtotalText = `${rice_subtotal.toLocaleString()}円（現金）`;
 
   const cancelActionUri = cancel_token
-    ? `/reservation/cancel?token=${encodeURIComponent(cancel_token)}`
+    ? `/api/reservation/cancel?token=${encodeURIComponent(cancel_token)}`
     : null;
 
   return renderShell(

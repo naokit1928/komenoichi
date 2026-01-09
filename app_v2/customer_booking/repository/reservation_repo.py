@@ -35,7 +35,7 @@ def get_reservation_by_id(
             SELECT
                 r.reservation_id        AS reservation_id,
                 r.consumer_id           AS consumer_id,
-                c.line_consumer_id      AS line_consumer_id,
+                c.email                 AS consumer_email,
                 r.farm_id               AS farm_id,
                 r.created_at            AS created_at,
                 r.pickup_slot_code      AS pickup_slot_code,
