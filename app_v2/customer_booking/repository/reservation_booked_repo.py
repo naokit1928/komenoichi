@@ -30,8 +30,9 @@ class ReservationBookedRepository:
             """
             SELECT
                 r.*,
-                c.consumer_id      AS consumer_id,
-                c.line_consumer_id AS line_consumer_id
+                c.consumer_id AS consumer_id,
+                c.email       AS consumer_email,
+                c.registration_status AS consumer_registration_status
             FROM reservations r
             JOIN consumers c
               ON r.consumer_id = c.consumer_id
@@ -43,7 +44,7 @@ class ReservationBookedRepository:
         if not row:
             return None, None
 
-        # 同一 row を reservation / consumer 両用途で使う（既存設計そのまま）
+        # 同一 row を reservation / consumer 両用途で使う（既存設計踏襲）
         return row, row
 
     def fetch_farm(
