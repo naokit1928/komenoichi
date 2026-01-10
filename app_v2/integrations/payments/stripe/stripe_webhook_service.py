@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from app_v2.integrations.payments.stripe.reservation_status_service import (
-    ReservationStatusService,
+from app_v2.integrations.payments.stripe.reservation_payment_service import (
+    ReservationPaymentService,
 )
+
 from app_v2.integrations.payments.stripe.stripe_webhook_repository import (
     StripeWebhookRepository,
 )
@@ -17,7 +18,7 @@ class StripeWebhookService:
     責務：
       - Stripe event を解釈する
       - 対象 reservation を特定する
-      - ReservationStatusService に状態遷移を委譲する
+      - ReservationPaymentService に状態遷移を委譲する
 
     方針：
       - DB には直接触らない
@@ -29,10 +30,10 @@ class StripeWebhookService:
         self,
         *,
         repo: Optional[StripeWebhookRepository] = None,
-        status_service: Optional[ReservationStatusService] = None,
+        status_service: Optional[ReservationPaymentService] = None,
     ) -> None:
         self._repo = repo or StripeWebhookRepository()
-        self._status_service = status_service or ReservationStatusService()
+        self._status_service = status_service or ReservationPaymentService()
 
     # -------------------------
     # Internal helper

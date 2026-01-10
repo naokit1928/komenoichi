@@ -195,3 +195,176 @@ migration は 原則 1 回のみ
 「settings / 認証で使うだけ？」→ DB 変更不要
 
 「一時しのぎ？」→ migration を切らない
+
+
+本番db変更手順
+
+DB Migration 運用手順（KOMET / Render + SQLite）
+
+【目的】
+
+Render 本番の永続ディスク（SQLite）を安全に変更する
+
+schema.sql と実DBの不整合を防ぐ
+
+「全消し再構築」と「差分migration」を明確に使い分ける
+
+0. 前提（重要）
+
+本番DBの実体は /var/data/app.db
+
+アプリコードの schema.sql は DBの唯一の設計図（Source of Truth）
+
+Render Shell のカレントは必ず: /opt/render/project/src
+
+A. 【全消しOKな場合】DBを作り直す正規手順（今回やった手順）
+① ローカルで schema.sql を確定する
+
+sqlite の .schema を唯一の正として schema.sql を作り直す
+
+中途半端な migration を挟まない
+
+② schema.sql だけを GitHub に push
+git add src/schema.sql
+git commit -m "rebuild schema.sql from current sqlite schema"
+git push
+
+👉 この時点では本番DBにはまだ何も起きていない
+
+③ Render Shell で本番DBをバックアップ
+cp /var/data/app.db /var/data/app.db.backup_$(date +%Y%m%d_%H%M%S)
+ls -l /var/data/app.db*
+④ 本番DBを削除（決定操作）
+rm /var/data/app.db
+ls -l /var/data/app.db
+⑤ schema.sql から DB を再生成
+sqlite3 /var/data/app.db < src/schema.sql
+⑥ アプリ再起動（Render）
+
+Render Dashboard → Manual Deploy / Restart
+
+B. 【データを残す場合】migration を使う手順（原則）
+絶対ルール
+
+❌ sqlite3 で手打ち ALTER 禁止
+
+❌ schema.sql を直接 import しない
+
+✅ 1変更 = 1 migration スクリプト
+
+migration テンプレ（必須）
+# scripts/migrations/mig_xxx.py
+import sys
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+
+import sqlite3
+from app_v2.db.core import resolve_db_path
+
+
+
+
+def migrate():
+    db_path = resolve_db_path()
+    print(f"[migrate] db = {db_path}")
+
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+
+    try:
+        print("[migrate] begin")
+        cur.execute("PRAGMA foreign_keys = OFF;")
+
+
+        # --- migration 処理 ---
+
+
+        conn.commit()
+        print("[migrate] success")
+
+
+    except Exception as e:
+        conn.rollback()
+        print("[migrate] failed:", e)
+        raise
+
+
+    finally:
+        cur.execute("PRAGMA foreign_keys = ON;")
+        conn.close()
+
+
+
+
+if __name__ == "__main__":
+    migrate()
+C. 判断基準
+状況	方法
+初期構築 / 大崩壊後	A: 全消し再構築
+本番データ保持	B: migration
+schema と実DB乖離	A
+小変更	B
+結論
+
+schema.sql → push → DB削除 → schema.sql import
+
+✅ データを消してよい場合の正解手順
+
+OK。
+今の内容をすべて反映した 最新版の「本番DB変更手順」 を更新しておいた。
+
+結論だけ再確認
+
+あなたの理解は 完全に正しい。
+
+データを全部消していい場合の理想手順はこれ：
+
+ローカルで schema.sql を確定
+
+.schema から作り直す
+
+schema.sql を唯一の正とする
+
+schema.sql だけ git push
+
+この時点では本番DBはまだ無傷
+
+Render で本番DBをバックアップ
+
+/var/data/app.db.backup_YYYYMMDD_HHMMSS
+
+本番DBを削除
+
+/var/data/app.db を消す
+
+schema.sql を import
+
+sqlite3 /var/data/app.db < src/schema.sql
+
+Render 再起動
+
+これは 「全消し再構築の正規ルート」 として確定でいい。
+
+今回ハマった原因の本質（重要）
+
+schema.sql と実DBがズレたまま
+
+migration と手打ち変更が混在
+
+line_consumer_id など 過去LINE系カラムの亡霊 が SQL に残存
+
+→ 全消し再構築を選んだ判断は100%正解
+
+今後の運用ルール（これだけ守れば詰まらない）
+
+全消しOK → 今回の手順（schema.sql 再構築）
+
+データ保持必須 → migration スクリプトのみ
+
+❌ 本番DBに手打ち ALTER
+
+❌ schema.sql を「とりあえず流す」

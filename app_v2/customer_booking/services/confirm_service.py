@@ -14,10 +14,6 @@ from app_v2.customer_booking.utils.pickup_time_utils import (
     compute_next_pickup,
 )
 
-from app_v2.customer_booking.services.reservation_status_service import (
-    ReservationStatusService,
-)
-
 from app_v2.customer_booking.repository.confirm_repo import (
     create_pending_reservation,
 )
@@ -34,14 +30,16 @@ class ConfirmService:
     責務:
     - クライアント / サーバ締切の最終検証
     - confirm_repo による pending reservation 作成
-    - ReservationStatusService への状態遷移委譲
+
+    ※ 状態遷移（confirmed / cancelled）は一切行わない
+    ※ confirmed は Stripe / Booking_Lifecycle_Service の責務
     """
 
     SERVICE_FEE = 300
     CURRENCY = "jpy"
 
     def __init__(self) -> None:
-        self.status_service = ReservationStatusService()
+        pass
 
     # --------------------------------------------------------
     # Public API
@@ -75,8 +73,7 @@ class ConfirmService:
             currency=self.CURRENCY,
         )
 
-        # --- 状態遷移（唯一の正） ---
-        self.status_service.confirm(result.reservation_id)
+        # ★ ここでは状態遷移しない（pending のまま）
 
         return result
 
@@ -97,10 +94,6 @@ class ConfirmService:
         now: datetime,
         client_deadline_iso: str | None,
     ) -> None:
-        """
-        DetailPage → ConfirmPage の遷移時に渡された
-        クライアント側締切の最終検証。
-        """
         if not client_deadline_iso:
             return
 
@@ -129,9 +122,6 @@ class ConfirmService:
         now: datetime,
         pickup_slot_code: str,
     ) -> None:
-        """
-        サーバ側での最終締切判定。
-        """
         if not pickup_slot_code or not pickup_slot_code.strip():
             raise HTTPException(
                 status_code=400,

@@ -18,9 +18,10 @@ from app_v2.customer_booking.dtos import ReservationFormDTO
 from app_v2.integrations.payments.stripe.stripe_checkout_service import (
     StripeCheckoutService,
 )
-from app_v2.integrations.payments.stripe.reservation_status_repository import (
-    ReservationStatusRepository,
+from app_v2.integrations.payments.stripe.reservation_payment_repo import (
+    ReservationPaymentRepository,
 )
+
 from app_v2.customer_booking.repository.consumer_repo import (
     ConsumerRepository,
 )
@@ -196,7 +197,7 @@ def consume_magic_link(request: Request, token: str):
 
     # 2-2) reservation.consumer_id を更新
     try:
-        reservation_repo = ReservationStatusRepository()
+        reservation_repo = ReservationPaymentRepository()
         conn = reservation_repo.open_connection()
         try:
             reservation_repo.attach_consumer(
@@ -211,6 +212,7 @@ def consume_magic_link(request: Request, token: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"failed to update reservation.consumer_id: {e}",
         )
+
 
     # 3) consumer session を確立
     request.session["consumer_id"] = consumer_id_int

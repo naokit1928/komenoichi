@@ -17,9 +17,7 @@ from app_v2.customer_booking.services.reservation_expanded_service import (
 )
 
 # ★ 状態遷移はここに集約（キャンセルの本体）
-from app_v2.customer_booking.services.reservation_status_service import (
-    ReservationStatusService,
-)
+from app_v2.customer_booking.services.booking_lifecycle_service import Booking_Lifecycle_Service
 
 JST = timezone(timedelta(hours=9))
 
@@ -67,8 +65,8 @@ class CancelPageData:
 class CancelService:
 
     def __init__(self) -> None:
-        # ★ LINE / 通知系は完全に撤去
-        self.status_service = ReservationStatusService()
+        
+        self.status_service = Booking_Lifecycle_Service()
 
     # -------------------------------------------------
     # items_json → qty_*（既存ロジックそのまま）

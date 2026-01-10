@@ -8,9 +8,10 @@ from fastapi import APIRouter, HTTPException, Request, status
 from app_v2.db.core import resolve_db_path
 from app_v2.customer_booking.dtos import ReservationFormDTO
 from app_v2.customer_booking.services.confirm_service import ConfirmService
-from app_v2.integrations.payments.stripe.reservation_status_repository import (
-    ReservationStatusRepository,
+from app_v2.integrations.payments.stripe.reservation_payment_repo import (
+    ReservationPaymentRepository,
 )
+
 from app_v2.integrations.payments.stripe.stripe_checkout_service import (
     StripeCheckoutService,
 )
@@ -28,7 +29,6 @@ def checkout_from_confirm(
     payload: dict = Body(...),
     request: Request = None,
 ):
-    print("🔥 ENTER checkout_from_confirm")
 
 
     """
@@ -108,16 +108,6 @@ def checkout_from_confirm(
     #    ★ DTO 定義と完全一致させる
     # --------------------------------------------------
 
-    # ★ 確認用ログ（ここを追加）
-    print(
-        "FROM CONFIRM API confirm_context pickup:",
-        {
-           "pickup_slot_code": confirm_context.get("pickup_slot_code"),
-           "client_next_pickup_deadline_iso": confirm_context.get(
-              "client_next_pickup_deadline_iso"
-           ),
-        },
-    )
 
     try:
         form = ReservationFormDTO(
@@ -157,7 +147,7 @@ def checkout_from_confirm(
     # 5) reservation.consumer_id を更新
     # --------------------------------------------------
     try:
-        reservation_repo = ReservationStatusRepository()
+        reservation_repo = ReservationPaymentRepository()
         rconn = reservation_repo.open_connection()
         try:
             reservation_repo.attach_consumer(
@@ -172,6 +162,7 @@ def checkout_from_confirm(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"failed to update reservation.consumer_id: {e}",
         )
+
 
     # --------------------------------------------------
     # 6) Stripe Checkout

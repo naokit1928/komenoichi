@@ -3,14 +3,16 @@ from __future__ import annotations
 from datetime import datetime, UTC
 from typing import Any, Dict, Optional
 
-from app_v2.integrations.payments.stripe.reservation_status_repository import (
-    ReservationStatusRepository,
+from app_v2.integrations.payments.stripe.reservation_payment_repo import (
+    ReservationPaymentRepository,
 )
 
 
-class ReservationStatusService:
+
+class ReservationPaymentService:
+
     """
-    Reservation の状態遷移を一元管理する Service（Stripe 配下・通知非依存版）
+    Reservation の payment 結果を反映する Service（Stripe 配下・通知非依存版）
 
     責務：
       - payment 成功状態の反映
@@ -24,9 +26,9 @@ class ReservationStatusService:
     def __init__(
         self,
         *,
-        repo: Optional[ReservationStatusRepository] = None,
+        repo: Optional[ReservationPaymentRepository] = None,
     ) -> None:
-        self._repo = repo or ReservationStatusRepository()
+        self._repo = repo or ReservationPaymentRepository()
 
     # ==================================================
     # 状態遷移ロジック

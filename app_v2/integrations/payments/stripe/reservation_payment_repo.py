@@ -6,9 +6,9 @@ from typing import Any, Dict, Optional
 from app_v2.db.core import resolve_db_path
 
 
-class ReservationStatusRepository:
+class ReservationPaymentRepository:
+
     """
-    ReservationStatusRepository（Stripe 配下・最終形）
 
     責務：
       - reservations / consumers テーブルへの CRUD
