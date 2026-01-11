@@ -25,6 +25,9 @@ CREATE TABLE reservations (
     rice_subtotal INTEGER,
     service_fee INTEGER,
     currency VARCHAR(10) DEFAULT 'jpy',
+    confirmed_at DATETIME,
+    event_start_at DATETIME,
+    event_end_at DATETIME,
     FOREIGN KEY (consumer_id) REFERENCES consumers(consumer_id),
     FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
 );
