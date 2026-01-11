@@ -25,6 +25,7 @@ CREATE TABLE reservations (
     rice_subtotal INTEGER,
     service_fee INTEGER,
     currency VARCHAR(10) DEFAULT 'jpy',
+    pickup_display TEXT,
     confirmed_at DATETIME,
     event_start_at DATETIME,
     event_end_at DATETIME,
