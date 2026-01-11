@@ -84,6 +84,7 @@ export default function LoginOrRegisterPage() {
               quantity: i.qty,
             })),
           pickup_slot_code: ctx.pickupSlotCode,
+          pickup_display: ctx.nextPickupDisplay,
           rice_subtotal: ctx.riceSubtotal,
           service_fee: ctx.serviceFee,
           total: ctx.total,
