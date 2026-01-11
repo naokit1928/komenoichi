@@ -1,0 +1,217 @@
+時間・跨ぎ・event 確定仕様（公式）
+1. この文書の目的
+
+本仕様書は、以下を明確にすることを目的とする。
+
+予約フロー中で 「時間」に関する判定がどこで行われるか
+
+跨ぎ（3時間前ルール）を誰が・どこで・どう防ぐか
+
+event_start_at / event_end_at が
+いつ・どこで・どの情報から確定されるか
+
+フロントエンドとバックエンドの 責務境界
+
+将来の保守・変更時に 絶対に壊してはいけない前提
+
+2. 用語定義
+event
+
+実際の受け渡し時間帯
+
+DB カラム：
+
+event_start_at
+
+event_end_at
+
+3時間前ルール
+
+受け渡し開始時刻の 3時間前を過ぎた予約は不可
+
+ユーザーに表示・同意させる日時と
+実際に確定する event がズレないためのルール
+
+跨ぎ
+
+DETAIL ページ通過時は 3時間より前だったが
+
+CONFIRM 滞在中に 3時間以内に突入するケース
+
+3. 全体フロー（時系列）
+Farm Detail
+  ↓
+Confirm
+  ↓
+Stripe Checkout
+  ↓
+Stripe Webhook
+  ↓
+予約確定（confirmed + event）
+
+4. 時間判定・跨ぎ防止の責務分離（最重要）
+原則（Single Source of Truth）
+項目	担当
+跨ぎ防止（3時間前ルールの適用）	フロントエンド専任
+event の確定	バックエンド専任
+「今週／来週」判定	行わない（廃止）
+Webhook での再検証	行わない
+5. フロントエンド仕様（跨ぎ防止の唯一の場所）
+5.1 Farm Detail
+
+受け渡し候補日時を取得・表示
+
+pickup_slot_code
+
+next_pickup_display（表示用 JST 文字列）
+
+next_pickup_deadline（ISO）
+
+この時点では：
+
+3時間前チェックは 行わない
+
+表示専念
+
+5.2 Farm Detail → Confirm 遷移時
+実装仕様
+
+「予約内容を確認」を押した瞬間の時刻を保存
+
+sessionStorage.detail_passed_at = now()
+
+意味
+
+**「ユーザーが DETAIL を通過した事実」**を保存するだけ
+
+可否判定は行わない
+
+5.3 Confirm Page（唯一の跨ぎ判定）
+判定条件（正確）
+detail_passed_at < client_next_pickup_deadline
+AND
+now >= client_next_pickup_deadline
+
+意味
+
+DETAIL 通過時は OK
+
+しかし CONFIRM 確定時点では締切超過
+
+→ このケースのみ予約を遮断
+
+動作
+
+Stripe には進ませない
+
+明確なエラーメッセージを表示
+
+次回受け渡しを促す
+
+重要な設計判断
+
+Stripe に入る前に止める
+
+「支払ったのに失敗」体験を完全に排除
+
+6. バックエンド仕様（event 確定）
+6.1 Confirm → Stripe Checkout API
+
+時刻・3時間前ルールのチェックは 一切しない
+
+フロントで同意済みの文脈を 信頼する
+
+Confirm から渡される情報：
+
+pickup_slot_code
+
+pickup_display（表示用・ログ用途）
+
+client_next_pickup_deadline_iso
+
+注文内容
+
+6.2 Stripe Checkout
+
+時刻条件に関係なく作成される
+
+ここでは「決済の開始」しか行わない
+
+6.3 Stripe Webhook（checkout.session.completed）
+役割
+
+支払い成功を DB に反映
+
+event を確定
+
+reservation を confirmed に遷移
+
+event 確定ロジック
+
+使用する情報：
+
+reservation.created_at
+
+pickup_slot_code
+
+使用しない情報：
+
+現在時刻
+
+3時間前ルール
+
+フロント表示日時
+
+設計理由
+
+DB を Single Source of Truth にする
+
+Webhook は 再計算・再検証しない
+
+フロントの責務を侵食しない
+
+7. 起こらないこと（明示的に禁止）
+
+以下は 現行仕様では絶対に起こらない／やってはいけない。
+
+Webhook での 3時間前チェック
+
+Webhook での確定拒否
+
+「支払えたが予約が確定しない」状態
+
+バックエンドでの跨ぎ防止ロジック
+
+「今週／来週」判定の再導入
+
+8. 想定される唯一の失敗ケースと対策
+失敗ケース
+
+フロント跨ぎ防止が壊れた状態で
+
+Stripe まで進んだ場合
+
+影響
+
+表示と確定 event がズレる可能性
+
+対策（現状）
+
+フロント跨ぎ防止を最優先で保守
+
+バックエンドは 防波堤にしない
+
+9. 将来変更時のチェックリスト（保守用）
+
+変更前に必ず確認すること：
+
+ フロントの跨ぎ防止ロジックは残っているか
+
+ Webhook に時刻判定を足していないか
+
+ event 確定ロジックを変更していないか
+
+ 「ユーザーが同意した日時」と「確定 event」がズレないか
+
+ Stripe 前で止められているか
+

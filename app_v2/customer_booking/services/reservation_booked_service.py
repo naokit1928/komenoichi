@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from pydantic import BaseModel
@@ -26,8 +26,6 @@ class ReservationBookedViewDTO(BaseModel):
     reservation_status: Optional[str] = None
 
     context: ReservationContextDTO
-
-    event_start: str
     confirmed_at: str
 
     is_expired: bool
@@ -36,11 +34,10 @@ class ReservationBookedViewDTO(BaseModel):
 
 class ReservationBookedService:
     """
-
-    方針（固定）:
-    - BookingContextBuilder を唯一の正とする
-    - DB 取得は Repository に完全委譲
-    - 本 Service は「表示用 DTO + Web キャンセル用 DTO への詰め替え」のみ
+    STEP3 確定版:
+    - 表示: DB の pickup_display
+    - ロジック: DB の event_start_at / event_end_at
+    - Builder: 表示コンテキストのみ
     """
 
     def __init__(
@@ -52,12 +49,16 @@ class ReservationBookedService:
         self._context_builder = context_builder or BookingContextBuilder()
 
     @staticmethod
-    def _row_get(row, key: str) -> Optional[str]:
-        # sqlite3.Row は get() を持たないため安全取得
-        try:
-            return row[key]
-        except Exception:
+    def _parse_utc(value) -> Optional[datetime]:
+        if value is None:
             return None
+        if isinstance(value, datetime):
+            dt = value
+        else:
+            dt = datetime.fromisoformat(str(value).replace(" ", "T"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
 
     def get_view_for_reservation(
         self,
@@ -66,45 +67,50 @@ class ReservationBookedService:
 
         conn = self._repo.open_connection()
         try:
-            # --------------------------------
-            # DB 取得
-            # --------------------------------
             reservation_row, consumer_row = self._repo.fetch_reservation_and_consumer(
                 conn, reservation_id
             )
             if not reservation_row or not consumer_row:
                 return None
 
-            farm_row = self._repo.fetch_farm(conn, reservation_row["farm_id"])
+            event_start_at = self._parse_utc(
+                reservation_row["event_start_at"]
+            )
+            event_end_at = self._parse_utc(
+                reservation_row["event_end_at"]
+            )
+            if event_start_at is None or event_end_at is None:
+                return None
+
+            farm_row = self._repo.fetch_farm(
+                conn, reservation_row["farm_id"]
+            )
             if not farm_row:
                 return None
 
-            # --------------------------------
-            # BookingContextBuilder（唯一の正）
-            # --------------------------------
-            (
-                booking_ctx,
-                event_start,
-                event_end,
-                confirmed_at,
-            ) = self._context_builder.build(
-                reservation=dict(reservation_row),
-                user={
-                    "consumer_id": int(consumer_row["consumer_id"]),
-                },
-                farm=dict(farm_row),
+            # 表示用 Context（event_* なし）
+            reservation_for_builder = {
+              "reservation_id": reservation_row["reservation_id"],
+              "items_json": reservation_row["items_json"],
+              "rice_subtotal": reservation_row["rice_subtotal"],
+              "pickup_display": reservation_row["pickup_display"],
+            }
+
+            booking_ctx = self._context_builder.build(
+               reservation=reservation_for_builder,
+               user={"consumer_id": int(consumer_row["consumer_id"])},
+               farm=dict(farm_row),
             )
 
-            # --------------------------------
-            # Web キャンセルトークン生成
-            # --------------------------------
-            cancel_deadline = event_start - timedelta(hours=3)
+
+            # キャンセル期限（DB event_start_at 基準）
+            cancel_deadline = event_start_at - timedelta(hours=3)
             cancel_token_exp = int(cancel_deadline.timestamp())
 
             ctx = ReservationContextDTO(
                 reservation_id=booking_ctx.reservation_id,
                 consumer_id=int(consumer_row["consumer_id"]),
-                pickup_display=booking_ctx.pickup_display,
+                pickup_display=reservation_row["pickup_display"],
                 pickup_place_name=booking_ctx.pickup_place_name,
                 pickup_map_url=booking_ctx.pickup_map_url,
                 pickup_detail_memo=booking_ctx.pickup_detail_memo,
@@ -126,24 +132,25 @@ class ReservationBookedService:
             )
             ctx.cancel_token = create_cancel_token(payload)
 
+            confirmed_at = self._parse_utc(
+                reservation_row["confirmed_at"]
+                or reservation_row["payment_succeeded_at"]
+            )
+
         finally:
             conn.close()
 
-        # --------------------------------
-        # expired 判定（表示専用）
-        # --------------------------------
-        now = datetime.now(tz=event_end.tzinfo) if event_end.tzinfo else datetime.now()
+        now = datetime.now(tz=event_end_at.tzinfo)
 
-        is_expired = now >= event_end
-        is_expired_for_display = now >= (event_end + timedelta(minutes=15))
-
-        reservation_status = self._row_get(reservation_row, "status")
+        is_expired = now >= event_end_at
+        is_expired_for_display = now >= (
+            event_end_at + timedelta(minutes=15)
+        )
 
         return ReservationBookedViewDTO(
             reservation_id=ctx.reservation_id,
-            reservation_status=reservation_status,
+            reservation_status=reservation_row["status"],
             context=ctx,
-            event_start=event_start.isoformat(),
             confirmed_at=confirmed_at.isoformat(),
             is_expired=is_expired,
             is_expired_for_display=is_expired_for_display,

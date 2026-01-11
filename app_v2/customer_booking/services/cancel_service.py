@@ -10,16 +10,12 @@ from app_v2.customer_booking.repository.reservation_repo import (
 )
 from app_v2.customer_booking.utils.cancel_token import CancelTokenPayload
 
-from app_v2.customer_booking.services.reservation_expanded_service import (
-    _parse_db_datetime,
-    _calc_event_for_booking,
-    _format_event_display_label,
+# 状態遷移はここに集約（キャンセルの本体）
+from app_v2.customer_booking.services.booking_lifecycle_service import (
+    Booking_Lifecycle_Service,
 )
 
-# ★ 状態遷移はここに集約（キャンセルの本体）
-from app_v2.customer_booking.services.booking_lifecycle_service import Booking_Lifecycle_Service
-
-JST = timezone(timedelta(hours=9))
+UTC = timezone.utc
 
 
 # -----------------------------------------------------
@@ -63,13 +59,11 @@ class CancelPageData:
 # Service
 # -----------------------------------------------------
 class CancelService:
-
     def __init__(self) -> None:
-        
         self.status_service = Booking_Lifecycle_Service()
 
     # -------------------------------------------------
-    # items_json → qty_*（既存ロジックそのまま）
+    # items_json → qty_*（既存ロジック維持）
     # -------------------------------------------------
     def _parse_items_json(self, items_json: str) -> Tuple[int, int, int]:
         try:
@@ -95,34 +89,30 @@ class CancelService:
         return qty_5, qty_10, qty_25
 
     # -------------------------------------------------
-    # pickup_display / is_cancellable（既存ロジック）
+    # pickup_display / is_cancellable（DB唯一正）
     # -------------------------------------------------
     def _calc_pickup_info(self, reservation_row: dict) -> Tuple[str, bool]:
-        created_at_raw = reservation_row.get("created_at")
-        pickup_slot_code = reservation_row.get("pickup_slot_code")
+        pickup_display = reservation_row.get("pickup_display") or ""
 
-        if not created_at_raw or not pickup_slot_code:
-            raise CancelDomainError("INVALID_RESERVATION_DATA")
+        event_start_raw = reservation_row.get("event_start_at")
+        if not event_start_raw:
+            raise CancelDomainError("EVENT_START_NOT_SET")
 
-        created_at_dt = _parse_db_datetime(created_at_raw)
-        event_start, event_end = _calc_event_for_booking(
-            created_at_dt, pickup_slot_code
-        )
-        pickup_display = _format_event_display_label(event_start, event_end)
+        # DB に保存されている UTC 時刻をそのまま使う
+        event_start = datetime.fromisoformat(event_start_raw)
+        if event_start.tzinfo is None:
+            event_start = event_start.replace(tzinfo=UTC)
 
-        now_jst = datetime.now(JST)
         cancel_limit = event_start - timedelta(hours=3)
+        now_utc = datetime.now(UTC)
 
-        return pickup_display, now_jst < cancel_limit
+        is_cancellable = now_utc < cancel_limit
+        return pickup_display, is_cancellable
 
     # -------------------------------------------------
     # token と reservation の照合
     # -------------------------------------------------
     def _verify_token_user(self, payload: CancelTokenPayload, row: dict) -> None:
-        """
-        CancelTokenPayload.consumer_id と
-        reservations.consumer_id が一致するかを検証する。
-        """
         db_consumer_id = row.get("consumer_id")
         if db_consumer_id is None:
             raise InvalidTokenError("RESERVATION_HAS_NO_CONSUMER")
@@ -141,11 +131,12 @@ class CancelService:
         if row["status"] == "cancelled":
             raise AlreadyCancelledError("ALREADY_CANCELLED")
 
-        # ★ consumer_id で正当性チェック
+        # consumer_id の正当性チェック
         self._verify_token_user(payload, row)
 
         qty_5, qty_10, qty_25 = self._parse_items_json(row.get("items_json", ""))
         rice_subtotal = int(row.get("rice_subtotal", 0))
+
         pickup_display, is_cancellable = self._calc_pickup_info(row)
 
         return CancelPageData(
@@ -167,11 +158,8 @@ class CancelService:
         if not data.is_cancellable:
             raise NotCancellableError("CANCEL_LIMIT_PASSED")
 
-        # -------------------------------------------------
         # 状態更新（正式・一元管理）
-        # -------------------------------------------------
         self.status_service.cancel(data.reservation_id)
 
-        # ★ 通知・REMINDER・LINE などの副作用は一切行わない
-
+        # 通知・REMINDER・外部副作用はここでは一切行わない
         return data

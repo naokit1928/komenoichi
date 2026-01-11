@@ -5,7 +5,6 @@ from typing import Any, Dict, Optional
 from app_v2.integrations.payments.stripe.reservation_payment_service import (
     ReservationPaymentService,
 )
-
 from app_v2.integrations.payments.stripe.stripe_webhook_repository import (
     StripeWebhookRepository,
 )
@@ -23,7 +22,7 @@ class StripeWebhookService:
     方針：
       - DB には直接触らない
       - Repository を唯一の DB 入口とする
-      
+      - 再計算・fallback 一切なし
     """
 
     def __init__(
@@ -35,9 +34,9 @@ class StripeWebhookService:
         self._repo = repo or StripeWebhookRepository()
         self._status_service = status_service or ReservationPaymentService()
 
-    # -------------------------
+    # -------------------------------------------------
     # Internal helper
-    # -------------------------
+    # -------------------------------------------------
     def _load_reservation_from_event(
         self,
         conn,
@@ -69,53 +68,48 @@ class StripeWebhookService:
 
         return None
 
-    # -------------------------
+    # -------------------------------------------------
     # Public entry
-    # -------------------------
+    # -------------------------------------------------
     def handle_event(self, event: Dict[str, Any]) -> None:
+        """
+        Stripe Webhook entry point
+
+        対応イベント：
+          - checkout.session.completed のみ
+
+        ※ payment_intent.succeeded は使用しない
+        """
         event_type = event.get("type")
+
+        # 対応外イベントは即 return
+        if event_type != "checkout.session.completed":
+            return
 
         conn = self._repo.open_connection()
         try:
-            # -----------------------------
-            # payment_intent.succeeded
-            # -----------------------------
-            if event_type == "payment_intent.succeeded":
-                reservation = self._load_reservation_from_event(conn, event)
-                if not reservation:
-                    return
+            session = event.get("data", {}).get("object", {})
+            meta = session.get("metadata") or {}
 
-                pi_id = event["data"]["object"].get("id")
-                if isinstance(pi_id, str):
-                    self._status_service.handle_payment_succeeded(
-                        reservation=reservation,
-                        payment_intent_id=pi_id,
-                    )
+            rid = meta.get("reservation_id")
+            if not rid:
+                return
 
-            # -----------------------------
-            # checkout.session.completed
-            # -----------------------------
-            elif event_type == "checkout.session.completed":
-                session = event["data"]["object"]
-                meta = session.get("metadata") or {}
+            reservation = self._repo.fetch_reservation_by_id(
+                conn, int(rid)
+            )
+            if not reservation:
+                return
 
-                rid = meta.get("reservation_id")
-                if not rid:
-                    return
+            pi_id = session.get("payment_intent")
+            if not isinstance(pi_id, str):
+                return
 
-                reservation = self._repo.fetch_reservation_by_id(
-                    conn, int(rid)
-                )
-                if not reservation:
-                    return
+            # 状態遷移はすべて ReservationPaymentService に委譲
+            self._status_service.handle_payment_succeeded(
+                reservation=reservation,
+                payment_intent_id=pi_id,
+            )
 
-                pi_id = session.get("payment_intent")
-                if isinstance(pi_id, str):
-                    self._status_service.handle_payment_succeeded(
-                        reservation=reservation,
-                        payment_intent_id=pi_id,
-                    )
-
-            # それ以外のイベントは無視
         finally:
             conn.close()

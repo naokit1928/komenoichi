@@ -48,6 +48,7 @@ def create_pending_reservation(
     *,
     farm_id: int,
     pickup_slot_code: str,
+    pickup_display: str,  # ★ 追加：Confirmで同意した表示（JST）
     items: List[ReservationItemInput],
     service_fee: int,
     currency: str,
@@ -62,6 +63,10 @@ def create_pending_reservation(
     - 小計・合計計算
     - items_json 構築
     - INSERT 実行
+
+    pickup_display は
+    「consumer が Confirm で同意した表示日時」を
+    不変データとして保存するためのもの。
     """
 
     conn = _get_conn()
@@ -111,6 +116,7 @@ def create_pending_reservation(
                 consumer_id,
                 farm_id,
                 pickup_slot_code,
+                pickup_display,
                 items_json,
                 rice_subtotal,
                 service_fee,
@@ -119,13 +125,14 @@ def create_pending_reservation(
                 created_at
             )
             VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
             )
             """,
             (
                 consumer_id,
                 farm_id,
                 pickup_slot_code,
+                pickup_display,
                 items_json,
                 rice_subtotal,
                 service_fee,

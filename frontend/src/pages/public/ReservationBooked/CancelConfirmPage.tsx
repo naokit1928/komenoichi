@@ -162,7 +162,7 @@ const CancelConfirmPage: React.FC = () => {
             lineHeight: 1.7,
           }}
         >
-          お手元の LINE メッセージから、もう一度キャンセル用リンクを開き直してください。
+          このページを再読み込みするか、予約一覧から再度お試しください。
         </div>
       </div>
     );

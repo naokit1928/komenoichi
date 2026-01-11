@@ -15,6 +15,32 @@ export default function FarmDetailCTA({
   disabled,
   isOverLimit,
 }: Props) {
+  /**
+   * 「予約内容を確認」クリック時のハンドラ
+   *
+   * 目的：
+   * - DETAIL PAGE を通過した時刻を保存する
+   * - CONFIRM PAGE 側で
+   *   「通過時は3時間前／確定時は3時間以内」
+   *   のケースだけを検出するため
+   *
+   * 注意：
+   * - 表示ロジックや締切判定は一切ここでは行わない
+   * - 既存挙動（通過可否）は変えない
+   */
+  const handleNext = () => {
+    try {
+      sessionStorage.setItem(
+        "detail_passed_at",
+        new Date().toISOString()
+      );
+    } catch {
+      // sessionStorage が使えなくても致命ではないため無視
+    }
+
+    onNext();
+  };
+
   return (
     <div
       style={{
@@ -64,7 +90,7 @@ export default function FarmDetailCTA({
 
         {/* ===== 右：CTA ===== */}
         <button
-          onClick={onNext}
+          onClick={handleNext}
           disabled={disabled}
           style={{
             minWidth: "clamp(140px, 45vw, 184px)",

@@ -113,6 +113,10 @@ def checkout_from_confirm(
         form = ReservationFormDTO(
             farm_id=confirm_context["farm_id"],
             pickup_slot_code=confirm_context["pickup_slot_code"],
+            
+            # ★ 追加：Confirmでconsumerが同意した表示用日時（JST文字列）
+            pickup_display=confirm_context["pickup_display"],
+            
             items=[
                 {
                     "size_kg": item["size_kg"],

@@ -17,7 +17,7 @@ def get_reservation_by_id(
     reservation_id から予約情報を取得する（read-only）。
 
     用途:
-    - confirm / booked / admin などで
+    - confirm / booked / cancel / admin などで
       「予約1件の素の情報」が必要な場合の共通入口
 
     注意:
@@ -37,11 +37,17 @@ def get_reservation_by_id(
                 r.consumer_id           AS consumer_id,
                 c.email                 AS consumer_email,
                 r.farm_id               AS farm_id,
-                r.created_at            AS created_at,
-                r.pickup_slot_code      AS pickup_slot_code,
+
+                -- 基本情報
+                r.status                AS status,
                 r.items_json            AS items_json,
                 r.rice_subtotal         AS rice_subtotal,
-                r.status                AS status
+
+                -- 表示・時刻（DB が唯一の正）
+                r.pickup_display        AS pickup_display,
+                r.event_start_at        AS event_start_at,
+                r.event_end_at          AS event_end_at
+
             FROM reservations AS r
             LEFT JOIN consumers AS c
               ON c.consumer_id = r.consumer_id

@@ -93,6 +93,10 @@ class ReservationItemInput(BaseModel):
 class ReservationFormDTO(BaseModel):
     farm_id: int
     pickup_slot_code: str
+
+    # ★ 追加：Confirmでconsumerが同意した表示用日時（JST文字列）
+    pickup_display: str
+
     items: List[ReservationItemInput]
     client_next_pickup_deadline_iso: Optional[str] = None
 

@@ -64,10 +64,17 @@ class ConfirmService:
             pickup_slot_code=payload.pickup_slot_code,
         )
 
-        # --- pending reservation 作成（永続化は repo に完全委譲） ---
+        # ----------------------------------------------------
+        # pending reservation 作成
+        #
+        # pickup_display は
+        # 「consumer が Confirm で同意した JST 表示」を
+        # 不変データとして保存する
+        # ----------------------------------------------------
         result = create_pending_reservation(
             farm_id=payload.farm_id,
             pickup_slot_code=payload.pickup_slot_code,
+            pickup_display=payload.pickup_display,  # ★ 追加
             items=payload.items,
             service_fee=self.SERVICE_FEE,
             currency=self.CURRENCY,

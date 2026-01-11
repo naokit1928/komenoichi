@@ -120,6 +120,33 @@ export default function ConfirmPage() {
         return;
       }
 
+      /* ======================================================
+       * ★ ここが今回の本題
+       *
+       * DETAIL 通過時は 3時間より前
+       * しかし CONFIRM で 3時間以内に入ってから
+       * 「予約確定に進む」を押したケースだけを弾く
+       * ====================================================== */
+      if (ctx.clientNextPickupDeadlineIso) {
+        const detailPassedAt =
+          sessionStorage.getItem("detail_passed_at");
+
+        if (detailPassedAt) {
+          const detailTime = new Date(detailPassedAt);
+          const deadline = new Date(
+            ctx.clientNextPickupDeadlineIso
+          );
+          const now = new Date();
+
+          if (detailTime < deadline && now >= deadline) {
+            setErr(
+              "予約の受付時間を過ぎたため、表示されていた受け渡し日時では予約できなくなりました。恐れ入りますが、次回の受け渡し日時であらためてご予約ください。"
+            );
+            return;
+          }
+        }
+      }
+
       const qtyByKg = {
         5: ctx.items.find((i) => i.kg === 5)?.qty ?? 0,
         10: ctx.items.find((i) => i.kg === 10)?.qty ?? 0,
@@ -144,6 +171,10 @@ export default function ConfirmPage() {
         confirm_context: {
           farm_id: Number(ctx.farmId),
           pickup_slot_code: ctx.pickupSlotCode,
+
+          // 表示に使っている日時（JST文字列）
+          pickup_display: ctx.nextPickupDisplay,
+
           items: ctx.items
             .filter((i) => i.qty > 0)
             .map((i) => ({
@@ -170,13 +201,11 @@ export default function ConfirmPage() {
 
   return (
     <>
-      {/* ★ ヘッダーは最上位（これが重要） */}
       <PublicPageHeader
         title="予約内容の確認"
         consumerEmail={consumerEmail}
       />
 
-      {/* ★ 本文のみ中央寄せ */}
       <div
         style={{
           padding: 16,
@@ -222,7 +251,7 @@ export default function ConfirmPage() {
             marginTop: 24,
           }}
         >
-          {loading ? "処理中…" : "購入を進める"}
+          {loading ? "処理中…" : "予約確定に進む"}
         </button>
       </div>
     </>

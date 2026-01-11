@@ -1,0 +1,233 @@
+予約フローにおける
+時刻・週スロット・表示仕様（確定版ドキュメント）
+0. この文書の位置づけ
+
+この文書は以下のための 設計仕様書 である。
+
+予約確定後の時刻ズレ事故を二度と起こさない
+
+「どの値が正なのか」を将来の自分・他人が即判断できる
+
+Builder / Service / Frontend の責務境界を固定する
+
+安易な修正で 再計算ロジックが復活するのを防ぐ
+
+1. DB が保持する「正の時刻情報」
+reservations テーブル（重要カラム）
+pickup_slot_code   : 週＋時間帯の論理コード（例 SAT_10_11）
+pickup_display     : ユーザーに提示・同意させた表示用文字列
+confirmed_at       : 予約確定時刻（UTC）
+created_at         : 予約作成時刻（UTC）
+
+
+👉 結論
+
+表示の正：pickup_display
+
+ロジックの正：created_at + pickup_slot_code
+
+確定の事実：confirmed_at
+
+2. pickup_display を DB に保存した理由（最重要）
+過去の問題
+
+Reservation Booked 画面で
+
+Builder が created_at から再計算
+
+その結果、Confirm で見た時刻とズレる
+
+特に
+
+日付跨ぎ
+
+週跨ぎ
+
+JST / UTC 境界
+で事故が発生
+
+現在の設計（確定）
+
+Confirm でユーザーに見せた文字列を、そのまま DB に保存し、そのまま表示する
+
+CONFIRM で見た時刻
+   ↓
+pickup_display に保存
+   ↓
+RESERVATION BOOKED では pickup_display をそのまま表示
+
+
+👉
+Builder・Service・Frontend の誰も再計算しない
+
+3. 予約確定時（支払い成功時）の仕様
+Stripe Webhook → Reservation 確定時
+
+確定するもの：
+
+status = confirmed
+
+confirmed_at = now(UTC)
+
+pickup_display = Confirm 時に渡された文字列
+
+pickup_slot_code = Confirm 時に確定したコード
+
+確定しないもの：
+
+表示用時刻の再計算
+
+週の再判定
+
+現在時刻との比較
+
+👉
+支払い成功 = DB に確定事実を刻むだけ
+
+4. event（論理イベント）の扱い方
+event_start / event_end の計算
+
+予約時の event は DB に保存しない
+
+必要な場面でのみ Service 層が計算する
+
+使用ルール
+event = f(created_at, pickup_slot_code)
+
+
+ルール：
+
+base week は created_at が属する週
+
+deadline = event_start - 3h
+
+created_at <= deadline → 今週
+
+created_at > deadline → 来週
+
+すべて UTC で計算
+
+👉
+このロジックは「業務判断」であり表示ではない
+
+5. Reservation Booked の表示仕様（再設計後）
+表示に使うもの
+
+日時表示 → pickup_display（DB）
+
+数量・金額 → items_json / rice_subtotal
+
+場所 → farms テーブル
+
+キャンセル期限 → event_start_at - 3h（UTC）
+
+表示に使わないもの
+
+created_at からの再計算結果
+
+pickup_slot_code の表示変換
+
+Builder での日時生成
+
+👉
+Booked は「結果画面」
+計算は禁止
+
+6. BookingContextBuilder の正式な責務
+やること
+
+pickup_code の生成
+
+items_json の集計
+
+map URL / memo の生成
+
+表示 DTO の組み立て
+
+やらないこと（明示的に禁止）
+
+event_start_at / event_end_at の計算
+
+pickup_display の生成・補正
+
+週判定
+
+時刻比較
+
+👉
+Builder は UI 補助専用
+
+7. 週スロットに関する整理
+pickup_slot_code
+
+例：SAT_10_11
+
+意味：
+
+曜日
+
+開始時刻
+
+終了時刻
+
+役割
+フェーズ	役割
+Farm	週の論理スロット定義
+Confirm	表示と同意
+Webhook	event 計算のキー
+Export	集計単位
+8. なぜ「週再判定」を Booked でしないのか
+
+理由：
+
+ユーザーは Confirm で同意した日時を期待する
+
+Booked で週を再計算すると
+
+「支払った後に時刻が変わる」
+
+という UX 崩壊が起きる
+
+👉
+Booked は「事実の表示」だけ
+
+9. キャンセル期限との関係
+
+キャンセル可否判定：
+
+event_start_at - 3h
+
+表示用の cutoff：
+
+DB event を基準に計算
+
+表示時刻とは独立
+
+👉
+表示は pickup_display、制御は event
+
+10. 将来変更時のチェックリスト（必須）
+
+変更前に必ず確認：
+
+ pickup_display を再計算していないか
+
+ Builder に時刻ロジックを戻していないか
+
+ Booked で created_at を使っていないか
+
+ 「週の判定」を UI 表示に使っていないか
+
+ 表示と確定の Single Source が崩れていないか
+
+11. 最終まとめ（この設計の核）
+
+表示の正は DB に保存された pickup_display
+
+業務判断の正は created_at + pickup_slot_code
+
+Booked は再計算禁止
+
+Builder は表示補助のみ
+
+Confirm で見た時刻＝Booked で見る時刻
