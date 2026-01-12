@@ -30,22 +30,31 @@ def get_last_confirmed_farm(
     request: Request,
 ) -> LastConfirmedFarmResponse:
     """
-    consumer（user）が最後に confirmed した farm_id を返す。
+    ログイン中 consumer が「直近に予約した farm_id」を返す。
 
     責務:
     - consumer 履歴の read-only 参照
     - UI 表示補助用（Public Farms List）
+      （LISTING ページでのハイライト・並び替え用）
 
-    注意:
-    - 現在は user_id 固定
-    - LINE ログイン / セッション導入後に差し替える前提
+    仕様:
+    - Session に consumer_id がある場合のみ有効
+    - 未ログイン時は farm_id=None を返す
+    - ACTIVE / 受け取り日時は考慮しない
+      （あくまで「前回予約した農家」）
     """
 
-    # ★ 現在は user_id が固定
-    consumer_id = 1  # ← 将来 LINE / Session から解決する
+    consumer_id = request.session.get("consumer_id")
+    if not consumer_id:
+        # 未ログイン時はハイライトなし
+        return LastConfirmedFarmResponse(
+            farm_id=None,
+        )
 
     repo = ConsumerHistoryRepository()
-    farm_id = repo.get_last_confirmed_farm_id(consumer_id)
+    farm_id = repo.get_last_confirmed_farm_id(
+        consumer_id=int(consumer_id)
+    )
 
     return LastConfirmedFarmResponse(
         farm_id=farm_id,

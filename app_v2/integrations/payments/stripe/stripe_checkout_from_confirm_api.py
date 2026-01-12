@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sqlite3
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status, Body
 
 from app_v2.db.core import resolve_db_path
 from app_v2.customer_booking.dtos import ReservationFormDTO
@@ -11,9 +11,13 @@ from app_v2.customer_booking.services.confirm_service import ConfirmService
 from app_v2.integrations.payments.stripe.reservation_payment_repo import (
     ReservationPaymentRepository,
 )
-
 from app_v2.integrations.payments.stripe.stripe_checkout_service import (
     StripeCheckoutService,
+)
+
+# ★ 追加：アクティブ予約判定用
+from app_v2.customer_booking.repository.latest_reservation_repo import (
+    LatestReservationRepository,
 )
 
 router = APIRouter(
@@ -22,15 +26,11 @@ router = APIRouter(
 )
 
 
-from fastapi import Body
-
 @router.post("/from-confirm")
 def checkout_from_confirm(
     payload: dict = Body(...),
     request: Request = None,
 ):
-
-
     """
     【ログイン済み consumer 専用】
     Confirm から直接 Stripe Checkout へ進むための入口。
@@ -56,6 +56,20 @@ def checkout_from_confirm(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid consumer session",
+        )
+
+    # --------------------------------------------------
+    # ★ BACKEND GUARD
+    #    すでに confirmed 予約がある consumer は進めない
+    # --------------------------------------------------
+    repo = LatestReservationRepository()
+    existing_reservation_id = repo.get_latest_confirmed_reservation_id(
+        consumer_id=consumer_id_int
+    )
+    if existing_reservation_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="ACTIVE_RESERVATION_EXISTS",
         )
 
     # --------------------------------------------------
@@ -105,18 +119,13 @@ def checkout_from_confirm(
 
     # --------------------------------------------------
     # 3) confirm_context → ReservationFormDTO 変換
-    #    ★ DTO 定義と完全一致させる
+    #    ★ DTO 定義と完全一致
     # --------------------------------------------------
-
-
     try:
         form = ReservationFormDTO(
             farm_id=confirm_context["farm_id"],
             pickup_slot_code=confirm_context["pickup_slot_code"],
-            
-            # ★ 追加：Confirmでconsumerが同意した表示用日時（JST文字列）
             pickup_display=confirm_context["pickup_display"],
-            
             items=[
                 {
                     "size_kg": item["size_kg"],
@@ -166,7 +175,6 @@ def checkout_from_confirm(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"failed to update reservation.consumer_id: {e}",
         )
-
 
     # --------------------------------------------------
     # 6) Stripe Checkout

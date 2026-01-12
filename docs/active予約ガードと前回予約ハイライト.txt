@@ -1,0 +1,154 @@
+📘 消費者履歴（consumer_history）とハイライト表示
+
+最終仕様まとめ（2026-01）
+
+0. この仕様が解決したかったこと
+
+ログイン導入後も、
+「前回予約した農家」を LISTING ページで分かりやすく表示したい
+
+予約の active / inactive、受け取り日時、Stripe ガードなどと
+責務を混線させず、長期的に壊れない構造にしたい
+
+過去にあった
+consumer_id = 1 固定・LINE 前提の名残を完全に排除したい
+
+1. 最終的な結論（設計の要点）
+✅ ハイライト判定の唯一の基準
+
+「active かどうか」ではなく
+reservations.status = 'confirmed' かどうか
+
+受け取り日時は 一切関係ない
+
+現在時刻も 一切見ない
+
+あくまで 「前回予約した農家」 という 履歴 の概念
+
+2. 実装上の Single Source of Truth
+🔴 最重要ファイル
+consumer_history_repo.py
+SELECT farm_id
+FROM reservations
+WHERE consumer_id = ?
+  AND status = 'confirmed'
+ORDER BY
+    payment_succeeded_at DESC,
+    reservation_id DESC
+LIMIT 1
+
+この SQL が意味すること
+
+✔ confirmed のみ対象
+
+✔ pickup_start_at / pickup_end_at は見ない
+
+✔ active / inactive は見ない
+
+✔ キャンセル（cancelled）は除外される
+
+✔ 受け取り日時を過ぎても confirmed のままなら拾われる
+
+👉 ここが変わらない限り、ハイライトの意味は変わらない
+
+3. API レイヤの責務
+consumer_history_api.py
+
+Session から consumer_id を取得
+
+Repository を呼んで そのまま返すだけ
+
+ロジックの上書き・補正は一切しない
+
+"""
+仕様:
+- ログイン中のみ有効
+- 未ログイン時は farm_id=None
+- ACTIVE / 受け取り日時は考慮しない
+"""
+
+
+👉 UI 補助専用の read-only API
+
+4. フロントエンドでの扱い
+FarmsListPage.tsx
+const featuredFarm =
+  lastConfirmedFarmId != null
+    ? farms.find((f) => f.id === lastConfirmedFarmId)
+    : null;
+
+
+✔ status を見ない
+
+✔ active を見ない
+
+✔ 時刻を見ない
+
+✔ farm_id の一致だけ
+
+表示ロジックは：
+
+「前回予約した農家」カードを先頭に表示
+
+その他の農家をその下に通常表示
+
+5. 状態別の挙動まとめ（重要）
+状態	reservations.status	ハイライト
+予約直後	confirmed	✅ 表示
+受け取り日時前	confirmed	✅ 表示
+受け取り日時後	confirmed	✅ 表示
+キャンセル	cancelled	❌ 非表示
+未ログイン	–	❌ 非表示
+
+👉 「受け取り日時を過ぎたら消える」仕様ではない
+
+6. active 判定との関係（混同禁止）
+機能	判定基準
+LISTING ハイライト	confirmed
+ReservationBookedPage 表示	pickup_end_at
+Stripe 二重予約ガード	active（日時ベース）
+
+👉 役割分離は完全
+👉 consumer_history は 履歴、予約ガードは 状態
+
+7. 404 を返す API についての最終判断
+/api/public/reservations/latest
+
+404 は仕様として許容
+
+フロント側で正常系として扱う
+
+無理に 200/null にすると Stripe ガードと齟齬が出る
+
+👉 安定性優先で現状維持
+
+8. 将来変更するときの指針（重要）
+もし将来こうしたくなったら…
+🔁 「confirmed → completed」を自動遷移させたい
+
+consumer_history_repo.py の WHERE を以下に変更するだけ
+
+AND status IN ('confirmed', 'completed')
+
+
+👉 他は触らない
+
+9. 絶対にやってはいけないこと
+
+❌ history API に active 判定を入れる
+
+❌ 時刻ロジックを history に混ぜる
+
+❌ フロントで status / 時刻を再判定する
+
+❌ consumer_id をハードコードする
+
+10. このスレッドの到達点（総括）
+
+consumer_history 周りの 不整合は完全解消
+
+Aルート（email + session 前提）で統一
+
+長期運用しても 意味がぶれない設計になった
+
+「なぜこうなっているか」を説明できる状態

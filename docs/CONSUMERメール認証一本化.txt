@@ -1,0 +1,441 @@
+consumer ログイン／ログアウト 一本化設計・整理手順書
+目的
+
+consumer ログイン／ログアウトの挙動を
+本番・ローカル・将来の拡張を通して常に同一の前提で動作させるため、
+曖昧・簡易・開発用に見えるルートをすべて排除し、
+正規ルートを1本に統一する。
+
+本書は
+
+何を消すか
+
+何を残すか
+
+どの順序で整理するか
+を明確にする。
+
+1. 最終的に採用する「唯一のログイン仕様」
+consumer のログイン状態の定義（最重要）
+
+consumer は
+request.session["consumer_id"] が存在するときのみログイン状態とする。
+
+これが 唯一の正本であり、
+
+cookie
+
+DB
+
+URLトークン
+
+フロントの state
+は一切ログイン状態の根拠にしない。
+
+ログインが成立する唯一の経路
+
+consumer がメールアドレスを入力
+
+メールが送信される
+
+メール内リンクをクリック
+
+/api/auth/consumer/magic/consume
+
+request.session["consumer_id"] がセットされる
+
+ログイン完了
+
+※ メールを経由しないログインは一切存在しない
+
+ログアウトの定義
+
+ログアウトとは
+SessionMiddleware のセッションを破棄することのみを指す。
+
+request.session.clear()
+
+cookie が無効化される
+
+次のリクエストでは consumer_id は存在しない
+
+これ以外の「ログアウトっぽいもの」は存在させない。
+
+2. 削除する対象（完全削除）
+
+以下は 設計上のノイズであり、
+存在する限り将来の不具合・混乱の温床になるため削除する。
+
+A. 「簡易ログイン」「開発用ログイン」に関わる導線
+削除対象
+
+フロントに トークン付きURLを直接表示する処理
+
+「メールを送らなくてもログインできる」思想
+
+管理用・デバッグ用としての magic link 直表示
+
+理由
+
+本番の SameSite / Secure / CORS を再現できない
+
+A（正規ルート）と同じテストが不可能
+
+「動くが信用できない」状態を生む
+
+B. 「consumer_session」系の独自永続セッション構造
+削除 or 無効化対象
+
+consumer_session cookie
+
+consumer_sessions テーブル
+
+ConsumerSessionService（consumer ログイン用途）
+
+理由
+
+SessionMiddleware と二重正本になる
+
+ログアウト不能・復活バグの原因になる
+
+将来「どっちが正しいのか分からない」状態を作る
+
+※ 将来使う可能性があるなら 完全に別用途・別ドメインで再設計する
+（現時点では consumer 認証に使わない）
+
+C. 「存在しなくてもいいメールでログインできる」前提
+削除対象
+
+テスト用に「適当なメール」を入れる前提
+
+「実在しなくてもいい」という思想
+
+理由
+
+本番挙動と一致しない
+
+メール＝本人確認という前提が壊れる
+
+ログインの意味が不明確になる
+
+3. 残す対象（強化する）
+A. magic link consume API
+
+/api/auth/consumer/magic/consume
+
+本番の正規ルート
+
+削除しない
+
+むしろ仕様の中心
+
+B. SessionMiddleware による cookie セッション
+
+request.session["consumer_id"]
+
+SameSite / Secure / credentials を含めて 本番条件を正とする
+
+ローカルも本番と同じ思想で扱う
+
+C. identity / me 系 API
+
+GET /api/consumers/identity
+
+GET /api/consumers/me
+
+役割を明確化：
+
+identity：ログイン状態の判定
+
+me：ログイン済み consumer の情報取得
+（未ログイン時は 401）
+
+4. 一本化の手順（実装前提ではなく整理順）
+Step 1：仕様を文章で固定する（最優先）
+
+本書の
+
+ログイン定義
+
+ログアウト定義
+
+唯一のログイン経路
+を docs に保存
+
+※ コードに触らない
+
+Step 2：フロントの「例外導線」をすべて洗い出す
+
+確認ポイント：
+
+トークンURLを表示していないか
+
+自動ログインしていないか
+
+「開発用」「DEBUG」分岐が残っていないか
+
+→ 見つけ次第削除対象にマーク
+
+Step 3：バックエンドの二重セッションを排除する
+
+consumer 認証に関して
+
+SessionMiddleware 以外を参照していないか
+
+consumer_session 系を 使っていない状態にする
+
+※ 削除は次のフェーズでもよいが、
+　参照されていない状態を先に作る
+
+Step 4：ログアウト挙動を「A前提」でのみ確認
+
+メール経由でログイン
+
+ヘッダーからログアウト
+
+再度 identity を叩く
+
+cookie が消えているか確認
+
+※ B 前提の確認は 一切行わない
+
+5. テスト運用の前提（明文化）
+
+テストは 必ずメール経由
+
+テスト用メールアドレスを 2〜3 個用意
+
+シークレットウィンドウ併用
+
+「楽だから」という理由で例外を作らない
+
+6. この整理によって得られる状態
+
+ログイン／ログアウトの挙動が 環境差でブレない
+
+不具合調査時に
+「この user はログインしているか？」が即断できる
+
+将来 OAuth / SNS ログインを追加しても
+正本は session という構造を保てる
+
+7. 最終宣言（重要）
+
+consumer ログインに
+「簡易」「開発用」「例外」ルートは存在しない。
+存在するのは 本番と同一の1本のみ。
+
+
+
+consumer ログイン一本化に伴う削除対象ファイル一覧
+前提（再確認・省略版）
+
+consumer ログインの正本
+→ request.session["consumer_id"]
+
+ログイン成立経路
+→ メール経由 magic link consume のみ
+
+開発用・簡易用・例外ルートは 一切残さない
+
+1️⃣ バックエンド：完全削除対象（consumer 認証に関係するもの）
+❌ consumer_session 系（最優先で切る）
+削除対象
+app_v2/consumers/services/consumer_session_service.py
+
+理由
+
+SessionMiddleware と 二重正本
+
+cookie が2種類になる原因
+
+ログアウト不能・復活バグの温床
+
+削除レベル
+
+完全削除
+
+import / 使用箇所があれば一緒に除去
+
+❌ 独自 session を使う API（存在自体がノイズ）
+削除対象
+app_v2/consumers/api/consumer_session_api.py
+
+理由
+
+「session を発行する」という発想自体が不要
+
+magic link consume と責務が衝突
+
+削除レベル
+
+完全削除
+
+router 登録も削除
+
+❌ 管理用・裏口ログアウト
+削除対象
+app_v2/consumers/api/secret_logout_api.py
+
+理由
+
+正規ログアウトと意味が違う
+
+本番で存在すると「どれが正しいのか」分からなくなる
+
+セキュリティリスク
+
+削除レベル
+
+完全削除
+
+「緊急用」が必要なら infra レベルで別途設計すべき
+
+2️⃣ バックエンド：仕様に合わない挙動を持つ API（要整理）
+⚠️ consumer_history 系（ログインとは独立させる）
+対象
+app_v2/consumers/api/consumer_history_api.py
+app_v2/consumers/repository/consumer_history_repo.py
+
+理由
+
+これ自体はログイン処理ではない
+
+ただし「未ログインでも consumer_id を仮定」していたら危険
+
+削除レベル
+
+即削除ではない
+
+ただし以下を満たさないなら削除候補
+
+request.session["consumer_id"] が前提
+
+URL や固定 ID に依存しない
+
+※ 今回の一本化とは直接関係しないが、要注意リスト
+
+3️⃣ フロントエンド：完全削除対象（Bルートの痕跡）
+❌ トークン付きURLを露出する導線
+確認・削除対象（代表）
+ConfirmPage.tsx
+
+削除する思想・処理
+
+トークン付き URL を画面に表示
+
+DEBUG 用 magic link 表示
+
+自動遷移で magic consume を叩く処理
+
+削除レベル
+
+完全削除
+
+ConfirmPage は
+「未ログインなら /login に送る」
+だけを残す
+
+❌ 「存在しなくてもいいメール」で進める前提
+対象
+AuthLoginPage.tsx
+AuthEmailRegisterPage.tsx
+
+削除内容
+
+「存在しなくてもいい」という思想
+
+dev 用 shortcut
+
+メール送信をスキップする分岐
+
+削除レベル
+
+分岐削除
+
+画面自体は残す（正規フロー）
+
+4️⃣ フロントエンド：削除しないが意味を限定するもの
+⭕ PublicPageHeader.tsx
+状態
+PublicPageHeader.tsx
+
+扱い
+
+削除しない
+
+consumerEmail 表示は OK
+
+ログアウト導線のみ正規 API に一本化
+
+注意
+
+ログアウト成功後は
+
+再描画
+
+identity 再取得
+が必須
+
+5️⃣ ルーティング・main 周りで確認すべき点
+⚠️ router 登録のゴミ確認
+対象
+app_v2/main.py
+app_v2/consumers/api/__init__.py
+
+チェック
+
+削除した API が router に残っていないか
+
+/consumer-session
+
+/secret-logout
+などが 一切登録されていないこと
+
+6️⃣ 削除対象まとめ（チェックリスト）
+🔥 完全削除（確定）
+
+consumer_session_service.py
+
+consumer_session_api.py
+
+secret_logout_api.py
+
+フロントの magic link 直表示・直ログイン処理
+
+⚠️ 要確認・条件付き
+
+consumer_history_api.py
+
+consumer_history_repo.py
+
+Auth 系ページの dev shortcut
+
+7️⃣ 削除後に残る consumer 認証の構成（完成形）
+[ConfirmPage]
+   ↓ 未ログイン
+[/login or /register-email]
+   ↓ メール送信
+[magic link]
+   ↓
+[/magic/consume]
+   ↓
+[SessionMiddleware]
+   ↓
+[request.session["consumer_id"]]
+
+
+この図以外の経路がコードに残っていたら 即削除対象。
+
+8️⃣ 次にやるべき最小ステップ（提案）
+
+削除対象ファイルを「コメントアウト」ではなく物理削除
+
+router 登録が残っていないか確認
+
+ローカルで
+
+メール → consume → identity
+
+logout → identity
+を1回だけ確認

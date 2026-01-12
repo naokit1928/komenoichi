@@ -51,8 +51,9 @@ export default function AccountSettingsPage() {
   const handleLogout = async () => {
     try {
       await fetch(
-        "/api/consumers/secret-logout?key=5f3a9c7e-0e6b-4c4e-b3d3-9c8a7e6d5c56",
+        "/api/auth/consumer/logout",
         {
+          method: "POST",
           credentials: "include",
         }
       );

@@ -5,9 +5,11 @@ import { API_BASE } from "@/config/api";
 /* 共通ヘッダー */
 import { FarmsListHeader as PublicPageHeader } from "@/components/PublicPageHeader";
 
+/* Confirm 専用カード */
 import { RiceBreakdown } from "./components/RiceBreakdown";
 import { ServiceFeeCard } from "./components/ServiceFeeCard";
 import { AgreementBlock } from "./components/AgreementBlock";
+import ActiveReservationGuardCard from "./components/ActiveReservationGuardCard";
 
 import { calcTotalKg, isOverMaxKg } from "../FarmDetail/rules/orderRules";
 
@@ -24,6 +26,7 @@ type ConfirmCtx = {
 
 const CONFIRM_CTX_KEY = "CONFIRM_CTX";
 
+/* ===== identity ===== */
 async function fetchIdentity(): Promise<{
   is_logged_in: boolean;
   email: string | null;
@@ -35,6 +38,16 @@ async function fetchIdentity(): Promise<{
   return res.json();
 }
 
+/* ===== active reservation（UX用・ログイン後のみ） ===== */
+async function hasActiveReservation(): Promise<boolean> {
+  const res = await fetch(
+    `${API_BASE}/api/public/reservations/latest`,
+    { credentials: "include" }
+  );
+  return res.ok;
+}
+
+/* ===== stripe ===== */
 async function checkoutFromConfirm(payload: {
   agreed: boolean;
   confirm_context: any;
@@ -66,9 +79,13 @@ export default function ConfirmPage() {
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
 
+  /* ★ 追加 state（既存に影響なし） */
+  const [showActiveGuard, setShowActiveGuard] = useState(false);
+
   const [consumerEmail, setConsumerEmail] =
     useState<string | undefined>(undefined);
 
+  /* ===== confirm context 復元 ===== */
   useEffect(() => {
     if (!ctx) {
       const saved = sessionStorage.getItem(CONFIRM_CTX_KEY);
@@ -86,6 +103,7 @@ export default function ConfirmPage() {
     }
   }, [ctx]);
 
+  /* ===== identity（表示用） ===== */
   useEffect(() => {
     async function run() {
       const data = await fetchIdentity();
@@ -120,61 +138,42 @@ export default function ConfirmPage() {
         return;
       }
 
-      /* ======================================================
-       * ★ ここが今回の本題
-       *
-       * DETAIL 通過時は 3時間より前
-       * しかし CONFIRM で 3時間以内に入ってから
-       * 「予約確定に進む」を押したケースだけを弾く
-       * ====================================================== */
-      if (ctx.clientNextPickupDeadlineIso) {
-        const detailPassedAt =
-          sessionStorage.getItem("detail_passed_at");
-
-        if (detailPassedAt) {
-          const detailTime = new Date(detailPassedAt);
-          const deadline = new Date(
-            ctx.clientNextPickupDeadlineIso
-          );
-          const now = new Date();
-
-          if (detailTime < deadline && now >= deadline) {
-            setErr(
-              "予約の受付時間を過ぎたため、表示されていた受け渡し日時では予約できなくなりました。恐れ入りますが、次回の受け渡し日時であらためてご予約ください。"
-            );
-            return;
-          }
-        }
-      }
-
       const qtyByKg = {
         5: ctx.items.find((i) => i.kg === 5)?.qty ?? 0,
         10: ctx.items.find((i) => i.kg === 10)?.qty ?? 0,
         25: ctx.items.find((i) => i.kg === 25)?.qty ?? 0,
       };
 
-      if (calcTotalKg(qtyByKg) === 0)
+      if (calcTotalKg(qtyByKg) === 0) {
         throw new Error("数量が 0 です。");
-      if (isOverMaxKg(qtyByKg))
+      }
+      if (isOverMaxKg(qtyByKg)) {
         throw new Error("50kg を超えています。");
+      }
 
       setLoading(true);
 
+      /* ===== 既存仕様：まずログイン判定 ===== */
       const identity = await fetchIdentity();
       if (!identity?.is_logged_in) {
         navigate("/login");
         return;
       }
 
+      /* ===== ★ 追加：ログイン後限定の active reservation 判定 ===== */
+      const hasActive = await hasActiveReservation();
+      if (hasActive) {
+        setShowActiveGuard(true);
+        return;
+      }
+
+      /* ===== 以降は従来どおり Stripe ===== */
       const data = await checkoutFromConfirm({
         agreed: true,
         confirm_context: {
           farm_id: Number(ctx.farmId),
           pickup_slot_code: ctx.pickupSlotCode,
-
-          // 表示に使っている日時（JST文字列）
           pickup_display: ctx.nextPickupDisplay,
-
           items: ctx.items
             .filter((i) => i.qty > 0)
             .map((i) => ({
@@ -214,45 +213,55 @@ export default function ConfirmPage() {
           margin: "0 auto",
         }}
       >
-        <RiceBreakdown
-          riceSubtotal={ctx.riceSubtotal}
-          lines={riceLines}
-          pickupDisplay={ctx.nextPickupDisplay}
-        />
-
-        <ServiceFeeCard
-          serviceFee={ctx.serviceFee}
-          termLabel="運営サポート費"
-        />
-
-        <AgreementBlock
-          agreed={agreed}
-          onChange={setAgreed}
-        />
-
-        {err && (
-          <div style={{ color: "#b91c1c", marginTop: 12 }}>
-            {err}
-          </div>
+        {showActiveGuard && (
+          <ActiveReservationGuardCard
+            onGoBooked={() => navigate("/reservation/booked")}
+          />
         )}
 
-        <button
-          onClick={handleMainAction}
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "12px 16px",
-            background: loading ? "#ddd" : "#1f7a36",
-            color: loading ? "#666" : "#fff",
-            borderRadius: 9999,
-            border: "none",
-            fontWeight: 600,
-            fontSize: 15,
-            marginTop: 24,
-          }}
-        >
-          {loading ? "処理中…" : "予約確定に進む"}
-        </button>
+        {!showActiveGuard && (
+          <>
+            <RiceBreakdown
+              riceSubtotal={ctx.riceSubtotal}
+              lines={riceLines}
+              pickupDisplay={ctx.nextPickupDisplay}
+            />
+
+            <ServiceFeeCard
+              serviceFee={ctx.serviceFee}
+              termLabel="運営サポート費"
+            />
+
+            <AgreementBlock
+              agreed={agreed}
+              onChange={setAgreed}
+            />
+
+            {err && (
+              <div style={{ color: "#b91c1c", marginTop: 12 }}>
+                {err}
+              </div>
+            )}
+
+            <button
+              onClick={handleMainAction}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: loading ? "#ddd" : "#1f7a36",
+                color: loading ? "#666" : "#fff",
+                borderRadius: 9999,
+                border: "none",
+                fontWeight: 600,
+                fontSize: 15,
+                marginTop: 24,
+              }}
+            >
+              {loading ? "処理中…" : "予約確定に進む"}
+            </button>
+          </>
+        )}
       </div>
     </>
   );

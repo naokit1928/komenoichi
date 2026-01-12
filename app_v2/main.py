@@ -91,6 +91,7 @@ app.add_middleware(
 from app_v2.auth.auth_api import router as auth_router
 from app_v2.auth.register_email_api import router as register_email_router
 from app_v2.auth_consumer.magic.api import router as consumer_magic_router
+from app_v2.auth_consumer.logout.logout_api import router as consumer_logout_router
 
 # --- Farmer ---
 from app_v2.farmer.api.registration_api import router as registration_router
@@ -126,13 +127,7 @@ from app_v2.customer_booking.api.consumer_identity_api import (
     router as consumer_identity_router,
 )
 
-from app_v2.customer_booking.api.consumer_session_api import (
-    router as consumer_session_router,
-)
 
-from app_v2.customer_booking.api.secret_logout_api import (
-    router as secret_logout_router,
-)
 # --- Integrations ---
 from app_v2.integrations.payments.stripe.stripe_checkout_api import (
     router as stripe_checkout_router,
@@ -162,6 +157,7 @@ from app_v2.admin.api.admin_farm_api import (
 app.include_router(auth_router, prefix="/api")
 app.include_router(register_email_router, prefix="/api")
 app.include_router(consumer_magic_router, prefix="/api")
+app.include_router(consumer_logout_router, prefix="/api")
 
 # ReservationBooked（予約確認ページ専用）
 app.include_router(reservation_booked_router, prefix="/api")
@@ -172,11 +168,7 @@ app.include_router(consumer_me_router, prefix="/api")
 # Consumer identity API（表示専用）
 app.include_router(consumer_identity_router, prefix="/api")
 
-# Consumer session API (logout)
-app.include_router(consumer_session_router, prefix="/api")
 
-# Consumer secret logout API (UI非公開)
-app.include_router(secret_logout_router, prefix="/api")
 
 # Farmer
 app.include_router(registration_router, prefix="/api")
