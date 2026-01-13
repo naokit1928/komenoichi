@@ -170,14 +170,20 @@ export default function FarmerSettingsPage() {
     <div className="min-h-screen bg-[#F7F7F7]">
       <FarmerSettingsHeader title="公開用プロフィール設定" />
 
-      <div className="mx-auto max-w-3xl pb-12">
-        <section className="px-4 sm:px-6 mt-6">
-          <PublishToggleCard
-            isOn={!!initial?.farm.is_accepting_reservations}
-            disabled={!initial || busy}
-            onToggle={(v) => postMe({ is_accepting_reservations: v })}
-          />
-        </section>
+  // 追加：公開可否を backend の status から一元判定
+const canPublish =
+  !!initial &&
+  initial.status.is_ready_to_publish &&
+  !busy;
+
+<section className="px-4 sm:px-6 mt-6">
+  <PublishToggleCard
+    isOn={!!initial?.farm.is_accepting_reservations}
+    disabled={!canPublish}
+    onToggle={(v) => postMe({ is_accepting_reservations: v })}
+  />
+</section>
+
 
         <PrGallery
           initialImages={initial?.profile.pr_images ?? []}

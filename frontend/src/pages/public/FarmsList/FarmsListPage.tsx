@@ -1,14 +1,15 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import MapLayerPortal from "./MapLayerPortal";
 import { FarmCard, type FarmCardData } from "./components/FarmCard";
 import { useFarmsListPage } from "./hooks/useFarmsListPage";
 
-/* ★ 共通ヘッダー */
+/* ★ ヘッダー */
 import { FarmsListHeader as PublicPageHeader } from "@/components/PublicPageHeader";
-/* ★ 追加：identity 取得用 */
-import { API_BASE } from "@/config/api";
+import SimplePageHeader from "@/components/SimplePageHeader";
 
+/* ★ identity 取得用 */
+import { API_BASE } from "@/config/api";
 
 // ====== Favorite (local only) ======
 const FAVORITES_KEY = "favoriteFarms";
@@ -30,12 +31,8 @@ function saveFavoriteIds(ids: string[]) {
       FAVORITES_KEY,
       JSON.stringify(Array.from(new Set(ids)))
     );
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
-
-
 
 // ====== Page ======
 export default function FarmsListPage() {
@@ -53,10 +50,9 @@ export default function FarmsListPage() {
     effectiveMapCenter,
   } = useFarmsListPage();
 
-  /* ★ 追加：consumer email */
+  /* ★ consumer email（ログイン判定） */
   const [consumerEmail, setConsumerEmail] = useState<string | null>(null);
 
-  /* ★ 追加：ConfirmPage と同一ロジック */
   useEffect(() => {
     fetch(`${API_BASE}/api/consumers/identity`, {
       credentials: "include",
@@ -70,7 +66,7 @@ export default function FarmsListPage() {
       .catch(() => {});
   }, []);
 
-
+  // ===== map open/close =====
   useEffect(() => {
     if (!isMapOpen) return;
     const prev = document.body.style.overflow;
@@ -89,18 +85,9 @@ export default function FarmsListPage() {
     };
   }, [isMapOpen, searchParams, setSearchParams]);
 
-
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() =>
     loadFavoriteIds()
   );
-
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === FAVORITES_KEY) setFavoriteIds(loadFavoriteIds());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
 
   const toggleFav = (id: number, e?: React.MouseEvent) => {
     if (e) {
@@ -117,6 +104,16 @@ export default function FarmsListPage() {
     });
   };
 
+  const featuredFarm: FarmCardData | null =
+    lastConfirmedFarmId != null && farms
+      ? farms.find((f) => f.id === lastConfirmedFarmId) || null
+      : null;
+
+  const otherFarms: FarmCardData[] =
+    featuredFarm && farms
+      ? farms.filter((f) => f.id !== featuredFarm.id)
+      : farms || [];
+
   const pageStyle = {
     padding: 16,
     maxWidth: 960,
@@ -124,213 +121,170 @@ export default function FarmsListPage() {
     background: "#fafafa",
   } as const;
 
-  const cardHover = {
-    boxShadow: "0 6px 20px rgba(0,0,0,0.08)",
-    transform: "translateY(-2px)",
-  } as const;
-
-  const toggleMap = () => {
-    const next = new URLSearchParams(searchParams);
-    if (isMapOpen) next.delete("map");
-    else next.set("map", "1");
-    setSearchParams(next, { replace: false });
-  };
-
-  const closeMap = () => {
-    if (!isMapOpen) return;
-    const next = new URLSearchParams(searchParams);
-    next.delete("map");
-    setSearchParams(next, { replace: false });
-  };
-
-  // ★ 「前回予約した農家」表示用：farms から対象を抽出
-  const featuredFarm: FarmCardData | null =
-    lastConfirmedFarmId != null && farms
-      ? farms.find((f) => f.id === lastConfirmedFarmId) || null
-      : null;
-
-  const otherFarms: FarmCardData[] = featuredFarm && farms
-    ? farms.filter((f) => f.id !== featuredFarm.id)
-    : farms || [];
-
- return (
-   <>
-    <PublicPageHeader
-      title={null}
-      consumerEmail={consumerEmail}
-    />
-
-    <section style={pageStyle}>
-      {errorMsg && (
-        <div
-          style={{
-            textAlign: "center",
-            color: "#b45309",
-            marginBottom: 12,
-            fontSize: 13,
-          }}
-        >
-          {errorMsg}
-        </div>
+  return (
+    <>
+      {/* ===== ヘッダー ===== */}
+      {consumerEmail ? (
+        <PublicPageHeader title={null} consumerEmail={consumerEmail} />
+      ) : (
+        <SimplePageHeader title="近くの農家を探す" />
       )}
 
-      {loading && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "24px 0",
-            color: "#6b7280",
-          }}
-        >
-          読み込み中...
-        </div>
-      )}
-
-      {!loading && farms && farms.length > 0 && (
-        <>
-          {/* ★ 前回予約した農家ブロック */}
-          {featuredFarm && (
-            <div
-              style={{
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ marginBottom: 8 }}>
-                <span
-                  style={{
-                    display: "inline-block",
-                    padding: "2px 10px",
-                    borderRadius: 9999,
-                    background: "rgba(31,122,54,0.08)",
-                    color: "#1f7a36",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  前回予約した農家
-                </span>
-              </div>
-
-              <Link
-                to={`/farms/${featuredFarm.id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
-                onMouseEnter={(e) =>
-                  Object.assign(
-                    (e.currentTarget.firstChild as HTMLElement).style,
-                    cardHover
-                  )
-                }
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget.firstChild as HTMLElement;
-                  el.style.boxShadow = "none";
-                  el.style.transform = "none";
-                }}
-              >
-                <FarmCard
-                  farm={featuredFarm}
-                  isFav={favoriteIds.includes(String(featuredFarm.id))}
-                  toggleFav={toggleFav}
-                />
-              </Link>
-            </div>
-          )}
-
+      <section style={pageStyle}>
+        {errorMsg && (
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: 16,
+              textAlign: "center",
+              color: "#b45309",
+              marginBottom: 12,
+              fontSize: 13,
             }}
           >
-            {otherFarms.map((f) => {
-              const isFav = favoriteIds.includes(String(f.id));
-              return (
+            {errorMsg}
+          </div>
+        )}
+
+        {loading && (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "24px 0",
+              color: "#6b7280",
+            }}
+          >
+            読み込み中...
+          </div>
+        )}
+
+        {!loading && farms && farms.length > 0 && (
+          <>
+            {featuredFarm && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "2px 10px",
+                      borderRadius: 9999,
+                      background: "rgba(31,122,54,0.08)",
+                      color: "#1f7a36",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    前回予約した農家
+                  </span>
+                </div>
+
+                <Link
+                  to={`/farms/${featuredFarm.id}`}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <FarmCard
+                    farm={featuredFarm}
+                    isFav={favoriteIds.includes(String(featuredFarm.id))}
+                    toggleFav={toggleFav}
+                  />
+                </Link>
+              </div>
+            )}
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {otherFarms.map((f) => (
                 <Link
                   key={f.id}
                   to={`/farms/${f.id}`}
                   style={{ textDecoration: "none", color: "inherit" }}
-                  onMouseEnter={(e) =>
-                    Object.assign(
-                      (e.currentTarget.firstChild as HTMLElement).style,
-                      cardHover
-                    )
-                  }
-                  onMouseLeave={(e) => {
-                    const el = e.currentTarget.firstChild as HTMLElement;
-                    el.style.boxShadow = "none";
-                    el.style.transform = "none";
-                  }}
                 >
-                  <FarmCard farm={f} isFav={isFav} toggleFav={toggleFav} />
+                  <FarmCard
+                    farm={f}
+                    isFav={favoriteIds.includes(String(f.id))}
+                    toggleFav={toggleFav}
+                  />
                 </Link>
-              );
-            })}
-          </div>
-
-          {loadingMore && (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "12px 0 0",
-                color: "#6b7280",
-                fontSize: 12,
-              }}
-            >
-              追加読み込み中...
+              ))}
             </div>
-          )}
-        </>
-      )}
 
-      {!loading && farms && farms.length === 0 && (
-        <div
+            {loadingMore && (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "12px 0 0",
+                  color: "#6b7280",
+                  fontSize: 12,
+                }}
+              >
+                追加読み込み中...
+              </div>
+            )}
+          </>
+        )}
+
+        {!loading && farms && farms.length === 0 && (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "24px 0",
+              color: "#6b7280",
+            }}
+          >
+            公開中の農家が見つかりません。
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            const next = new URLSearchParams(searchParams);
+            if (isMapOpen) next.delete("map");
+            else next.set("map", "1");
+            setSearchParams(next, { replace: false });
+          }}
+          aria-expanded={isMapOpen}
+          aria-label={isMapOpen ? "地図を閉じる" : "地図を表示"}
           style={{
-            textAlign: "center",
-            padding: "24px 0",
-            color: "#6b7280",
+            position: "fixed",
+            left: "50%",
+            top: isMapOpen ? "83vh" : "auto",
+            bottom: isMapOpen
+              ? "auto"
+              : "calc(56px + env(safe-area-inset-bottom))",
+            transform: isMapOpen
+              ? "translate(-50%, -50%)"
+              : "translateX(-50%)",
+            zIndex: 70,
+            padding: "12px 18px",
+            borderRadius: 9999,
+            border: "1px solid rgba(0,0,0,0.2)",
+            background: "#000000",
+            color: "#ffffff",
+            boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
+            fontWeight: 700,
+            fontSize: 14,
+            whiteSpace: "nowrap",
           }}
         >
-          公開中の農家が見つかりません。
-        </div>
-      )}
+          {isMapOpen ? "地図を閉じる（Esc）" : "地図を表示"}
+        </button>
 
-
-      <button
-        type="button"
-        onClick={toggleMap}
-        aria-expanded={isMapOpen}
-        aria-label={isMapOpen ? "地図を閉じる" : "地図を表示"}
-        style={{
-          position: "fixed",
-          left: "50%",
-          top: isMapOpen ? "83vh" : "auto",
-          bottom: isMapOpen ? "auto" : "calc(56px + env(safe-area-inset-bottom))",
-          transform: isMapOpen
-            ? "translate(-50%, -50%)"
-            : "translateX(-50%)",
-          zIndex: 70,
-          padding: "12px 18px",
-          borderRadius: 9999,
-          border: "1px solid rgba(0,0,0,0.2)",
-          background: "#000000",
-          color: "#ffffff",
-          boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
-          fontWeight: 700,
-          fontSize: 14,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {isMapOpen ? "地図を閉じる（Esc）" : "地図を表示"}
-      </button>
-
-      <MapLayerPortal
-        open={isMapOpen}
-        onRequestClose={closeMap}
-        farms={publicFarms}
-        mapCenter={effectiveMapCenter}
-        noFarmsWithin100km={noFarmsWithin100km}
-      />
-    </section>
-  </>
-);
+        <MapLayerPortal
+          open={isMapOpen}
+          onRequestClose={() => {
+            const next = new URLSearchParams(searchParams);
+            next.delete("map");
+            setSearchParams(next, { replace: false });
+          }}
+          farms={publicFarms}
+          mapCenter={effectiveMapCenter}
+          noFarmsWithin100km={noFarmsWithin100km}
+        />
+      </section>
+    </>
+  );
 }

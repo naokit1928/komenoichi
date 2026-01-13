@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE } from "@/config/api"; // ★ 追加
+import { API_BASE } from "@/config/api";
 
 type ConsumerIdentity = {
   is_logged_in: boolean;
@@ -9,7 +9,8 @@ type ConsumerIdentity = {
 
 export default function AccountSettingsPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState<string | null>(null);
+
+  const [identity, setIdentity] = useState<ConsumerIdentity | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -19,19 +20,25 @@ export default function AccountSettingsPage() {
     (async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/api/consumers/identity`, // ★ 修正
+          `${API_BASE}/api/consumers/identity`,
           { credentials: "include" }
         );
 
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (!canceled) {
+            setIdentity({ is_logged_in: false, email: null });
+          }
+          return;
+        }
 
         const data: ConsumerIdentity = await res.json();
-
         if (!canceled) {
-          setEmail(data.email ?? null);
+          setIdentity(data);
         }
       } catch {
-        // JSON でなければここに来る（今まさにこれが起きていた）
+        if (!canceled) {
+          setIdentity({ is_logged_in: false, email: null });
+        }
       } finally {
         if (!canceled) setLoading(false);
       }
@@ -45,7 +52,7 @@ export default function AccountSettingsPage() {
   const handleLogout = async () => {
     try {
       await fetch(
-        `${API_BASE}/api/auth/consumer/logout`, // ★ ついでに統一（推奨）
+        `${API_BASE}/api/auth/consumer/logout`,
         { method: "POST", credentials: "include" }
       );
     } finally {
@@ -53,18 +60,65 @@ export default function AccountSettingsPage() {
     }
   };
 
+  /* ===== ローディング中 ===== */
+  if (loading) {
+    return (
+      <div style={{ padding: "24px 16px", maxWidth: 640, margin: "0 auto" }}>
+        読み込み中…
+      </div>
+    );
+  }
+
+  /* ===== 未ログイン時 ===== */
+  if (!identity || !identity.is_logged_in) {
+    return (
+      <div style={{ padding: "24px 16px", maxWidth: 480, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>
+          アカウント設定
+        </h1>
+
+        <div
+          style={{
+            backgroundColor: "#F9FAFB",
+            borderRadius: 12,
+            padding: 16,
+            color: "#374151",
+            fontSize: 14,
+          }}
+        >
+          現在ログインされていません。
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== ログイン時 ===== */
   return (
     <div style={{ padding: "24px 16px", maxWidth: 640, margin: "0 auto" }}>
       <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
         アカウント設定
       </h1>
 
-      <div style={{ backgroundColor: "#F9FAFB", borderRadius: 12, padding: 16, marginBottom: 24 }}>
+      <div
+        style={{
+          backgroundColor: "#F9FAFB",
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 24,
+        }}
+      >
         <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 4 }}>
           ログイン中
         </div>
-        <div style={{ fontSize: 15, fontWeight: 500, color: "#111827", wordBreak: "break-all" }}>
-          {loading ? "読み込み中…" : email ? email : "（email 未取得）"}
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 500,
+            color: "#111827",
+            wordBreak: "break-all",
+          }}
+        >
+          {identity.email}
         </div>
       </div>
 
@@ -77,11 +131,11 @@ export default function AccountSettingsPage() {
           backgroundColor: "#FFFFFF",
           border: "1px solid #E5E7EB",
           borderRadius: 12,
+          cursor: "pointer",
         }}
       >
         ログアウト
       </button>
-
 
       {/* ===== ログアウト確認モーダル ===== */}
       {showLogoutModal && (

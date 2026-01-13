@@ -207,10 +207,12 @@ export default function FarmDetailPage() {
   return (
     <>
       {/* ★ Public Header（ConfirmPage と同一挙動） */}
-      <PublicPageHeader
-        title=""
-        consumerEmail={consumerEmail}
-      />
+      {consumerEmail && (
+        <PublicPageHeader
+          title=""
+          consumerEmail={consumerEmail}
+        />
+      )}
 
       {/* ヘッダー高さ分 */}
       <div style={{ height: 0 }} />

@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 
-/* 共通ヘッダー */
+/* ヘッダー */
 import { FarmsListHeader as PublicPageHeader } from "@/components/PublicPageHeader";
+import SimplePageHeader from "@/components/SimplePageHeader";
 
 /* Confirm 専用カード */
 import { RiceBreakdown } from "./components/RiceBreakdown";
@@ -78,10 +79,9 @@ export default function ConfirmPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
-
-  /* ★ 追加 state（既存に影響なし） */
   const [showActiveGuard, setShowActiveGuard] = useState(false);
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [consumerEmail, setConsumerEmail] =
     useState<string | undefined>(undefined);
 
@@ -103,12 +103,17 @@ export default function ConfirmPage() {
     }
   }, [ctx]);
 
-  /* ===== identity（表示用） ===== */
+  /* ===== identity（表示・分岐用） ===== */
   useEffect(() => {
     async function run() {
       const data = await fetchIdentity();
-      if (data?.is_logged_in && data.email) {
-        setConsumerEmail(data.email);
+      if (data?.is_logged_in) {
+        setIsLoggedIn(true);
+        if (data.email) {
+          setConsumerEmail(data.email);
+        }
+      } else {
+        setIsLoggedIn(false);
       }
     }
     run();
@@ -153,21 +158,18 @@ export default function ConfirmPage() {
 
       setLoading(true);
 
-      /* ===== 既存仕様：まずログイン判定 ===== */
       const identity = await fetchIdentity();
       if (!identity?.is_logged_in) {
         navigate("/login");
         return;
       }
 
-      /* ===== ★ 追加：ログイン後限定の active reservation 判定 ===== */
       const hasActive = await hasActiveReservation();
       if (hasActive) {
         setShowActiveGuard(true);
         return;
       }
 
-      /* ===== 以降は従来どおり Stripe ===== */
       const data = await checkoutFromConfirm({
         agreed: true,
         confirm_context: {
@@ -200,10 +202,15 @@ export default function ConfirmPage() {
 
   return (
     <>
-      <PublicPageHeader
-        title="予約内容の確認"
-        consumerEmail={consumerEmail}
-      />
+      {/* ===== ヘッダー ===== */}
+      {isLoggedIn ? (
+        <PublicPageHeader
+          title="予約内容の確認"
+          consumerEmail={consumerEmail}
+        />
+      ) : (
+        <SimplePageHeader title="予約内容の確認" />
+      )}
 
       <div
         style={{

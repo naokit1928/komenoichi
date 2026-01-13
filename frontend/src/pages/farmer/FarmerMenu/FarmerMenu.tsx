@@ -1,14 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE } from "@/config/api"; // ★ 追加
+import { API_BASE } from "@/config/api";
 
 /**
- * email を n***t@gmail.com 形式にマスク
+ * email を先頭2文字＋末尾2文字表示、それ以外を *** でマスク
+ * 例: ntn4342okit@gmail.com -> nt***it@gmail.com
  */
 function maskEmail(email: string) {
   const [local, domain] = email.split("@");
-  if (!domain || local.length < 2) return email;
-  return `${local[0]}***${local[local.length - 1]}@${domain}`;
+  if (!domain) return email;
+
+  if (local.length <= 4) {
+    // 短すぎる場合はそのまま
+    return email;
+  }
+
+  const head = local.slice(0, 2);
+  const tail = local.slice(-2);
+  return `${head}***${tail}@${domain}`;
 }
 
 type FarmerMeResponse = {
@@ -21,7 +30,6 @@ export default function FarmerMenu() {
   const navigate = useNavigate();
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   /**
@@ -33,7 +41,7 @@ export default function FarmerMenu() {
     (async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/api/farmer/me`, // ★ 修正
+          `${API_BASE}/api/farmer/me`,
           { credentials: "include" }
         );
 
@@ -58,7 +66,7 @@ export default function FarmerMenu() {
     return () => {
       canceled = true;
     };
-  }, []);
+  }, [navigate]);
 
   /**
    * ログアウト
@@ -66,7 +74,7 @@ export default function FarmerMenu() {
   const handleLogout = async () => {
     try {
       await fetch(
-        `${API_BASE}/api/auth/logout`, // ★ 修正
+        `${API_BASE}/api/auth/logout`,
         {
           method: "POST",
           credentials: "include",
@@ -79,9 +87,7 @@ export default function FarmerMenu() {
 
   return (
     <div style={{ padding: "24px 16px", maxWidth: 640, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
-        メニュー
-      </h1>
+      {/* タイトル削除（MENU 不要） */}
 
       <div
         style={{
