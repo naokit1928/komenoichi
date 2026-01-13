@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "@/config/api"; // ★ 追加
 
 /**
  * email を n***t@gmail.com 形式にマスク
@@ -21,34 +22,32 @@ export default function FarmerMenu() {
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ★ モーダル表示制御
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   /**
-   * ページ初期表示時に /api/farmer/me から email を取得
+   * 初期表示：農家情報取得
    */
   useEffect(() => {
     let canceled = false;
 
     (async () => {
       try {
-        const res = await fetch("/api/farmer/me", {
-         credentials: "include",
-        });
+        const res = await fetch(
+          `${API_BASE}/api/farmer/me`, // ★ 修正
+          { credentials: "include" }
+        );
 
-      if (res.status === 401) {
-       // セッションなし = 未ログイン
-       navigate("/auth/login", { replace: true });
-       return;
-      }
+        if (res.status === 401) {
+          navigate("/auth/login", { replace: true });
+          return;
+        }
 
-      if (!res.ok) return;
+        if (!res.ok) return;
 
-      const data: FarmerMeResponse = await res.json();
-      if (!canceled) {
-       setEmail(data.email ?? null);
-      }
-
+        const data: FarmerMeResponse = await res.json();
+        if (!canceled) {
+          setEmail(data.email ?? null);
+        }
       } catch {
         // 失敗時は何もしない
       } finally {
@@ -62,39 +61,28 @@ export default function FarmerMenu() {
   }, []);
 
   /**
-   * ログアウト処理（既存ロジックそのまま）
+   * ログアウト
    */
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      await fetch(
+        `${API_BASE}/api/auth/logout`, // ★ 修正
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
     } finally {
       navigate("/auth/login", { replace: true });
     }
   };
 
   return (
-    <div
-      style={{
-        padding: "24px 16px",
-        maxWidth: 640,
-        margin: "0 auto",
-      }}
-    >
-      {/* ===== タイトル ===== */}
-      <h1
-        style={{
-          fontSize: 20,
-          fontWeight: 600,
-          marginBottom: 24,
-        }}
-      >
+    <div style={{ padding: "24px 16px", maxWidth: 640, margin: "0 auto" }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
         メニュー
       </h1>
 
-      {/* ===== ログイン中情報 ===== */}
       <div
         style={{
           backgroundColor: "#F9FAFB",
@@ -103,23 +91,11 @@ export default function FarmerMenu() {
           marginBottom: 24,
         }}
       >
-        <div
-          style={{
-            fontSize: 13,
-            color: "#6B7280",
-            marginBottom: 4,
-          }}
-        >
+        <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 4 }}>
           ログイン中
         </div>
 
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 500,
-            color: "#111827",
-          }}
-        >
+        <div style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>
           {loading
             ? "読み込み中…"
             : email
@@ -128,26 +104,21 @@ export default function FarmerMenu() {
         </div>
       </div>
 
-      {/* ===== ログアウト ===== */}
-      <div>
-        <button
-          onClick={() => setShowLogoutModal(true)}
-          style={{
-            width: "100%",
-            padding: "14px 0",
-            fontSize: 16,
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #E5E7EB",
-            borderRadius: 12,
-            cursor: "pointer",
-            textAlign: "center",
-          }}
-        >
-          ログアウト
-        </button>
-      </div>
+      <button
+        onClick={() => setShowLogoutModal(true)}
+        style={{
+          width: "100%",
+          padding: "14px 0",
+          fontSize: 16,
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #E5E7EB",
+          borderRadius: 12,
+          cursor: "pointer",
+        }}
+      >
+        ログアウト
+      </button>
 
-      {/* ===== ログアウト確認モーダル ===== */}
       {showLogoutModal && (
         <div
           style={{
@@ -169,23 +140,11 @@ export default function FarmerMenu() {
               maxWidth: 360,
             }}
           >
-            <div
-              style={{
-                fontSize: 16,
-                fontWeight: 600,
-                marginBottom: 12,
-              }}
-            >
+            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
               ログアウトしますか？
             </div>
 
-            <div
-              style={{
-                fontSize: 14,
-                color: "#6B7280",
-                marginBottom: 20,
-              }}
-            >
+            <div style={{ fontSize: 14, color: "#6B7280", marginBottom: 20 }}>
               再度ログインが必要になります。
             </div>
 
@@ -198,7 +157,6 @@ export default function FarmerMenu() {
                   borderRadius: 10,
                   border: "1px solid #E5E7EB",
                   backgroundColor: "#FFFFFF",
-                  cursor: "pointer",
                 }}
               >
                 キャンセル
@@ -213,7 +171,6 @@ export default function FarmerMenu() {
                   border: "none",
                   backgroundColor: "#111827",
                   color: "#FFFFFF",
-                  cursor: "pointer",
                 }}
               >
                 ログアウトする
