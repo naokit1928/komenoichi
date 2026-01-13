@@ -213,13 +213,8 @@ def consume_magic_link(request: Request, token: str):
             detail=f"failed to update reservation.consumer_id: {e}",
         )
 
-
-    # 3) consumer session を確立
+    # 3) consumer session を確立（★唯一の session 情報）
     request.session["consumer_id"] = consumer_id_int
-
-    if os.getenv("ENV", "development") in ("development", "dev", "local"):
-        request.session["consumer_email"] = email
-        request.session["consumer_authenticated_via"] = "magic_link"
 
     # 4) Stripe Checkout へ 302
     frontend_origin = os.getenv("FRONTEND_BASE_URL")
