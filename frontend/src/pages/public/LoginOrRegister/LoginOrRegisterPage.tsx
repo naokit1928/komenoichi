@@ -146,6 +146,9 @@ export default function LoginOrRegisterPage() {
             disabled={loading}
             style={{
               width: "100%",
+              maxWidth: 360,    
+              margin: "14px auto 0",
+              display: "block",
               padding: "12px 16px",
               background: loading ? "#ddd" : "#111",
               color: loading ? "#666" : "#fff",
@@ -165,6 +168,9 @@ export default function LoginOrRegisterPage() {
             onClick={() => navigate(-1)}
             style={{
               width: "100%",
+              maxWidth: 360, 
+              margin: "10px auto 0",
+              display: "block",
               padding: "10px 16px",
               background: "transparent",
               color: "#111",

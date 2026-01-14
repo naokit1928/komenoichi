@@ -136,6 +136,9 @@ const LoginOnlyPage: React.FC = () => {
               disabled={sending}
               style={{
                 width: "100%",
+                maxWidth: 360, 
+                margin: "0 auto", 
+                display: "block",
                 padding: "12px",
                 background: sending ? "#9ca3af" : "#10B981",
                 color: "#ffffff",
