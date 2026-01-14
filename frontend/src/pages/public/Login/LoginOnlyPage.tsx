@@ -71,7 +71,11 @@ const LoginOnlyPage: React.FC = () => {
         style={{
           maxWidth: 420,
           margin: "0 auto",
-          padding: "32px 16px",
+          paddingTop: 32,
+          paddingBottom: 32,
+          paddingLeft: 16,
+          paddingRight: 16,
+          boxSizing: "border-box",
         }}
       >
         <h1
@@ -106,11 +110,12 @@ const LoginOnlyPage: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               style={{
                 width: "100%",
-                padding: "12px 14px",
-                borderRadius: 8,
+                padding: "12px 16px",        // ★ 左右を 16px に統一
+                borderRadius: 10,            // ★ button と合わせる
                 border: "1px solid #d1d5db",
                 fontSize: 14,
                 marginBottom: 12,
+                boxSizing: "border-box",     // ★ 念押し
               }}
             />
 
