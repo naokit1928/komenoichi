@@ -58,91 +58,148 @@ export default function AuthLoginPage() {
   };
 
   return (
-    <div style={{ padding: 16, maxWidth: 360, margin: "0 auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-        農家ログイン
-      </div>
+    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+      <section
+        style={{
+          maxWidth: 420,
+          margin: "0 auto",
+          paddingTop: 32,
+          paddingBottom: 32,
+          paddingLeft: 16,
+          paddingRight: 16,
+          boxSizing: "border-box",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: 20,
+            fontWeight: 700,
+            marginBottom: 16,
+            textAlign: "center",
+          }}
+        >
+          農家ログイン
+        </h1>
 
-      <div style={{ fontSize: 13, color: "#555", marginBottom: 16 }}>
-        登録済みのメールアドレスでログインしてください。
-      </div>
+        <p
+          style={{
+            fontSize: 14,
+            color: "#374151",
+            marginBottom: 20,
+            lineHeight: 1.6,
+            textAlign: "center",
+          }}
+        >
+          登録済みのメールアドレスでログインしてください。
+        </p>
 
-      {step === "email" && (
-        <>
-          <input
-            type="email"
-            placeholder="メールアドレス"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-            }}
-          />
+        {step === "email" && (
+          <>
+            <input
+              type="email"
+              placeholder="メールアドレス"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: 10,
+                border: "1px solid #d1d5db",
+                fontSize: 14,
+                marginBottom: 12,
+                boxSizing: "border-box",
+              }}
+            />
 
-          {error && (
-            <div style={{ color: "#b91c1c", marginTop: 10 }}>{error}</div>
-          )}
+            {error && (
+              <div
+                style={{
+                  color: "#b91c1c",
+                  fontSize: 13,
+                  marginBottom: 12,
+                }}
+              >
+                {error}
+              </div>
+            )}
 
-          <button
-            onClick={requestOtp}
-            disabled={loading || !email}
-            style={{
-              width: "100%",
-              marginTop: 16,
-              padding: "12px",
-              borderRadius: 10,
-              background: loading ? "#ddd" : "#111",
-              color: "#fff",
-              border: "none",
-              fontWeight: 700,
-            }}
-          >
-            {loading ? "送信中…" : "OTPを送信"}
-          </button>
-        </>
-      )}
+            <button
+              onClick={requestOtp}
+              disabled={loading || !email}
+              style={{
+                width: "100%",
+                maxWidth: 260,
+                margin: "0 auto",
+                display: "block",
+                padding: "12px",
+                borderRadius: 10,
+                background: loading ? "#9ca3af" : "#111",
+                color: "#fff",
+                border: "none",
+                fontWeight: 700,
+                fontSize: 15,
+                cursor: loading ? "default" : "pointer",
+              }}
+            >
+              {loading ? "送信中…" : "OTPを送信"}
+            </button>
+          </>
+        )}
 
-      {step === "otp" && (
-        <>
-          <input
-            type="text"
-            placeholder="6桁のコード"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            maxLength={6}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-            }}
-          />
+        {step === "otp" && (
+          <>
+            <input
+              type="text"
+              placeholder="6桁のコード"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              maxLength={6}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: 10,
+                border: "1px solid #d1d5db",
+                fontSize: 14,
+                marginBottom: 12,
+                boxSizing: "border-box",
+              }}
+            />
 
-          {error && (
-            <div style={{ color: "#b91c1c", marginTop: 10 }}>{error}</div>
-          )}
+            {error && (
+              <div
+                style={{
+                  color: "#b91c1c",
+                  fontSize: 13,
+                  marginBottom: 12,
+                }}
+              >
+                {error}
+              </div>
+            )}
 
-          <button
-            onClick={verifyOtp}
-            disabled={loading || code.length !== 6}
-            style={{
-              width: "100%",
-              marginTop: 16,
-              padding: "12px",
-              borderRadius: 10,
-              background: loading ? "#ddd" : "#111",
-              color: "#fff",
-              border: "none",
-              fontWeight: 700,
-            }}
-          >
-            {loading ? "認証中…" : "ログイン"}
-          </button>
-        </>
-      )}
+            <button
+              onClick={verifyOtp}
+              disabled={loading || code.length !== 6}
+              style={{
+                width: "100%",
+                maxWidth: 260,
+                margin: "0 auto",
+                display: "block",
+                padding: "12px",
+                borderRadius: 10,
+                background: loading ? "#9ca3af" : "#111",
+                color: "#fff",
+                border: "none",
+                fontWeight: 700,
+                fontSize: 15,
+                cursor: loading ? "default" : "pointer",
+              }}
+            >
+              {loading ? "認証中…" : "ログイン"}
+            </button>
+          </>
+        )}
+      </section>
     </div>
   );
 }

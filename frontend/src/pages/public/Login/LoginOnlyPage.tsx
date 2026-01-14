@@ -99,8 +99,7 @@ const LoginOnlyPage: React.FC = () => {
                 lineHeight: 1.6,
               }}
             >
-              予約内容を確認するために、<br />
-              ご予約時に使用したメールアドレスを入力してください。
+              予約内容を確認するために、ご予約時に使用したメールアドレスを入力してください。
             </p>
 
             <input
@@ -136,7 +135,7 @@ const LoginOnlyPage: React.FC = () => {
               disabled={sending}
               style={{
                 width: "100%",
-                maxWidth: 300, 
+                maxWidth: 260, 
                 margin: "0 auto", 
                 display: "block",
                 padding: "12px",

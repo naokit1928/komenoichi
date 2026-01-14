@@ -62,91 +62,118 @@ export default function AuthEmailRegisterPage() {
   };
 
   return (
-    <div style={{ padding: 16, maxWidth: 360, margin: "0 auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-        農家アカウント作成
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: "24px 16px",
+        boxSizing: "border-box",
+        display: "flex",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 360,
+        }}
+      >
+        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>
+          農家アカウント作成
+        </h1>
+
+        <p style={{ fontSize: 14, color: "#555", marginBottom: 20 }}>
+          農家登録に使用するメールアドレスを入力してください。
+        </p>
+
+        {step === "email" && (
+          <>
+            <input
+              type="email"
+              placeholder="メールアドレス"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 8,
+                border: "1px solid #ccc",
+                fontSize: 16,
+                boxSizing: "border-box",
+              }}
+            />
+
+            {error && (
+              <div style={{ color: "#b91c1c", marginTop: 10 }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={requestOtp}
+              disabled={loading || !email}
+              style={{
+                width: "92%",
+                margin: "20px auto 0",
+                display: "block",
+                padding: "12px",
+                borderRadius: 10,
+                background: loading ? "#ddd" : "#111",
+                color: "#fff",
+                border: "none",
+                fontWeight: 700,
+                fontSize: 16,
+              }}
+            >
+              {loading ? "送信中…" : "OTPを送信"}
+            </button>
+          </>
+        )}
+
+        {step === "otp" && (
+          <>
+            <input
+              type="text"
+              placeholder="6桁のコード"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              maxLength={6}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 8,
+                border: "1px solid #ccc",
+                fontSize: 16,
+                boxSizing: "border-box",
+              }}
+            />
+
+            {error && (
+              <div style={{ color: "#b91c1c", marginTop: 10 }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={verifyOtp}
+              disabled={loading || code.length !== 6}
+              style={{
+                width: "92%",
+                margin: "20px auto 0",
+                display: "block",
+                padding: "12px",
+                borderRadius: 10,
+                background: loading ? "#ddd" : "#111",
+                color: "#fff",
+                border: "none",
+                fontWeight: 700,
+                fontSize: 16,
+              }}
+            >
+              {loading ? "確認中…" : "登録へ進む"}
+            </button>
+          </>
+        )}
       </div>
-
-      <div style={{ fontSize: 13, color: "#555", marginBottom: 16 }}>
-        農家登録に使用するメールアドレスを入力してください。
-      </div>
-
-      {step === "email" && (
-        <>
-          <input
-            type="email"
-            placeholder="メールアドレス"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-            }}
-          />
-
-          {error && (
-            <div style={{ color: "#b91c1c", marginTop: 10 }}>{error}</div>
-          )}
-
-          <button
-            onClick={requestOtp}
-            disabled={loading || !email}
-            style={{
-              width: "100%",
-              marginTop: 16,
-              padding: "12px",
-              borderRadius: 10,
-              background: loading ? "#ddd" : "#111",
-              color: "#fff",
-              border: "none",
-              fontWeight: 700,
-            }}
-          >
-            {loading ? "送信中…" : "OTPを送信"}
-          </button>
-        </>
-      )}
-
-      {step === "otp" && (
-        <>
-          <input
-            type="text"
-            placeholder="6桁のコード"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            maxLength={6}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-            }}
-          />
-
-          {error && (
-            <div style={{ color: "#b91c1c", marginTop: 10 }}>{error}</div>
-          )}
-
-          <button
-            onClick={verifyOtp}
-            disabled={loading || code.length !== 6}
-            style={{
-              width: "100%",
-              marginTop: 16,
-              padding: "12px",
-              borderRadius: 10,
-              background: loading ? "#ddd" : "#111",
-              color: "#fff",
-              border: "none",
-              fontWeight: 700,
-            }}
-          >
-            {loading ? "確認中…" : "登録へ進む"}
-          </button>
-        </>
-      )}
     </div>
   );
 }
