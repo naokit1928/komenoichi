@@ -33,13 +33,30 @@ class MagicLinkSendRequest(BaseModel):
     )
 
 
+class MagicLinkLoginSendRequest(BaseModel):
+    """
+    LoginOnlyPage から送られてくる Magic Link 発行リクエスト（ログイン専用）。
+
+    方針:
+    - 予約は新規作成しない
+    - confirm_context は一切持たない
+    - email のみで consumer を解決する
+    """
+
+    email: str = Field(
+        ...,
+        description="ログイン用メールアドレス",
+        min_length=1,
+    )
+
+
 # ============================================================
 # Response
 # ============================================================
 
 class MagicLinkSendResponse(BaseModel):
     """
-    Magic Link 送信結果レスポンス。
+    Magic Link 送信結果レスポンス（Confirm 用）。
 
     Phase B（開発モード）方針:
     - 実メール送信は行わない
@@ -50,4 +67,19 @@ class MagicLinkSendResponse(BaseModel):
 
     # 開発用: フロントに表示する magic link
     # 本番では返さない想定（mailer 差し替えで削除可）
+    debug_magic_link_url: Optional[str] = None
+
+
+class MagicLinkLoginSendResponse(BaseModel):
+    """
+    Magic Link 送信結果レスポンス（ログイン専用）。
+
+    方針:
+    - 成否のみを返す
+    - 本番では debug_magic_link_url は削除可能
+    """
+
+    ok: bool = True
+
+    # 開発用（Confirm と同様）
     debug_magic_link_url: Optional[str] = None

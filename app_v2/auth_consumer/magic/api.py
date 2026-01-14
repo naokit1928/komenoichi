@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from app_v2.auth_consumer.magic.schemas import (
     MagicLinkSendRequest,
     MagicLinkSendResponse,
+    MagicLinkLoginSendRequest,   # ★ 追加
 )
 from app_v2.auth_consumer.magic.service import MagicLinkService
 
@@ -38,7 +39,7 @@ router = APIRouter(
 _service = MagicLinkService()
 
 # ============================================================
-# POST /auth/consumer/magic/send
+# POST /auth/consumer/magic/send  (Confirm 用)
 # ============================================================
 
 @router.post(
@@ -50,13 +51,6 @@ def send_magic_link(
 ) -> MagicLinkSendResponse:
     """
     Consumer 用 Magic Link 認証開始 API（ConfirmService 連携版）
-
-    やること（確定）:
-    1. confirm_context から ReservationFormDTO を組み立てる
-    2. ConfirmService で pending reservation を作成（reservation_id 発行）
-    3. reservation_id を Magic Link token に保存して送信
-
-    ※ consumer session はここでは作らない（入口は consume のみ）
     """
 
     if not payload.agreed:
@@ -107,24 +101,57 @@ def send_magic_link(
 
 
 # ============================================================
-# GET /auth/consumer/magic/consume
+# POST /auth/consumer/magic/send-login  (LoginOnly 用)
+# ============================================================
+
+@router.post("/send-login")
+def send_login_magic_link(payload: MagicLinkLoginSendRequest):
+    """
+    LoginOnly 専用 Magic Link 発行。
+
+    - 予約は作らない
+    - 既存 consumer のみ許可
+    """
+
+    email = payload.email.strip()
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="email is required",
+        )
+
+    consumer_repo = ConsumerRepository()
+
+    consumer_id = consumer_repo.get_consumer_id_by_email(
+    email=email
+    )
+
+    # ★ 存在しなくても成功扱い（LoginOnlyの原則）
+    if consumer_id is None:
+       return {"ok": True}
+
+    magic_link_url = _service.send_login_magic_link(
+        email=email,
+        consumer_id=consumer_id,
+    )
+    
+    return {
+        "ok": True,
+        "debug_magic_link_url": magic_link_url,
+    }
+
+
+
+# ============================================================
+# GET /auth/consumer/magic/consume  (Confirm 専用・既存)
 # ============================================================
 
 @router.get("/consume")
 def consume_magic_link(request: Request, token: str):
     """
-    【consumer session の正式入口（唯一）】
-
-    ここでやること（確定）:
-    - token 検証（未使用・期限内）
-    - token から reservation_id / email を取得
-    - email を軸に consumer を取得 or 新規作成（EMAIL = 人格）
-    - reservation.consumer_id を更新
-    - consumer session を確立（cookie 発行）
-    - Stripe Checkout へ 302
+    【consumer session の正式入口（Confirm 用）】
     """
 
-    # 1) token 消費
     try:
         result: Any = _service.consume_magic_link(token)
     except ValueError as e:
@@ -144,58 +171,31 @@ def consume_magic_link(request: Request, token: str):
     if isinstance(result, dict):
         raw_rid = result.get("reservation_id")
         if raw_rid is not None:
-            try:
-                reservation_id = int(raw_rid)
-            except Exception:
-                reservation_id = None
+            reservation_id = int(raw_rid)
 
         raw_email = result.get("email")
         if isinstance(raw_email, str) and raw_email:
             email = raw_email
 
-    if reservation_id is None:
+    if reservation_id is None or not email:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="consume_magic_link did not return reservation_id",
+            detail="invalid magic link token",
         )
 
-    if not email:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="email is missing in magic link token",
-        )
-
-    # 2) email → consumer 解決（EMAIL = 人格）
     consumer_repo = ConsumerRepository()
     consumer_id_int = consumer_repo.get_or_create_consumer_id_by_email(
         email=email
     )
 
-    # ★ 既存 consumer の email が NULL の場合のみ補完セット
-    try:
-        consumer = consumer_repo.get_by_id(consumer_id_int)
-        if consumer and not consumer.email:
-            consumer_repo.update_email_if_empty(
-                consumer_id=consumer_id_int,
-                email=email,
-            )
-    except Exception:
-        # identity 補完に失敗してもログイン自体は止めない
-        pass
-
-    # 2-1) magic_link_tokens に consumer_id を保存
     try:
         _service.attach_consumer_id(
             token=token,
             consumer_id=consumer_id_int,
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"failed to attach consumer_id to magic_link_token: {e}",
-        )
+    except Exception:
+        pass
 
-    # 2-2) reservation.consumer_id を更新
     try:
         reservation_repo = ReservationPaymentRepository()
         conn = reservation_repo.open_connection()
@@ -210,13 +210,11 @@ def consume_magic_link(request: Request, token: str):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"failed to update reservation.consumer_id: {e}",
+            detail=str(e),
         )
 
-    # 3) consumer session を確立（★唯一の session 情報）
     request.session["consumer_id"] = consumer_id_int
 
-    # 4) Stripe Checkout へ 302
     frontend_origin = os.getenv("FRONTEND_BASE_URL")
     if not frontend_origin:
         raise HTTPException(
@@ -230,15 +228,52 @@ def consume_magic_link(request: Request, token: str):
         frontend_origin=frontend_origin,
     )
 
-    checkout_url = session.get("checkout_url")
-    if not isinstance(checkout_url, str) or not checkout_url:
+    return RedirectResponse(
+        url=session["checkout_url"],
+        status_code=status.HTTP_302_FOUND,
+    )
+
+
+# ============================================================
+# GET /auth/consumer/magic/consume-login  (LoginOnly 専用)
+# ============================================================
+
+@router.get("/consume-login")
+def consume_login_only(request: Request, token: str):
+    """
+    LoginOnly 専用 consume。
+
+    - token 検証
+    - session 確立
+    - reservation/booked に戻す
+    """
+
+    try:
+        result = _service.consume_magic_link(token)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    consumer_id = result.get("consumer_id")
+    if not consumer_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="consumer_id missing in token",
+        )
+
+    request.session["consumer_id"] = consumer_id
+
+    frontend_origin = os.getenv("FRONTEND_BASE_URL")
+    if not frontend_origin:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Stripe checkout_url is missing",
+            detail="FRONTEND_BASE_URL is not set",
         )
 
     return RedirectResponse(
-        url=checkout_url,
+        url=f"{frontend_origin}/reservation/booked",
         status_code=status.HTTP_302_FOUND,
     )
 
@@ -262,8 +297,5 @@ def magic_test_entry():
 
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
-        detail=(
-            "stripe-entry is removed. "
-            "Use POST /stripe/checkout/{reservation_id} (or magic consume flow)."
-        ),
+        detail="stripe-entry is removed",
     )

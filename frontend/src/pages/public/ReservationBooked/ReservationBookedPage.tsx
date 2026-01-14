@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   fetchReservationBookedMe,
   type ReservationBookedResponse,
@@ -13,6 +14,8 @@ import NoticeCard from "./NoticeCard";
 import CancelActionCard from "./CancelActionCard";
 
 const ReservationBookedPage: React.FC = () => {
+  const navigate = useNavigate();
+
   const [data, setData] = useState<ReservationBookedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,12 +48,21 @@ const ReservationBookedPage: React.FC = () => {
           }
         }
       } catch (e) {
-        setError("予約情報の取得に失敗しました。");
+        /**
+         * 未ログイン、もしくはセッション切れの可能性が高い。
+         * → エラー表示はせず、LoginOnly 画面へ誘導する。
+         */
+        navigate(
+          "/login-only?redirect=" +
+            encodeURIComponent("/reservation/booked"),
+          { replace: true }
+        );
+        return;
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [navigate]);
 
   /**
    * ページ全体のシェル

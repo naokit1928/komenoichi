@@ -111,6 +111,13 @@ const LoginOrRegisterPage = React.lazy(
     )
 );
 
+// ★ LoginOnly（予約確認専用）
+const LoginOnlyPage = React.lazy(
+  () =>
+    import(
+      "./pages/public/Login/LoginOnlyPage"
+    )
+);
 
 
 /* =========================
@@ -188,6 +195,9 @@ export default function AppRoutes() {
           {/* Amazon型 Consumer Login */}
           <Route path="/login" element={<LoginOrRegisterPage />} />
 
+          {/* LoginOnly（予約確認専用） */}
+          <Route path="/login-only" element={<LoginOnlyPage />} />
+
           {/* Public */}
           <Route
             path="/account/settings"
@@ -209,7 +219,7 @@ export default function AppRoutes() {
             path="/reservation/booked"
             element={<ReservationBookedPage />}
           />
-          // routes.tsx（一部抜粋）
+          
           
           <Route
             path="/cancel/confirm"

@@ -10,7 +10,7 @@ class MagicLinkRepository:
     magic_link_tokens テーブル専用 Repository。
 
     責務:
-    - token と reservation_id の保存・取得
+    - token / email / reservation_id / consumer_id の保存・取得
     - SQL のみ（ロジックなし）
     """
 
@@ -39,17 +39,19 @@ class MagicLinkRepository:
         *,
         token: str,
         email: str,
-        reservation_id: int,
+        reservation_id: Optional[int],
         agreed: bool,
         expires_at: datetime,
         created_at: datetime,
+        consumer_id: Optional[int] = None,
     ) -> None:
         """
         magic_link_tokens に 1 レコード INSERT
 
-        NOTE:
+        方針:
+        - Confirm 用: reservation_id を入れる / consumer_id は NULL
+        - LoginOnly 用: consumer_id を入れる / reservation_id は NULL
         - confirm_context_json は旧仕様互換のため "{}" を入れる
-        - NOT NULL 制約回避が目的
         """
 
         conn = self._get_conn()
@@ -62,17 +64,19 @@ class MagicLinkRepository:
                     email,
                     confirm_context_json,
                     reservation_id,
+                    consumer_id,
                     agreed,
                     used,
                     expires_at,
                     created_at
-                ) VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
                 """,
                 (
                     token,
                     email,
                     "{}",  # ← 旧仕様互換用ダミー
                     reservation_id,
+                    consumer_id,
                     1 if agreed else 0,
                     expires_at.isoformat(),
                     created_at.isoformat(),
@@ -102,6 +106,7 @@ class MagicLinkRepository:
                     token,
                     email,
                     reservation_id,
+                    consumer_id,
                     agreed,
                     used,
                     expires_at,
@@ -122,6 +127,7 @@ class MagicLinkRepository:
                 "token": row["token"],
                 "email": row["email"],
                 "reservation_id": row["reservation_id"],
+                "consumer_id": row["consumer_id"],
                 "agreed": bool(row["agreed"]),
                 "used": bool(row["used"]),
                 "expires_at": row["expires_at"],
@@ -159,7 +165,7 @@ class MagicLinkRepository:
                 conn.close()
 
     # =========================================================
-    # attach consumer  ★今回追加
+    # attach consumer
     # =========================================================
 
     def attach_consumer_id(
@@ -170,6 +176,7 @@ class MagicLinkRepository:
     ) -> None:
         """
         magic_link_tokens に consumer_id を紐づける
+        （Confirm フローで後付けする場合用）
         """
 
         conn = self._get_conn()

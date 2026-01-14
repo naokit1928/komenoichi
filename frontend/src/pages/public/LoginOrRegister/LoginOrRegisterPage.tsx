@@ -107,10 +107,10 @@ export default function LoginOrRegisterPage() {
   return (
     <div
       style={{
-        padding: 16,
-        paddingBottom: 32,
         maxWidth: 520,
         margin: "0 auto",
+        padding: "16px 20px 32px", // ← 左右を明示的に確保
+        boxSizing: "border-box",
       }}
     >
       <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>
@@ -133,6 +133,7 @@ export default function LoginOrRegisterPage() {
               padding: "10px 12px",
               borderRadius: 8,
               border: "1px solid #ccc",
+              boxSizing: "border-box", // ← 重要
             }}
           />
 
@@ -154,6 +155,7 @@ export default function LoginOrRegisterPage() {
               fontSize: 15,
               cursor: loading ? "default" : "pointer",
               marginTop: 14,
+              boxSizing: "border-box",
             }}
           >
             {loading ? "処理中…" : "続行"}
@@ -172,6 +174,7 @@ export default function LoginOrRegisterPage() {
               fontSize: 14,
               cursor: "pointer",
               marginTop: 10,
+              boxSizing: "border-box",
             }}
           >
             戻る
@@ -186,6 +189,7 @@ export default function LoginOrRegisterPage() {
             borderRadius: 10,
             background: "#fafafa",
             wordBreak: "break-all",
+            boxSizing: "border-box",
           }}
         >
           <div style={{ fontWeight: 800, marginBottom: 8 }}>
