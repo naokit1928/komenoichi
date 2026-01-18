@@ -15,11 +15,7 @@ type Props = {
 
 type EventMeta = {
   pickup_slot_code: string;
-  event_start: string;
-  event_end: string;
-  deadline: string;
-  grace_until: string;
-  display_label?: string | null;
+  pickup_display: string;
 };
 
 type ReservationItem = {
@@ -85,14 +81,9 @@ function formatYen(value: number | string | null | undefined): string {
 }
 
 function formatEventLabel(meta: EventMeta | null): string {
-  if (!meta) return "";
-  if (meta.display_label) return meta.display_label;
-  const d = new Date(meta.event_start);
-  if (Number.isNaN(d.getTime())) return "";
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  return `${month}月${day}日の受け渡し分`;
+  return meta?.pickup_display ?? "";
 }
+
 
 function quantityForSize(
   items: { size_kg: number; quantity: number }[],

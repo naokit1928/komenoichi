@@ -1,0 +1,167 @@
+komenoichi 運用・保守ドキュメント
+― komet（リハーサル）／komenoichi（本番）二系統運用 ―
+1. この文書の目的
+
+本ドキュメントは、
+komenoichi プロジェクトを長期的・安全に運用するための基準文書である。
+
+特に以下を目的とする：
+
+本番事故を防ぐ
+
+修正・新機能追加を安全に行う
+
+将来の自分・第三者が迷わない
+
+「どこを触っていいか／触ってはいけないか」を明確にする
+
+2. 全体構成（確定）
+
+本プロジェクトは 2系統構成 を採用する。
+
+2.1 環境一覧
+役割	名称	用途
+リハーサル / 検証	komet	新機能検証・破壊的変更・実験
+本番	komenoichi	実ユーザー向け正式運用
+3. Git / プロジェクト構成（厳守）
+3.1 Git リポジトリ
+環境	GitHub Repo	ローカル
+komet	naokit1928/komet-api	Desktop/komet
+komenoichi	naokit1928/komenoichi	Desktop/komenoichi
+運用原則（最重要）
+
+1ローカルフォルダ = 1 Git Repo
+
+remote を切り替えて push しない
+
+komet → komenoichi へは 直接 push しない
+
+4. インフラ構成（確定）
+4.1 Frontend（Vercel）
+環境	Project	公開URL
+komet	komet	*.vercel.app
+komenoichi	komenoichi	komenoichi.vercel.app → 最終的に komenoichi.jp
+
+※ vercel.app は 基準点・診断用・退避用として必ず残す。
+
+4.2 Backend（Render）
+環境	Service	API
+komet	komet-api	komet-api.onrender.com
+komenoichi	komenoichi-api	komenoichi-api.onrender.com → api.komenoichi.jp
+5. ドメイン運用ポリシー（重要）
+5.1 最終的にユーザーに見せるURL
+
+本番正式URL： https://komenoichi.jp
+
+ブランド・信頼・覚えやすさのため
+
+5.2 vercel.app を残す理由
+
+DNS / SSL / レジストラを完全に排除した 絶対基準点
+
+障害切り分け用
+
+判断ルール
+vercel.app → 動く
+komenoichi.jp → 動かない
+＝ 原因は 100% DNS / ドメイン側
+
+
+これは 運用上の武器。
+
+6. 環境変数運用ルール
+6.1 Render（Backend）
+
+komet / komenoichi は 同じ項目構成
+
+値が違うのは URL / DB / 本番キーのみ
+
+代表例
+FRONTEND_BASE_URL
+FRONTEND_URL
+DB_PATH
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+
+原則
+
+項目を減らさない
+
+「まだ使わないから消す」は禁止
+
+起動時チェックで落ちる設計を尊重する
+
+6.2 Vercel（Frontend）
+
+必須は以下のみ：
+
+VITE_API_BASE_URL
+VITE_OPENAPI_URL
+VITE_GOOGLE_MAPS_API_KEY
+
+
+Stripe / DB / Cloudinary は 入れない
+
+7. 運用フロー（最重要）
+7.1 新機能・修正の正規ルート
+Step 1：komet で作業
+
+実装
+
+実験
+
+破壊的変更 OK
+
+DB 破壊 OK
+
+Step 2：komet で検証
+
+API / フロント / Stripe / UX
+
+想定ユーザー動線
+
+Step 3：昇格
+
+同じ修正を komenoichi 側に反映
+
+手動実装 or cherry-pick
+
+komenoichi に push
+
+Render / Vercel デプロイ
+
+7.2 絶対にやってはいけないこと
+
+❌ komet のコードを remote 切替で komenoichi に push
+
+❌ 本番でいきなり実験
+
+❌ DB 未確定のまま独自ドメインを指す
+
+❌ 環境を「後で直す」前提で進める
+
+8. DB 運用方針（次フェーズ予告）
+
+DB は ドメイン切替前に確定
+
+DB は 不可逆要素
+
+本番 URL を指す前に：
+
+schema
+
+migration
+
+初期データ
+を確定させる
+
+9. 障害時の基本思想
+
+まず vercel.app を確認
+
+次に API（onrender.com）を確認
+
+最後に独自ドメインを疑う
+
+→ この順番で必ず原因は切り分けられる。
+

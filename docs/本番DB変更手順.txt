@@ -1,4 +1,4 @@
-DB Migration 運用手順（KOMET / Render + SQLite）
+DB Migration 運用手順（KOMETまたはkomenoichi / Render + SQLite）
 目的
 
 Render 本番の 永続ディスク（SQLite） を安全に変更する

@@ -2,11 +2,9 @@ import sqlite3
 from dataclasses import dataclass
 from typing import List, Optional
 
-
 from app_v2.db.core import resolve_db_path
 
 DB_PATH = str(resolve_db_path())
-
 
 
 @dataclass
@@ -18,11 +16,12 @@ class FarmRecord:
 
 @dataclass
 class ReservationRecord:
-    # 旧 id → 新 reservation_id をそのまま id として保持（意味は同一）
+    # 旧 id → 新 reservation_id をそのまま id として保持
     id: int
     consumer_id: int
     farm_id: int
     pickup_slot_code: Optional[str]
+    pickup_display: Optional[str]          # ★ 追加
     created_at: Optional[str]
     items_json: Optional[str]
     rice_subtotal: Optional[int]
@@ -31,15 +30,8 @@ class ReservationRecord:
 
 class ReservationExpandedRepository:
     """
-    ExportBluePrint.md に沿って、Export 用に必要な生データだけを DB から取得する層。
-
-    - farms.pickup_time （例: "SAT_10_11"）
-    - farms.active_flag （BAN 判定用）
-    - reservations.*   （items_json / rice_subtotal / created_at / status など）
-
-    Phase2:
-    - 新 reservations テーブル（reservation_id / consumer_id 前提）に対応
-    - ロジック・返却構造は一切変更しない
+    Export 用に必要な生データだけを取得する Repo。
+    表示文字列は DB.reservations.pickup_display を唯一の正として返す。
     """
 
     def __init__(self, db_path: str = DB_PATH) -> None:
@@ -51,18 +43,14 @@ class ReservationExpandedRepository:
         return conn
 
     def get_farm(self, farm_id: int) -> Optional[FarmRecord]:
-        """
-        対象農家の pickup_time / active_flag を取得。
-        見つからなければ None。
-        """
         with self._get_connection() as conn:
             cur = conn.cursor()
             cur.execute(
                 """
                 SELECT
-                    farm_id     AS farm_id,
-                    pickup_time AS pickup_time,
-                    active_flag AS active_flag
+                    farm_id,
+                    pickup_time,
+                    active_flag
                 FROM farms
                 WHERE farm_id = ?
                 """,
@@ -85,12 +73,6 @@ class ReservationExpandedRepository:
         farm_id: int,
         pickup_slot_code: Optional[str],
     ) -> List[ReservationRecord]:
-        """
-        指定された farm_id / pickup_slot_code に紐づく confirmed 予約をすべて取得する。
-
-        週の判定（今週か来週か）は Service 層で created_at から算出するため、
-        ここでは日付フィルタは一切行わない。
-        """
         if pickup_slot_code is None:
             return []
 
@@ -103,6 +85,7 @@ class ReservationExpandedRepository:
                     consumer_id,
                     farm_id,
                     pickup_slot_code,
+                    pickup_display,        -- ★ 追加
                     created_at,
                     items_json,
                     rice_subtotal,
@@ -125,6 +108,7 @@ class ReservationExpandedRepository:
                     consumer_id=int(row["consumer_id"]),
                     farm_id=int(row["farm_id"]),
                     pickup_slot_code=row["pickup_slot_code"],
+                    pickup_display=row["pickup_display"],   # ★
                     created_at=row["created_at"],
                     items_json=row["items_json"],
                     rice_subtotal=row["rice_subtotal"],
