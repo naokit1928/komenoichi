@@ -1,167 +1,182 @@
 komenoichi 運用・保守ドキュメント
-― komet（リハーサル）／komenoichi（本番）二系統運用 ―
-1. この文書の目的
+― komet（本番リハーサル）／komenoichi（本番）二系統デプロイ手順・確定版 ―
+
+---
+
+## 1. この文書の目的（更新）
 
 本ドキュメントは、
-komenoichi プロジェクトを長期的・安全に運用するための基準文書である。
+**「komet で合格した状態を、そのまま一切改変せず komenoichi にデプロイする」**
+ための **実証済み・再現可能な手順** をまとめた基準文書である。
 
-特に以下を目的とする：
+特に以下を保証する：
 
-本番事故を防ぐ
+* 本番（komenoichi）を汚さない
+* 中途半端な状態が本番に出ない
+* 複数回 push したリハーサル履歴（A/B/C…）をすべて内包した
+  **最終合格状態のみ** を本番に反映する
+* 将来、手順を忘れてもこの文書だけで復元できる
 
-修正・新機能追加を安全に行う
+---
 
-将来の自分・第三者が迷わない
+## 2. 前提条件（確定）
 
-「どこを触っていいか／触ってはいけないか」を明確にする
+* ローカル開発フォルダは **常に1つだけ**
 
-2. 全体構成（確定）
+  * 通常： `Desktop/komet`
+* 本番用フォルダは **デプロイ時にのみ一時的に作る**
 
-本プロジェクトは 2系統構成 を採用する。
+  * `Desktop/komenoichi`
+* 本番デプロイ完了後、`komenoichi` フォルダは **必ず削除** する
 
-2.1 環境一覧
-役割	名称	用途
-リハーサル / 検証	komet	新機能検証・破壊的変更・実験
-本番	komenoichi	実ユーザー向け正式運用
-3. Git / プロジェクト構成（厳守）
-3.1 Git リポジトリ
-環境	GitHub Repo	ローカル
-komet	naokit1928/komet-api	Desktop/komet
-komenoichi	naokit1928/komenoichi	Desktop/komenoichi
-運用原則（最重要）
+  * 誤 push 防止のため
 
-1ローカルフォルダ = 1 Git Repo
+---
 
-remote を切り替えて push しない
+## 3. 基本思想（重要）
 
-komet → komenoichi へは 直接 push しない
+### 3.1 Git は「フォルダ」ではなく「commit」を配る
 
-4. インフラ構成（確定）
-4.1 Frontend（Vercel）
-環境	Project	公開URL
-komet	komet	*.vercel.app
-komenoichi	komenoichi	komenoichi.vercel.app → 最終的に komenoichi.jp
+* push されるのは **最後の commit**
+* その commit には、それ以前の変更がすべて含まれる
 
-※ vercel.app は 基準点・診断用・退避用として必ず残す。
+例：
 
-4.2 Backend（Render）
-環境	Service	API
-komet	komet-api	komet-api.onrender.com
-komenoichi	komenoichi-api	komenoichi-api.onrender.com → api.komenoichi.jp
-5. ドメイン運用ポリシー（重要）
-5.1 最終的にユーザーに見せるURL
+* commit A：ファイル1を変更
+* commit B：ファイル2を変更
+* commit C：ファイル3を変更（最終合格）
 
-本番正式URL： https://komenoichi.jp
+→ commit C には **ファイル1・2・3すべての最終状態** が含まれる
 
-ブランド・信頼・覚えやすさのため
+---
 
-5.2 vercel.app を残す理由
+## 4. 実際のデプロイ手順（確定・実証済み）
 
-DNS / SSL / レジストラを完全に排除した 絶対基準点
+### Step 1：komet で開発・リハーサル
 
-障害切り分け用
+```powershell
+cd C:\Users\ntnao\Desktop\komet
 
-判断ルール
-vercel.app → 動く
-komenoichi.jp → 動かない
-＝ 原因は 100% DNS / ドメイン側
+# 修正を何度でも行う
+git add -A
+git commit -m "fix: xxxx"
+git push
+```
 
+* push は何回でも行ってよい（pushA / pushB / pushC …）
+* **最終的に動作が合格した commit が正**
 
-これは 運用上の武器。
+---
 
-6. 環境変数運用ルール
-6.1 Render（Backend）
+### Step 2：リハーサル合格を確認
 
-komet / komenoichi は 同じ項目構成
+* komet の Render / Vercel で動作確認
+* UX / Stripe / API / 時刻 / 表示がすべて OK
 
-値が違うのは URL / DB / 本番キーのみ
+👉 この時点で「合格 commit」が確定
 
-代表例
-FRONTEND_BASE_URL
-FRONTEND_URL
-DB_PATH
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
+---
 
-原則
+### Step 3：フォルダをコピーして本番用を作成
 
-項目を減らさない
+エクスプローラ操作：
 
-「まだ使わないから消す」は禁止
+```
+Desktop/
+ ├─ komet        ← 合格状態
+ └─ komenoichi   ← コピーして作成
+```
 
-起動時チェックで落ちる設計を尊重する
+---
 
-6.2 Vercel（Frontend）
+### Step 4：本番フォルダで送り先（remote）だけを書き換える
 
-必須は以下のみ：
+```powershell
+cd C:\Users\ntnao\Desktop\komenoichi
 
-VITE_API_BASE_URL
-VITE_OPENAPI_URL
-VITE_GOOGLE_MAPS_API_KEY
+# 送り先を本番 GitHub に変更
+git remote set-url origin https://github.com/naokit1928/komenoichi.git
 
+# 確認
+git remote -v
+```
 
-Stripe / DB / Cloudinary は 入れない
+確認結果がこれなら OK：
 
-7. 運用フロー（最重要）
-7.1 新機能・修正の正規ルート
-Step 1：komet で作業
+```
+origin  https://github.com/naokit1928/komenoichi.git (fetch)
+origin  https://github.com/naokit1928/komenoichi.git (push)
+```
 
-実装
+---
 
-実験
+### Step 5：状態チェック（必須）
 
-破壊的変更 OK
+```powershell
+git status
+```
 
-DB 破壊 OK
+必ず以下であること：
 
-Step 2：komet で検証
+```
+nothing to commit, working tree clean
+```
 
-API / フロント / Stripe / UX
+※ ここで modified が出たら **デプロイ中止**
 
-想定ユーザー動線
+---
 
-Step 3：昇格
+### Step 6：本番に push（add / commit 不要）
 
-同じ修正を komenoichi 側に反映
+```powershell
+git push
+```
 
-手動実装 or cherry-pick
+* push されるのは **合格した最後の commit**
+* 過去の pushA / pushB の変更も **すべて内包される**
 
-komenoichi に push
+---
 
-Render / Vercel デプロイ
+### Step 7：Render / Vercel の自動デプロイを確認
 
-7.2 絶対にやってはいけないこと
+* GitHub 更新をトリガーに自動デプロイ
+* 本番 URL で動作確認
 
-❌ komet のコードを remote 切替で komenoichi に push
+---
 
-❌ 本番でいきなり実験
+### Step 8：本番フォルダを削除（重要）
 
-❌ DB 未確定のまま独自ドメインを指す
+```powershell
+# エクスプローラで
+Desktop/komenoichi を削除
+```
 
-❌ 環境を「後で直す」前提で進める
+目的：
 
-8. DB 運用方針（次フェーズ予告）
+* 誤って本番に commit / push する事故を物理的に防ぐ
 
-DB は ドメイン切替前に確定
+---
 
-DB は 不可逆要素
+## 5. 絶対ルール（更新）
 
-本番 URL を指す前に：
+* ❌ komenoichi フォルダで add / commit しない
+* ❌ remote を切り替えたまま komet を使い続けない
+* ✅ commit は **常に komet のみ**
+* ✅ 本番は「合格 commit を配るだけ」
 
-schema
+---
 
-migration
+## 6. この手順の保証
 
-初期データ
-を確定させる
+この手順に従えば：
 
-9. 障害時の基本思想
+* 複数回の試行錯誤 push があっても問題ない
+* 本番には **最終合格状態のみ** が反映される
+* ファイル単位の抜け・不整合は起きない
 
-まず vercel.app を確認
+---
 
-次に API（onrender.com）を確認
+## 7. 最終結論
 
-最後に独自ドメインを疑う
-
-→ この順番で必ず原因は切り分けられる。
-
+**この手順はすでに実運用で成功しており、
+komenoichi の本番デプロイ方法として正式採用する。**

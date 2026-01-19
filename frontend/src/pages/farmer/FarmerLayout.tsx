@@ -25,7 +25,7 @@ const TABS: Tab[] = [
   },
   {
     key: "menu",
-    label: "メニュー",
+    label: "アカウント",
     path: "/farmer/menu",
   },
 ];
@@ -75,7 +75,7 @@ export default function FarmerLayout() {
                 flex: 1,
                 border: "none",
                 background: "none",
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: active ? 600 : 500,
                 color: active ? "#000000" : "#6B7280",
                 cursor: "pointer",

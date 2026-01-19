@@ -7,7 +7,7 @@
 .page {
   min-height: 100vh;
   background: #f3f4f6;
-  padding: 16px;
+  padding: 0px;
 }
 
 .card {
@@ -25,25 +25,27 @@
   justify-content: space-between;
   padding: 12px 16px 8px;
   border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap; /* ★ 数量などを縦に割らせない */
 }
 
 .titleBlock {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  text-align: center;
+  text-align: left;
   flex: 1;
 }
 
 .title {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 550;
   color: #111827;
 }
 
 .subtitle {
-  font-size: 13px;
-  color: #6b7280;
+  font-size: 14px;
+  font-weight: 550;
+  color: #111827;
 }
 
 .iconButton {
@@ -136,6 +138,7 @@
 }
 
 .table thead th {
+  font-size: 13px;
   font-weight: 600;
   color: #4b5563;
   background: #f9fafb;
@@ -189,7 +192,9 @@
 
 .cellRight {
   text-align: right;
+  font-variant-numeric: tabular-nums; /* ★ 数字を縦に揃える */
 }
+
 
 /* ===== モーダル共通 ===== */
 
@@ -200,9 +205,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
+  padding: 24px 4px; /* ← 左右を極小に */
   z-index: 40;
 }
+
 
 .modalCard {
   width: min(640px, 100%);
@@ -219,7 +225,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px 20px 0;
+  padding: 12px 12px 0;
 }
 
 .modalTitleBlock {
@@ -240,8 +246,8 @@
 }
 
 .modalTitle {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .modalId {
@@ -264,14 +270,14 @@
 }
 
 .modalBody {
-  padding: 6px 20px 14px;
+  padding: 6px 12px 12px;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 .modalNote {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
   margin-bottom: 8px;
 }
@@ -279,19 +285,33 @@
 .modalTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .modalTable th,
 .modalTable td {
-  padding: 8px 10px;
+  padding: 8px 6px; /* ← 横だけ詰める */
   border-bottom: 1px solid #e5e7eb;
 }
 
-.modalTable thead th {
-  font-weight: 600;
-  color: #4b5563;
-  background: #f9fafb;
+
+/* === モーダル内テーブル：単価は右寄せで統一 === */
+.modalTable thead th:nth-child(3),
+.modalTable tbody td:nth-child(3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* === モーダル内テーブル：数量を1行固定 === */
+.modalTable thead th:nth-child(2) {
+  white-space: nowrap;
+}
+
+/* === モーダル内テーブル：品名は左寄せ === */
+.modalTable thead th:nth-child(1),
+.modalTable tbody td:nth-child(1) {
+  text-align: left;
 }
 
 .modalTotalRow {
@@ -338,19 +358,33 @@
 }
 
 .noticeCloseButton {
-  padding: 6px 16px;
+  padding: 6px 0;
+  width: 72px;
   border-radius: 9999px;
   border: none;
   background-color: #111827;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+
 
 .noticeCloseButton:hover {
   opacity: 0.9;
 }
 
+/* ===== 追加：予約 / コード を2行表示するためだけの最小変更 ===== */
+
+.thTop {
+  display: block;
+}
+
+.thBottom {
+  display: block;
+  white-space: nowrap; /* ← これだけ */
+}
 
 /* ===========================
    印刷用スタイル (@media print)
@@ -358,12 +392,12 @@
 
 @media print {
   body {
-    margin: 0 !important; /* デフォルト余白を削る */
+    margin: 0 !important;
     background: #ffffff !important;
   }
 
   .page {
-    min-height: auto !important; /* 100vh を解除 */
+    min-height: auto !important;
     padding: 8px !important;
     background: #ffffff !important;
   }
@@ -382,6 +416,6 @@
   .iconButton,
   .noticeCloseButton,
   .modalOverlay {
-    display: none !important; /* 不要なものを非表示 */
+    display: none !important;
   }
 }
