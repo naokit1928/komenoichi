@@ -80,35 +80,35 @@ const FarmerReservationNoticeModal: React.FC<
 
           {/* 本文エリア（スクロール可能） */}
           <div className={styles.noticeScrollArea}>
-            <h3 style={{ fontWeight: 600, marginBottom: 2 }}>
-              ① 予約の締め切りは受け渡し開始時刻の3時間前です。
-            </h3>
             <p style={{ marginTop: 0, marginBottom: 8 }}>
+              <span style={{ fontWeight: 600 }}>
+                ① 予約の締め切りは受け渡し開始時刻の3時間前です。
+              </span>
               その時点でその週の予約表が確定し、それ以降の新規予約はすべて翌週扱いに
               なります。
             </p>
 
-            <h3 style={{ fontWeight: 600, marginBottom: 2 }}>
-              ② 無断キャンセルへの補償はありません
-            </h3>
             <p style={{ marginTop: 0, marginBottom: 8 }}>
-              ただし、農家さんの負担を減らすため、無断キャンセルを繰り返す利用者には予約制限をかける
-              仕組みを運営側で設けています。
+              <span style={{ fontWeight: 600 }}>
+                ② 無断キャンセルへの補償はありません。
+              </span>
+              ただし、農家さんの負担を減らすため、無断キャンセルを繰り返す利用者には
+              予約制限をかける仕組みを運営側で設けています。
             </p>
 
-            <h3 style={{ fontWeight: 600, marginBottom: 2 }}>
-              ③ 一部だけ事前に精米・袋詰めしておくことを推奨します。
-            </h3>
             <p style={{ marginTop: 0, marginBottom: 8 }}>
-              予約者には、LINE で「最大10分ほどの待ち時間があり得ます」と事前に
-              案内しています。待ち時間がそれ以上長くならないように、一部のお米だけ
-              事前に精米・袋詰めしておくことをおすすめします。
+              <span style={{ fontWeight: 600 }}>
+                ③ 一部だけ事前に精米・袋詰めしておくことを推奨します。
+              </span>
+              予約者には、LINE で「最大10分ほどの待ち時間があり得ます」と事前に案内
+              しています。待ち時間がそれ以上長くならないように、一部のお米だけ事前に
+              精米・袋詰めしておくことをおすすめします。
             </p>
 
-            <h3 style={{ fontWeight: 600, marginBottom: 2 }}>
-              ④ 全ての量を事前に精米・袋詰めしておくことは推奨しません。
-            </h3>
             <p style={{ marginTop: 0, marginBottom: 0 }}>
+              <span style={{ fontWeight: 600 }}>
+                ④ 全ての量を事前に精米・袋詰めしておくことは推奨しません。
+              </span>
               無断キャンセルの可能性もあるため、すべてのお米を事前に精米・袋詰め
               しておくことは推奨しません。一部は事前に準備し、残りはお客さんの前で
               精米するなど、どこまで事前準備するかは各農家さんの判断にお任せします。

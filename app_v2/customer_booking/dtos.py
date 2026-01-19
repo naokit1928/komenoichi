@@ -123,11 +123,10 @@ class ReservationResultDTO(BaseModel):
 
 class ExportEventMetaDTO(BaseModel):
     pickup_slot_code: str
-    event_start: str
-    event_end: str
-    deadline: str
-    grace_until: str
-    display_label: str
+
+    # ★ 表示の正：Confirmでユーザーが同意した文字列のみ
+    pickup_display: str
+
 
 
 class ExportReservationItemDTO(BaseModel):

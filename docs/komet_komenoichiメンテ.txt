@@ -1,0 +1,182 @@
+komenoichi 運用・保守ドキュメント
+― komet（本番リハーサル）／komenoichi（本番）二系統デプロイ手順・確定版 ―
+
+---
+
+## 1. この文書の目的（更新）
+
+本ドキュメントは、
+**「komet で合格した状態を、そのまま一切改変せず komenoichi にデプロイする」**
+ための **実証済み・再現可能な手順** をまとめた基準文書である。
+
+特に以下を保証する：
+
+* 本番（komenoichi）を汚さない
+* 中途半端な状態が本番に出ない
+* 複数回 push したリハーサル履歴（A/B/C…）をすべて内包した
+  **最終合格状態のみ** を本番に反映する
+* 将来、手順を忘れてもこの文書だけで復元できる
+
+---
+
+## 2. 前提条件（確定）
+
+* ローカル開発フォルダは **常に1つだけ**
+
+  * 通常： `Desktop/komet`
+* 本番用フォルダは **デプロイ時にのみ一時的に作る**
+
+  * `Desktop/komenoichi`
+* 本番デプロイ完了後、`komenoichi` フォルダは **必ず削除** する
+
+  * 誤 push 防止のため
+
+---
+
+## 3. 基本思想（重要）
+
+### 3.1 Git は「フォルダ」ではなく「commit」を配る
+
+* push されるのは **最後の commit**
+* その commit には、それ以前の変更がすべて含まれる
+
+例：
+
+* commit A：ファイル1を変更
+* commit B：ファイル2を変更
+* commit C：ファイル3を変更（最終合格）
+
+→ commit C には **ファイル1・2・3すべての最終状態** が含まれる
+
+---
+
+## 4. 実際のデプロイ手順（確定・実証済み）
+
+### Step 1：komet で開発・リハーサル
+
+```powershell
+cd C:\Users\ntnao\Desktop\komet
+
+# 修正を何度でも行う
+git add -A
+git commit -m "fix: xxxx"
+git push
+```
+
+* push は何回でも行ってよい（pushA / pushB / pushC …）
+* **最終的に動作が合格した commit が正**
+
+---
+
+### Step 2：リハーサル合格を確認
+
+* komet の Render / Vercel で動作確認
+* UX / Stripe / API / 時刻 / 表示がすべて OK
+
+👉 この時点で「合格 commit」が確定
+
+---
+
+### Step 3：フォルダをコピーして本番用を作成
+
+エクスプローラ操作：
+
+```
+Desktop/
+ ├─ komet        ← 合格状態
+ └─ komenoichi   ← コピーして作成
+```
+
+---
+
+### Step 4：本番フォルダで送り先（remote）だけを書き換える
+
+```powershell
+cd C:\Users\ntnao\Desktop\komenoichi
+
+# 送り先を本番 GitHub に変更
+git remote set-url origin https://github.com/naokit1928/komenoichi.git
+
+# 確認
+git remote -v
+```
+
+確認結果がこれなら OK：
+
+```
+origin  https://github.com/naokit1928/komenoichi.git (fetch)
+origin  https://github.com/naokit1928/komenoichi.git (push)
+```
+
+---
+
+### Step 5：状態チェック（必須）
+
+```powershell
+git status
+```
+
+必ず以下であること：
+
+```
+nothing to commit, working tree clean
+```
+
+※ ここで modified が出たら **デプロイ中止**
+
+---
+
+### Step 6：本番に push（add / commit 不要）
+
+```powershell
+git push
+```
+
+* push されるのは **合格した最後の commit**
+* 過去の pushA / pushB の変更も **すべて内包される**
+
+---
+
+### Step 7：Render / Vercel の自動デプロイを確認
+
+* GitHub 更新をトリガーに自動デプロイ
+* 本番 URL で動作確認
+
+---
+
+### Step 8：本番フォルダを削除（重要）
+
+```powershell
+# エクスプローラで
+Desktop/komenoichi を削除
+```
+
+目的：
+
+* 誤って本番に commit / push する事故を物理的に防ぐ
+
+---
+
+## 5. 絶対ルール（更新）
+
+* ❌ komenoichi フォルダで add / commit しない
+* ❌ remote を切り替えたまま komet を使い続けない
+* ✅ commit は **常に komet のみ**
+* ✅ 本番は「合格 commit を配るだけ」
+
+---
+
+## 6. この手順の保証
+
+この手順に従えば：
+
+* 複数回の試行錯誤 push があっても問題ない
+* 本番には **最終合格状態のみ** が反映される
+* ファイル単位の抜け・不整合は起きない
+
+---
+
+## 7. 最終結論
+
+**この手順はすでに実運用で成功しており、
+komenoichi の本番デプロイ方法として正式採用する。**

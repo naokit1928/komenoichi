@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import json
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, time, timezone
 from typing import Dict, List, Optional, Tuple
-
-from zoneinfo import ZoneInfo
 
 from app_v2.customer_booking.dtos import (
     ExportBundleItemSummaryDTO,
@@ -21,11 +21,9 @@ from app_v2.customer_booking.repository.reservation_expanded_repo import (
 )
 
 # ============================================================
-# 表示専用（JST）
+# pickup_slot_code utilities（ロジック専用・表示禁止）
 # ============================================================
-JST = ZoneInfo("Asia/Tokyo")
 
-# "SAT_10_11" を weekday / hour に変換するためのマップ
 _WEEKDAY_CODE_TO_INDEX: Dict[str, int] = {
     "MON": 0,
     "TUE": 1,
@@ -36,38 +34,24 @@ _WEEKDAY_CODE_TO_INDEX: Dict[str, int] = {
     "SUN": 6,
 }
 
-_WEEKDAY_JP = ["月", "火", "水", "木", "金", "土", "日"]
-
-# 予約PIN生成用のソルト（既存実装と揃える）
 _PICKUP_SALT = 7919
 
 
 # ============================================================
-# datetime ユーティリティ（UTC統一）
+# datetime utilities（UTC only / 表示禁止）
 # ============================================================
+
 def _parse_db_datetime(value: str) -> datetime:
     """
     SQLite に保存されている DATETIME 文字列を
     UTC aware datetime に正規化する。
     """
     dt = datetime.fromisoformat(value.replace(" ", "T"))
-
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
-
     return dt.astimezone(timezone.utc)
 
 
-def _to_iso_jst(dt: datetime) -> str:
-    """
-    表示用：UTC datetime → JST ISO 文字列
-    """
-    return dt.astimezone(JST).isoformat()
-
-
-# ============================================================
-# pickup_slot_code utilities
-# ============================================================
 def _decode_pickup_slot_code(code: str) -> Tuple[int, int, int]:
     """
     "SAT_10_11" → (weekday_index, start_hour, end_hour)
@@ -84,9 +68,6 @@ def _decode_pickup_slot_code(code: str) -> Tuple[int, int, int]:
     return weekday_index, int(start_str), int(end_str)
 
 
-# ============================================================
-# イベント計算（UTCのみ）
-# ============================================================
 def _calc_base_week_event(
     base: datetime,
     pickup_slot_code: str,
@@ -94,6 +75,7 @@ def _calc_base_week_event(
     """
     base(UTC) が属する週における
     pickup_slot_code の event_start / event_end を UTC で計算する。
+    ※ ロジック専用（表示には使わない）
     """
     base = base.astimezone(timezone.utc)
     weekday_index, start_hour, end_hour = _decode_pickup_slot_code(pickup_slot_code)
@@ -119,7 +101,8 @@ def _calc_event_for_export(
     pickup_slot_code: str,
 ) -> Tuple[datetime, datetime]:
     """
-    Export ページで「今週のイベント」を決めるロジック（UTC）。
+    Export ページで「今週 or 来週」を判定するためのロジック（UTC）。
+    ※ filtering 用。表示には使わない。
     """
     base_event_start, base_event_end = _calc_base_week_event(now, pickup_slot_code)
     grace_until = base_event_end + timedelta(hours=3)
@@ -138,7 +121,8 @@ def _calc_event_for_booking(
     pickup_slot_code: str,
 ) -> Tuple[datetime, datetime]:
     """
-    予約時にどの週のイベントに属するかを決める（UTC）。
+    予約がどの週のイベントに属するかを決める（UTC）。
+    ※ filtering 用。表示には使わない。
     """
     base_event_start, base_event_end = _calc_base_week_event(
         created_at,
@@ -156,40 +140,17 @@ def _calc_event_for_booking(
 
 
 # ============================================================
-# 表示ラベル生成（JSTのみ）
+# pickup code（既存仕様踏襲）
 # ============================================================
-def _weekday_label(index: int) -> str:
-    try:
-        return _WEEKDAY_JP[index]
-    except IndexError:
-        return "?"
 
-
-def _format_event_display_label(
-    event_start: datetime,
-    event_end: datetime,
-) -> str:
-    """
-    "11月29日（土）10:00〜11:00"
-    """
-    event_start_jst = event_start.astimezone(JST)
-    event_end_jst = event_end.astimezone(JST)
-
-    month = event_start_jst.month
-    day = event_start_jst.day
-    weekday_jp = _weekday_label(event_start_jst.weekday())
-    start_str = event_start_jst.strftime("%H:%M")
-    end_str = event_end_jst.strftime("%H:%M")
-    return f"{month}月{day}日（{weekday_jp}）{start_str}〜{end_str}"
-
-
-# ============================================================
-# その他
-# ============================================================
 def _generate_pickup_code(reservation_id: int, consumer_id: int) -> str:
     code = ((reservation_id * 104729) ^ (consumer_id * 179) ^ _PICKUP_SALT) % 10000
     return f"{code:04d}"
 
+
+# ============================================================
+# Bundle accumulator
+# ============================================================
 
 @dataclass
 class _BundleAccumulator:
@@ -201,9 +162,15 @@ class _BundleAccumulator:
 # ============================================================
 # Service
 # ============================================================
+
 class ReservationExpandedService:
     """
-    ExportBluePrint に定義された ViewModel を構築する Service 層。
+    Export（農家用）ページの ViewModel を構築する Service。
+
+    【重要な不変条件】
+    - 表示日時は DB.reservations.pickup_display のみ
+    - Service / Frontend での再計算・再解釈は禁止
+    - datetime は filtering / grouping の内部ロジック専用
     """
 
     def __init__(
@@ -233,24 +200,9 @@ class ReservationExpandedService:
         )
 
         now = datetime.now(timezone.utc)
-        export_event_start, export_event_end = _calc_event_for_export(
+        export_event_start, _ = _calc_event_for_export(
             now,
             pickup_slot_code,
-        )
-
-        deadline = export_event_start - timedelta(hours=3)
-        grace_until = export_event_end + timedelta(hours=12)
-
-        event_meta = ExportEventMetaDTO(
-            pickup_slot_code=pickup_slot_code,
-            event_start=_to_iso_jst(export_event_start),
-            event_end=_to_iso_jst(export_event_end),
-            deadline=_to_iso_jst(deadline),
-            grace_until=_to_iso_jst(grace_until),
-            display_label=_format_event_display_label(
-                export_event_start,
-                export_event_end,
-            ),
         )
 
         rows: List[ExportReservationRowDTO] = []
@@ -269,6 +221,8 @@ class ReservationExpandedService:
                 created_at_dt,
                 pickup_slot_code,
             )
+
+            # 今回の export 対象イベント以外は除外
             if booking_event_start.date() != export_event_start.date():
                 continue
 
@@ -316,6 +270,7 @@ class ReservationExpandedService:
                             line_total=line_total,
                         )
                     )
+
                     rice_subtotal_from_items += line_total
 
                     acc = bundle_acc[size_kg]
@@ -335,7 +290,7 @@ class ReservationExpandedService:
                 ExportReservationRowDTO(
                     reservation_id=rec.id,
                     pickup_code=pickup_code,
-                    created_at=_to_iso_jst(created_at_dt),
+                    created_at=rec.created_at,  # 表示目的では使わない
                     items=items,
                     rice_subtotal=rice_subtotal,
                 )
@@ -368,6 +323,22 @@ class ReservationExpandedService:
             items=bundle_items,
             total_rice_subtotal=total_rice_subtotal,
         )
+
+        
+        pickup_display: Optional[str] = None
+        for rec in reservation_records:
+            if rec.pickup_display:
+                pickup_display = rec.pickup_display
+                break
+
+        if pickup_display is None:
+           event_meta = None
+        else:
+           event_meta = ExportEventMetaDTO(
+             pickup_slot_code=pickup_slot_code,
+             pickup_display=pickup_display,
+           )
+
 
         return ExportReservationsResponseDTO(
             ok=True,
