@@ -5,6 +5,9 @@ import RequireFarmerSession from "./pages/farmer/RequireFarmerSession";
 
 import HomeRedirectPage from "./pages/public/HomeRedirectPage";
 
+import ConfirmGuard from "./pages/public/Confirm/ConfirmGuard";
+
+
 /* =========================
    Auth
    ========================= */
@@ -207,8 +210,13 @@ export default function AppRoutes() {
           <Route path="/farms/:farmId" element={<FarmDetailPage />} />
           <Route
             path="/farms/:farmId/confirm"
-            element={<ConfirmPage />}
+            element={
+              <ConfirmGuard>
+                <ConfirmPage />
+              </ConfirmGuard>
+            }
           />
+
 
           
           <Route

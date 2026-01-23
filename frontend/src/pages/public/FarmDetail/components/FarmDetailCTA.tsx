@@ -57,7 +57,7 @@ export default function FarmDetailCTA({
     >
       <div
         style={{
-          maxWidth: 720,
+          maxWidth: 520,
           margin: "0 auto",
           display: "flex",
           alignItems: "center",

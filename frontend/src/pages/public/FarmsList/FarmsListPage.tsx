@@ -116,9 +116,9 @@ export default function FarmsListPage() {
 
   const pageStyle = {
     padding: 16,
-    maxWidth: 960,
+    maxWidth: 520,
     margin: "0 auto",
-    background: "#fafafa",
+    background: "#ffffff",
   } as const;
 
   return (

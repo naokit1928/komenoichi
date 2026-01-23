@@ -12,11 +12,8 @@ import FarmDetailCTA from "./components/FarmDetailCTA";
 /* ★ 共通ヘッダー */
 import { FarmsListHeader as PublicPageHeader } from "@/components/PublicPageHeader";
 
-// ★ 追加：注文ルール
-import {
-  calcTotalKg,
-  isOverMaxKg,
-} from "./rules/orderRules";
+// ★ 注文ルール
+import { calcTotalKg, isOverMaxKg } from "./rules/orderRules";
 
 // ---- LocalStorage: お気に入り ----
 const FAVORITES_KEY = "favoriteFarms";
@@ -43,7 +40,7 @@ const saveFavoriteIds = (ids: string[]) => {
 
 type Kg = 5 | 10 | 25;
 
-/* ===== ConfirmPage と同一 ===== */
+/* ===== identity ===== */
 async function fetchIdentity(): Promise<{
   is_logged_in: boolean;
   email: string | null;
@@ -60,21 +57,25 @@ export default function FarmDetailPage() {
   const farmIdStr = String(farmId ?? "");
   const navigate = useNavigate();
 
-  // ===== consumer identity（ConfirmPage と同一） =====
+  // ===== identity =====
   const [consumerEmail, setConsumerEmail] =
     useState<string | undefined>(undefined);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     async function run() {
       const data = await fetchIdentity();
-      if (data?.is_logged_in && data.email) {
-        setConsumerEmail(data.email);
+      if (data?.is_logged_in) {
+        setIsLoggedIn(true);
+        if (data.email) setConsumerEmail(data.email);
+      } else {
+        setIsLoggedIn(false);
       }
     }
     run();
   }, []);
 
-  // ===== data (hook) =====
+  // ===== data =====
   const {
     farm,
     loading,
@@ -177,47 +178,46 @@ export default function FarmDetailPage() {
     : "受け渡し日時は未設定です";
 
   const handleNext = () => {
-    if (!farm) return;
-    if (isNextDisabled) return;
+    if (!farm || isNextDisabled) return;
 
     const total = riceSubtotal + serviceFee;
 
-    navigate(`/farms/${farmIdStr}/confirm`, {
-      state: {
-        farmId: farmIdStr,
-        riceSubtotal,
-        serviceFee,
-        total,
-        items: sizes.map((s) => ({
-          kg: s.kg,
-          unitPrice: s.price,
-          qty: qtyByKg[s.kg],
-        })),
-        pickupSlotCode: farm.pickup_slot_code ?? null,
-        nextPickupDisplay: farm.next_pickup_display ?? null,
-        clientNextPickupDeadlineIso: farm.next_pickup_deadline ?? null,
-      },
-    });
+    const confirmState = {
+      farmId: farmIdStr,
+      riceSubtotal,
+      serviceFee,
+      total,
+      items: sizes.map((s) => ({
+        kg: s.kg,
+        unitPrice: s.price,
+        qty: qtyByKg[s.kg],
+      })),
+      pickupSlotCode: farm.pickup_slot_code ?? null,
+      nextPickupDisplay: farm.next_pickup_display ?? null,
+      clientNextPickupDeadlineIso: farm.next_pickup_deadline ?? null,
+    };
+
+    if (!isLoggedIn) {
+      sessionStorage.setItem("CONFIRM_CTX", JSON.stringify(confirmState));
+      navigate("/login");
+      return;
+    }
+
+    navigate(`/farms/${farmIdStr}/confirm`, { state: confirmState });
   };
 
+  // ===== 通常 FarmDetail =====
   const centerLat = farm?.pickup_lat ?? undefined;
   const centerLng = farm?.pickup_lng ?? undefined;
 
-  // ===== render =====
   return (
     <>
-      {/* ★ Public Header（ConfirmPage と同一挙動） */}
       {consumerEmail && (
-        <PublicPageHeader
-          title=""
-          consumerEmail={consumerEmail}
-        />
+        <PublicPageHeader title="" consumerEmail={consumerEmail} />
       )}
 
-      {/* ヘッダー高さ分 */}
       <div style={{ height: 0 }} />
 
-      {/* ===== Hero ===== */}
       <FarmDetailHero
         farmId={farmIdStr}
         photoUrls={photoUrls}
@@ -227,7 +227,6 @@ export default function FarmDetailPage() {
         onShare={doShare}
       />
 
-      {/* ===== Body ===== */}
       <section
         style={{
           width: "100vw",
@@ -238,7 +237,7 @@ export default function FarmDetailPage() {
       >
         <div
           style={{
-            maxWidth: 720,
+            maxWidth: 520,
             margin: "0 auto",
             padding: "0 16px",
           }}
@@ -266,7 +265,6 @@ export default function FarmDetailPage() {
         </div>
       </section>
 
-      {/* ===== CTA ===== */}
       <FarmDetailCTA
         riceSubtotal={riceSubtotal}
         pickupTextCTA={pickupTextCTA}

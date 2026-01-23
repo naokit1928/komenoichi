@@ -152,3 +152,150 @@ Aルート（email + session 前提）で統一
 長期運用しても 意味がぶれない設計になった
 
 「なぜこうなっているか」を説明できる状態
+
+11. FarmDetail 起点の予約フローと Active ガード（2026-01 改訂）
+11.1 なぜこの変更をしたか
+
+従来は Confirm ページ側に
+
+未ログイン時の Login 分岐
+
+MagicLink 復帰
+
+Active 予約チェック
+
+が混在しており、
+
+「予約フローの入口」がどこなのかが不明確になっていた。
+
+これにより：
+
+Active ガードが一部の経路で効かない
+
+MagicLink 復帰後の状態が不安定
+
+Confirm が「入口」になってしまう
+
+という構造的リスクがあった。
+
+そこで 予約フローの入口を FarmDetail に一本化 した。
+
+11.2 現在の正式フロー（Single Entry）
+Farm Detail
+   |
+   | (A) isLoggedIn ?
+   | (B) hasActiveReservation ?
+   |
+   ├─ 未ログイン
+   |      → Login
+   |           → MagicLink
+   |                 → ログイン完了
+   |                       → PENDING予約生成
+   |                               → Confirm
+   |                                     → Payment
+   |                                            → Booked
+   |
+   ├─ ログイン済 & Activeなし
+   |      → Confirm
+   |             → Payment
+   |                    → Booked
+   |
+   └─ ログイン済 & Activeあり
+          → ActiveReservationGuardCard
+                  → Booked
+
+
+この分岐は FarmDetail でのみ行われる。
+
+Confirm ページは
+「支払い直前の最終確認」という 純粋な中間状態 に固定されている。
+
+11.3 Confirm ページの責務（重要）
+
+Confirm は：
+
+ログイン判定をしない
+
+Active 予約判定をしない
+
+入口にならない
+
+役割はただ一つ：
+
+「この予約を Stripe に送っていいか？」の確認
+
+11.4 ActiveReservationGuard の位置
+
+Active 予約ガードは Confirm ページのラッパーとしてのみ存在する
+
+/farms/:farmId/confirm
+   → ConfirmGuard
+         → ConfirmPage
+
+
+ConfirmGuard は
+/api/public/reservations/latest を 1 回だけ呼び、
+
+200 OK → ActiveReservationGuardCard を表示
+
+404 or 非OK → Confirm に通す
+
+という 純粋な Gate として機能する。
+
+11.5 なぜ「受け渡し日時を過ぎたら自動解除」されるか
+
+Active 判定は：
+
+/api/public/reservations/latest
+= pickup_end_at > now()
+の予約だけを返す
+
+
+という Stripe 二重予約防止用の日時ベース判定である。
+
+よって：
+
+状態	API の応答	フロント
+受け取り前	200 OK	ガードされる
+受け取り後	404	ガード解除
+
+過去の予約が 永遠に active として残ることは構造的に不可能。
+
+11.6 consumer_history（前回予約ハイライト）との関係
+
+重要：
+
+概念	何を見るか
+Active ガード	pickup_end_at（日時）
+前回予約ハイライト	status = confirmed
+
+この 2 つは 意図的に完全分離されている。
+
+「受け渡しが終わったら予約できる」
+「でも前回予約した農家はずっと表示される」
+
+という UX を同時に成立させるため。
+
+11.7 この構造の意味
+
+この構成により：
+
+FarmDetail = 唯一の予約入口
+
+Confirm = 再開可能な中間状態
+
+Active ガード = 時間で自然に解除される Gate
+
+履歴ハイライト = 永続的な「前回予約」
+
+という Amazon 型の長期運用構造が完成した。
+
+どこにも
+
+フロントで時刻を見て判断
+
+フロントで status を再解釈
+
+複数入口
+
+は存在しない。

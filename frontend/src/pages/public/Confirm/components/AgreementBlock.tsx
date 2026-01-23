@@ -59,7 +59,7 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             ・農家へのお支払い分にはキャンセル料はかかりません。
           </p>
           <p style={{ margin: 0 }}>
-            ※ システム利用料（300円）は返金されません。
+            ※ 運営サポート費（300円）は返金されません。
           </p>
         </div>
       </section>

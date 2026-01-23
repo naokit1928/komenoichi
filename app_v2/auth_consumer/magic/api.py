@@ -9,22 +9,23 @@ from fastapi.responses import RedirectResponse
 from app_v2.auth_consumer.magic.schemas import (
     MagicLinkSendRequest,
     MagicLinkSendResponse,
-    MagicLinkLoginSendRequest,   # ★ 追加
+    MagicLinkLoginSendRequest,
 )
 from app_v2.auth_consumer.magic.service import MagicLinkService
 
 from app_v2.customer_booking.services.confirm_service import ConfirmService
 from app_v2.customer_booking.dtos import ReservationFormDTO
 
-from app_v2.integrations.payments.stripe.stripe_checkout_service import (
-    StripeCheckoutService,
-)
 from app_v2.integrations.payments.stripe.reservation_payment_repo import (
     ReservationPaymentRepository,
 )
 
 from app_v2.customer_booking.repository.consumer_repo import (
     ConsumerRepository,
+)
+
+from app_v2.customer_booking.repository.reservation_repo import (
+    get_reservation_by_id,
 )
 
 # ============================================================
@@ -121,81 +122,68 @@ def send_login_magic_link(payload: MagicLinkLoginSendRequest):
         )
 
     consumer_repo = ConsumerRepository()
+    consumer_id = consumer_repo.get_consumer_id_by_email(email=email)
 
-    consumer_id = consumer_repo.get_consumer_id_by_email(
-    email=email
-    )
-
-    # ★ 存在しなくても成功扱い（LoginOnlyの原則）
+    # 存在しなくても成功扱い
     if consumer_id is None:
-       return {"ok": True}
+        return {"ok": True}
 
     magic_link_url = _service.send_login_magic_link(
         email=email,
         consumer_id=consumer_id,
     )
-    
+
     return {
         "ok": True,
         "debug_magic_link_url": magic_link_url,
     }
 
 
-
 # ============================================================
-# GET /auth/consumer/magic/consume  (Confirm 専用・既存)
+# GET /auth/consumer/magic/consume  (Confirm 専用)
 # ============================================================
 
 @router.get("/consume")
 def consume_magic_link(request: Request, token: str):
     """
     【consumer session の正式入口（Confirm 用）】
+
+    役割:
+    - token 検証
+    - consumer session 確立
+    - reservation に consumer を attach
+    - 元の Farm の Confirm に戻す
     """
 
     try:
         result: Any = _service.consume_magic_link(token)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
     reservation_id: Optional[int] = None
     email: Optional[str] = None
 
     if isinstance(result, dict):
-        raw_rid = result.get("reservation_id")
-        if raw_rid is not None:
-            reservation_id = int(raw_rid)
+        if result.get("reservation_id") is not None:
+            reservation_id = int(result["reservation_id"])
+        if isinstance(result.get("email"), str):
+            email = result["email"]
 
-        raw_email = result.get("email")
-        if isinstance(raw_email, str) and raw_email:
-            email = raw_email
+    if not reservation_id or not email:
+        raise HTTPException(status_code=500, detail="invalid magic link token")
 
-    if reservation_id is None or not email:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="invalid magic link token",
-        )
-
+    # --- consumer 確定 ---
     consumer_repo = ConsumerRepository()
-    consumer_id_int = consumer_repo.get_or_create_consumer_id_by_email(
-        email=email
-    )
+    consumer_id = consumer_repo.get_or_create_consumer_id_by_email(email=email)
 
     try:
-        _service.attach_consumer_id(
-            token=token,
-            consumer_id=consumer_id_int,
-        )
+        _service.attach_consumer_id(token=token, consumer_id=consumer_id)
     except Exception:
         pass
 
+    # --- reservation に consumer を attach ---
     try:
         reservation_repo = ReservationPaymentRepository()
         conn = reservation_repo.open_connection()
@@ -203,33 +191,31 @@ def consume_magic_link(request: Request, token: str):
             reservation_repo.attach_consumer(
                 conn,
                 reservation_id=reservation_id,
-                consumer_id=consumer_id_int,
+                consumer_id=consumer_id,
             )
         finally:
             conn.close()
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
-    request.session["consumer_id"] = consumer_id_int
+    # --- session 確立 ---
+    request.session["consumer_id"] = consumer_id
+
+    # --- reservation から farm_id を解決 ---
+    reservation = get_reservation_by_id(reservation_id)
+    if not reservation:
+        raise HTTPException(status_code=404, detail="reservation not found")
+
+    farm_id = reservation["farm_id"]
 
     frontend_origin = os.getenv("FRONTEND_BASE_URL")
     if not frontend_origin:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="FRONTEND_BASE_URL is not set",
-        )
+        raise HTTPException(status_code=500, detail="FRONTEND_BASE_URL is not set")
 
-    stripe_service = StripeCheckoutService()
-    session = stripe_service.create_checkout_session(
-        reservation_id=reservation_id,
-        frontend_origin=frontend_origin,
-    )
-
+    # ★ Stripe は起動しない
+    # ★ 元の Farm の Confirm に戻す
     return RedirectResponse(
-        url=session["checkout_url"],
+        url=f"{frontend_origin}/farms/{farm_id}/confirm",
         status_code=status.HTTP_302_FOUND,
     )
 
@@ -251,26 +237,17 @@ def consume_login_only(request: Request, token: str):
     try:
         result = _service.consume_magic_link(token)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=400, detail=str(e))
 
     consumer_id = result.get("consumer_id")
     if not consumer_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="consumer_id missing in token",
-        )
+        raise HTTPException(status_code=400, detail="consumer_id missing in token")
 
     request.session["consumer_id"] = consumer_id
 
     frontend_origin = os.getenv("FRONTEND_BASE_URL")
     if not frontend_origin:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="FRONTEND_BASE_URL is not set",
-        )
+        raise HTTPException(status_code=500, detail="FRONTEND_BASE_URL is not set")
 
     return RedirectResponse(
         url=f"{frontend_origin}/reservation/booked",
@@ -290,12 +267,6 @@ def magic_test_entry():
 
     env = os.getenv("ENV", "development")
     if env not in ("development", "dev", "local"):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Not Found",
-        )
+        raise HTTPException(status_code=404, detail="Not Found")
 
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="stripe-entry is removed",
-    )
+    raise HTTPException(status_code=400, detail="stripe-entry is removed")

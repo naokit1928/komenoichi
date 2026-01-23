@@ -11,7 +11,7 @@ from app_v2.integrations.payments.stripe.stripe_checkout_repository import (
 )
 from app_v2.auth_consumer.magic.repository import MagicLinkRepository
 
-TERM_SERVICE_NAME = "運営サポート費（予約確定・当日運営の固定費）"
+TERM_SERVICE_NAME = "プラットフォーム利用料"
 
 
 class StripeCheckoutService:

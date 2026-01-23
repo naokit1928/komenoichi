@@ -43,7 +43,7 @@ export default function ActiveReservationGuardCard({
       >
         すでに確定しているご予約があります。
         <br />
-        次のご予約は、現在のご予約を受け取ったあと、
+        次のご予約は、現在のご予約分の受け取りを完了後、
         もしくはキャンセル後に行うことができます。
       </div>
 

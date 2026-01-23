@@ -10,7 +10,6 @@ import SimplePageHeader from "@/components/SimplePageHeader";
 import { RiceBreakdown } from "./components/RiceBreakdown";
 import { ServiceFeeCard } from "./components/ServiceFeeCard";
 import { AgreementBlock } from "./components/AgreementBlock";
-import ActiveReservationGuardCard from "./components/ActiveReservationGuardCard";
 
 import { calcTotalKg, isOverMaxKg } from "../FarmDetail/rules/orderRules";
 
@@ -39,13 +38,28 @@ async function fetchIdentity(): Promise<{
   return res.json();
 }
 
-/* ===== active reservation（UX用・ログイン後のみ） ===== */
-async function hasActiveReservation(): Promise<boolean> {
-  const res = await fetch(
-    `${API_BASE}/api/public/reservations/latest`,
-    { credentials: "include" }
-  );
-  return res.ok;
+/* ===== PENDING 取得（MagicLink 復帰用） ===== */
+async function fetchPendingReservation(): Promise<ConfirmCtx | null> {
+  const res = await fetch(`${API_BASE}/api/reservations/pending/me`, {
+    credentials: "include",
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+
+  return {
+    farmId: String(data.farm_id),
+    riceSubtotal: data.rice_subtotal,
+    serviceFee: data.service_fee,
+    total: data.total,
+    items: data.items.map((it: any) => ({
+      kg: it.size_kg,
+      qty: it.quantity,
+      unitPrice: it.unit_price,
+    })),
+    pickupSlotCode: data.pickup_slot_code,
+    nextPickupDisplay: data.pickup_display,
+    clientNextPickupDeadlineIso: null,
+  };
 }
 
 /* ===== stripe ===== */
@@ -79,45 +93,51 @@ export default function ConfirmPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [showActiveGuard, setShowActiveGuard] = useState(false);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [consumerEmail, setConsumerEmail] =
     useState<string | undefined>(undefined);
 
-  /* ===== confirm context 復元 ===== */
-  useEffect(() => {
-    if (!ctx) {
-      const saved = sessionStorage.getItem(CONFIRM_CTX_KEY);
-      if (saved) {
-        try {
-          setCtx(JSON.parse(saved));
-        } catch {}
-      }
-    }
-  }, [ctx]);
-
-  useEffect(() => {
-    if (ctx) {
-      sessionStorage.setItem(CONFIRM_CTX_KEY, JSON.stringify(ctx));
-    }
-  }, [ctx]);
-
-  /* ===== identity（表示・分岐用） ===== */
+  /* ===== identity ===== */
   useEffect(() => {
     async function run() {
       const data = await fetchIdentity();
       if (data?.is_logged_in) {
         setIsLoggedIn(true);
-        if (data.email) {
-          setConsumerEmail(data.email);
-        }
+        if (data.email) setConsumerEmail(data.email);
       } else {
         setIsLoggedIn(false);
       }
     }
     run();
   }, []);
+
+  /* ===== ctx 復元 ===== */
+  useEffect(() => {
+    if (ctx) return;
+
+    const saved = sessionStorage.getItem(CONFIRM_CTX_KEY);
+    if (saved) {
+      try {
+        setCtx(JSON.parse(saved));
+        return;
+      } catch {}
+    }
+
+    async function loadPending() {
+      const pending = await fetchPendingReservation();
+      if (pending && pending.farmId === farmId) {
+        setCtx(pending);
+      }
+    }
+    loadPending();
+  }, [ctx, farmId]);
+
+  useEffect(() => {
+    if (ctx) {
+      sessionStorage.setItem(CONFIRM_CTX_KEY, JSON.stringify(ctx));
+    }
+  }, [ctx]);
 
   const riceLines = useMemo(() => {
     if (!ctx) return [];
@@ -134,10 +154,6 @@ export default function ConfirmPage() {
       if (!ctx) return;
       setErr("");
 
-      if (!ctx.pickupSlotCode || !ctx.nextPickupDisplay) {
-        throw new Error("受け取り日時が確定していません。");
-      }
-
       if (!agreed) {
         setErr("同意事項にチェックしてください。");
         return;
@@ -149,26 +165,11 @@ export default function ConfirmPage() {
         25: ctx.items.find((i) => i.kg === 25)?.qty ?? 0,
       };
 
-      if (calcTotalKg(qtyByKg) === 0) {
-        throw new Error("数量が 0 です。");
-      }
-      if (isOverMaxKg(qtyByKg)) {
-        throw new Error("50kg を超えています。");
-      }
+      if (calcTotalKg(qtyByKg) === 0) throw new Error("数量が 0 です。");
+      if (isOverMaxKg(qtyByKg)) throw new Error("50kg を超えています。");
 
       setLoading(true);
 
-      const identity = await fetchIdentity();
-      if (!identity?.is_logged_in) {
-        navigate("/login");
-        return;
-      }
-
-      const hasActive = await hasActiveReservation();
-      if (hasActive) {
-        setShowActiveGuard(true);
-        return;
-      }
 
       const data = await checkoutFromConfirm({
         agreed: true,
@@ -202,11 +203,11 @@ export default function ConfirmPage() {
 
   return (
     <>
-      {/* ===== ヘッダー ===== */}
       {isLoggedIn ? (
         <PublicPageHeader
           title="予約内容の確認"
           consumerEmail={consumerEmail}
+          hideMenu
         />
       ) : (
         <SimplePageHeader title="予約内容の確認" />
@@ -216,59 +217,46 @@ export default function ConfirmPage() {
         style={{
           padding: 16,
           paddingBottom: 32,
-          maxWidth: 720,
+          maxWidth: 520,
           margin: "0 auto",
         }}
       >
-        {showActiveGuard && (
-          <ActiveReservationGuardCard
-            onGoBooked={() => navigate("/reservation/booked")}
-          />
+        <RiceBreakdown
+          riceSubtotal={ctx.riceSubtotal}
+          lines={riceLines}
+          pickupDisplay={ctx.nextPickupDisplay}
+        />
+
+        <ServiceFeeCard
+          serviceFee={ctx.serviceFee}
+          termLabel="運営サポート費"
+        />
+
+        <AgreementBlock agreed={agreed} onChange={setAgreed} />
+
+        {err && (
+          <div style={{ color: "#b91c1c", marginTop: 12 }}>
+            {err}
+          </div>
         )}
 
-        {!showActiveGuard && (
-          <>
-            <RiceBreakdown
-              riceSubtotal={ctx.riceSubtotal}
-              lines={riceLines}
-              pickupDisplay={ctx.nextPickupDisplay}
-            />
-
-            <ServiceFeeCard
-              serviceFee={ctx.serviceFee}
-              termLabel="運営サポート費"
-            />
-
-            <AgreementBlock
-              agreed={agreed}
-              onChange={setAgreed}
-            />
-
-            {err && (
-              <div style={{ color: "#b91c1c", marginTop: 12 }}>
-                {err}
-              </div>
-            )}
-
-            <button
-              onClick={handleMainAction}
-              disabled={loading}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                background: loading ? "#ddd" : "#1f7a36",
-                color: loading ? "#666" : "#fff",
-                borderRadius: 9999,
-                border: "none",
-                fontWeight: 600,
-                fontSize: 15,
-                marginTop: 24,
-              }}
-            >
-              {loading ? "処理中…" : "予約確定に進む"}
-            </button>
-          </>
-        )}
+        <button
+          onClick={handleMainAction}
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: "12px 16px",
+            background: loading ? "#ddd" : "#1f7a36",
+            color: loading ? "#666" : "#fff",
+            borderRadius: 9999,
+            border: "none",
+            fontWeight: 600,
+            fontSize: 15,
+            marginTop: 24,
+          }}
+        >
+          {loading ? "処理中…" : "予約確定に進む"}
+        </button>
       </div>
     </>
   );

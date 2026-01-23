@@ -8,7 +8,11 @@ from app_v2.db.core import resolve_db_path
 
 class LatestReservationRepository:
     """
-    最新の confirmed reservation を取得する READ 専用 Repo
+    最新の ACTIVE reservation（Stripe 二重予約ガード用）を取得する READ 専用 Repo
+
+    定義:
+    - status = 'confirmed'
+    - かつ event_end_at が現在時刻より未来のものだけを active とみなす
     """
 
     def __init__(self) -> None:
@@ -28,7 +32,8 @@ class LatestReservationRepository:
                 FROM reservations
                 WHERE consumer_id = ?
                   AND status = 'confirmed'
-                ORDER BY created_at DESC
+                  AND event_end_at > CURRENT_TIMESTAMP
+                ORDER BY event_end_at ASC
                 LIMIT 1
                 """,
                 (consumer_id,),

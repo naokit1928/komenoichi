@@ -32,7 +32,20 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
         <span>{termLabel}</span>
         <span>{money(serviceFee)}円</span>
       </div>
-
+      
+      {/* 補足 */}
+      <div
+       style={{
+         marginTop: 4,
+         marginBottom: 8,
+         fontSize: 12,
+         color: "#6b7280",
+         lineHeight: 1.4,
+       }}
+      >
+       （システム・決済・運営維持のため）
+      </div>
+      
       {/* ===== 2行目：状態バッジ（情報集約） ===== */}
       <div>
         <span

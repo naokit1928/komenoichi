@@ -70,20 +70,27 @@ export default function FarmDetailHero({
     setSlideIndex(0);
   }, [photoUrls.length]);
 
-  return (
+return (
+  <div
+    onTouchStart={onTouchStart}
+    onTouchEnd={onTouchEnd}
+    onMouseDown={onMouseDown}
+    onMouseUp={onMouseUp}
+    onMouseLeave={onMouseLeave}
+    style={{
+      width: "100%",
+      background: "#000",
+      userSelect: "none",
+    }}
+  >
+    {/* 中央カラム */}
     <div
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseLeave}
       style={{
+        maxWidth: 520,
+        margin: "0 auto",
         position: "relative",
-        width: "100vw",
-        margin: "0 calc(50% - 50vw)",
-        background: "#000",
         overflow: "hidden",
-        userSelect: "none",
+        background: "#000",
       }}
     >
       {/* === image area (3:2) === */}
@@ -95,6 +102,7 @@ export default function FarmDetailHero({
           background: photoUrls.length ? "#000" : "#e5e7eb",
         }}
       >
+
         {photoUrls.length > 0 ? (
           <img
             src={photoUrls[slideIndex]}
@@ -260,5 +268,6 @@ export default function FarmDetailHero({
         </>
       )}
     </div>
+   </div>
   );
 }
