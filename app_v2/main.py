@@ -127,6 +127,10 @@ from app_v2.customer_booking.api.consumer_identity_api import (
     router as consumer_identity_router,
 )
 
+from app_v2.customer_booking.api.reservations_pending_api import (
+    router as reservations_pending_router,
+)
+
 
 # --- Integrations ---
 from app_v2.integrations.payments.stripe.stripe_checkout_api import (
@@ -185,6 +189,7 @@ app.include_router(consumer_history_router)
 app.include_router(confirm_router)
 app.include_router(expanded_router)
 app.include_router(cancel_router, prefix="/api")
+app.include_router(reservations_pending_router)
 
 # Integrations
 app.include_router(stripe_checkout_from_confirm_router)

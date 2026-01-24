@@ -50,9 +50,6 @@ _service = MagicLinkService()
 def send_magic_link(
     payload: MagicLinkSendRequest,
 ) -> MagicLinkSendResponse:
-    """
-    Consumer 用 Magic Link 認証開始 API（ConfirmService 連携版）
-    """
 
     if not payload.agreed:
         raise HTTPException(
@@ -107,12 +104,6 @@ def send_magic_link(
 
 @router.post("/send-login")
 def send_login_magic_link(payload: MagicLinkLoginSendRequest):
-    """
-    LoginOnly 専用 Magic Link 発行。
-
-    - 予約は作らない
-    - 既存 consumer のみ許可
-    """
 
     email = payload.email.strip()
     if not email:
@@ -124,7 +115,6 @@ def send_login_magic_link(payload: MagicLinkLoginSendRequest):
     consumer_repo = ConsumerRepository()
     consumer_id = consumer_repo.get_consumer_id_by_email(email=email)
 
-    # 存在しなくても成功扱い
     if consumer_id is None:
         return {"ok": True}
 
@@ -145,15 +135,6 @@ def send_login_magic_link(payload: MagicLinkLoginSendRequest):
 
 @router.get("/consume")
 def consume_magic_link(request: Request, token: str):
-    """
-    【consumer session の正式入口（Confirm 用）】
-
-    役割:
-    - token 検証
-    - consumer session 確立
-    - reservation に consumer を attach
-    - 元の Farm の Confirm に戻す
-    """
 
     try:
         result: Any = _service.consume_magic_link(token)
@@ -183,16 +164,37 @@ def consume_magic_link(request: Request, token: str):
     except Exception:
         pass
 
-    # --- reservation に consumer を attach ---
+    # --- reservation に consumer + PENDING を保証 ---
     try:
         reservation_repo = ReservationPaymentRepository()
         conn = reservation_repo.open_connection()
         try:
+            # consumer を attach
             reservation_repo.attach_consumer(
                 conn,
                 reservation_id=reservation_id,
                 consumer_id=consumer_id,
             )
+
+            # ★ ここが追加：PENDING を保証 ★
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE reservations
+                SET status = 'PENDING'
+                WHERE reservation_id = ?
+                """,
+                (reservation_id,),
+            )
+            conn.commit()
+
+            # ★ デバッグ用（今だけ）
+            cur.execute(
+               "SELECT reservation_id, consumer_id, status FROM reservations WHERE reservation_id = ?",
+               (reservation_id,),
+            )
+            print("DEBUG AFTER UPDATE:", cur.fetchone())
+
         finally:
             conn.close()
     except Exception as e:
@@ -212,8 +214,6 @@ def consume_magic_link(request: Request, token: str):
     if not frontend_origin:
         raise HTTPException(status_code=500, detail="FRONTEND_BASE_URL is not set")
 
-    # ★ Stripe は起動しない
-    # ★ 元の Farm の Confirm に戻す
     return RedirectResponse(
         url=f"{frontend_origin}/farms/{farm_id}/confirm",
         status_code=status.HTTP_302_FOUND,
@@ -226,13 +226,6 @@ def consume_magic_link(request: Request, token: str):
 
 @router.get("/consume-login")
 def consume_login_only(request: Request, token: str):
-    """
-    LoginOnly 専用 consume。
-
-    - token 検証
-    - session 確立
-    - reservation/booked に戻す
-    """
 
     try:
         result = _service.consume_magic_link(token)
@@ -261,9 +254,6 @@ def consume_login_only(request: Request, token: str):
 
 @router.get("/test-entry")
 def magic_test_entry():
-    """
-    【DEV ONLY】
-    """
 
     env = os.getenv("ENV", "development")
     if env not in ("development", "dev", "local"):

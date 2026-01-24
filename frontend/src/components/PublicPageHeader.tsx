@@ -6,6 +6,8 @@ type Props = {
   consumerEmail?: string | null;
   sticky?: boolean;
   hideMenu?: boolean;
+  showBack?: boolean;        // ★ 追加
+  onBack?: () => void;       // ★ 追加
 };
 
 export function FarmsListHeader({
@@ -13,6 +15,8 @@ export function FarmsListHeader({
   consumerEmail,
   sticky = false,
   hideMenu = false,
+  showBack = false,         // ★
+  onBack,                  // ★
 }: Props) {
   const navigate = useNavigate();
 
@@ -32,6 +36,33 @@ export function FarmsListHeader({
           textAlign: "center",
         }}
       >
+        {/* ← 戻る（Confirm など必要なページだけ表示） */}
+{showBack && (
+  <button
+    onClick={onBack}
+    style={{
+      position: "absolute",
+      left: 16,
+      top: 14,
+      width: 40,
+      height: 40,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 9999,
+      background: "rgba(0,0,0,0.03)",
+      border: "none",
+      cursor: "pointer",
+      fontSize: 22,
+      color: "#111",
+    }}
+    aria-label="戻る"
+  >
+    ‹
+  </button>
+)}
+
+
         {/* 三本線（hideMenu=true のときは表示しない） */}
         {!hideMenu && (
           <button

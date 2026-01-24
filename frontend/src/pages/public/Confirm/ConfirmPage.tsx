@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 
 /* ヘッダー */
@@ -24,8 +24,6 @@ type ConfirmCtx = {
   clientNextPickupDeadlineIso?: string | null;
 };
 
-const CONFIRM_CTX_KEY = "CONFIRM_CTX";
-
 /* ===== identity ===== */
 async function fetchIdentity(): Promise<{
   is_logged_in: boolean;
@@ -38,12 +36,13 @@ async function fetchIdentity(): Promise<{
   return res.json();
 }
 
-/* ===== PENDING 取得（MagicLink 復帰用） ===== */
+/* ===== PENDING 取得（唯一のデータソース） ===== */
 async function fetchPendingReservation(): Promise<ConfirmCtx | null> {
   const res = await fetch(`${API_BASE}/api/reservations/pending/me`, {
     credentials: "include",
   });
   if (!res.ok) return null;
+
   const data = await res.json();
 
   return {
@@ -85,11 +84,8 @@ async function checkoutFromConfirm(payload: {
 export default function ConfirmPage() {
   const { farmId = "" } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const initial = (location.state as ConfirmCtx | null) ?? null;
-  const [ctx, setCtx] = useState<ConfirmCtx | null>(initial);
-
+  const [ctx, setCtx] = useState<ConfirmCtx | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -112,32 +108,18 @@ export default function ConfirmPage() {
     run();
   }, []);
 
-  /* ===== ctx 復元 ===== */
+  /* ===== PENDING 取得（唯一の真実） ===== */
   useEffect(() => {
-    if (ctx) return;
-
-    const saved = sessionStorage.getItem(CONFIRM_CTX_KEY);
-    if (saved) {
-      try {
-        setCtx(JSON.parse(saved));
-        return;
-      } catch {}
-    }
-
-    async function loadPending() {
+    async function run() {
       const pending = await fetchPendingReservation();
       if (pending && pending.farmId === farmId) {
         setCtx(pending);
+      } else {
+        setCtx(null);
       }
     }
-    loadPending();
-  }, [ctx, farmId]);
-
-  useEffect(() => {
-    if (ctx) {
-      sessionStorage.setItem(CONFIRM_CTX_KEY, JSON.stringify(ctx));
-    }
-  }, [ctx]);
+    run();
+  }, [farmId]);
 
   const riceLines = useMemo(() => {
     if (!ctx) return [];
@@ -170,7 +152,6 @@ export default function ConfirmPage() {
 
       setLoading(true);
 
-
       const data = await checkoutFromConfirm({
         agreed: true,
         confirm_context: {
@@ -199,6 +180,7 @@ export default function ConfirmPage() {
     }
   }
 
+  /* ctx が無い = サーバーに PENDING が無い。ここで隠さない */
   if (!ctx) return null;
 
   return (
@@ -208,6 +190,8 @@ export default function ConfirmPage() {
           title="予約内容の確認"
           consumerEmail={consumerEmail}
           hideMenu
+          showBack
+          onBack={() => navigate(`/farms/${farmId}`)}  
         />
       ) : (
         <SimplePageHeader title="予約内容の確認" />
