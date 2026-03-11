@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     
     <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <link rel="manifest" href="/manifest.json?v=3" />
-    
+    <link rel="apple-touch-icon" href="/komenoichi_logo_profile.png" />
+    <link rel="icon" sizes="192x192" href="/komenoichi_logo_profile.png" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
     <title>こめのいち | 農家から直接、おいしいお米を。</title>
@@ -40,7 +40,7 @@
         width: 100%;
       }
 
-      /* スプラッシュスクリーンの魔法 */
+      /* スプラッシュスクリーン */
       #splash-screen {
         position: fixed;
         top: 0;
@@ -53,10 +53,10 @@
         align-items: center;
         padding-bottom: 12vh;
         z-index: 9999;
-        /* アニメーションはそのまま */
         animation: fadeOutSplash 0.4s ease-in-out 1.2s forwards;
       }
 
+      /* 透明とんぼのアニメーション */
       #splash-screen img {
         width: 110px;
         height: auto;
@@ -85,13 +85,10 @@
     <script>
       (function() {
         const splash = document.getElementById('splash-screen');
-        // ブラウザのセッション（タブを開いてからの記憶）に「見たよ」マークがあるかチェック
         if (sessionStorage.getItem('splashShown')) {
-          // すでに見たことがある（更新ボタンなどを押した）場合は、一瞬で非表示にする
           splash.style.display = 'none';
           splash.style.animation = 'none';
         } else {
-          // 初めて開いた場合は、「見たよ」マークをつける
           sessionStorage.setItem('splashShown', 'true');
         }
       })();
