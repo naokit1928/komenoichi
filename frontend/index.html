@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-
-    <link rel="apple-touch-icon" href="/komenoichi_logo_profile.png" />
+    <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
+    
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
@@ -17,11 +17,29 @@
     <meta property="og:description" content="徳島県の農家から直接お米を予約・購入できるプラットフォーム「こめのいち」。" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://komenoichi.jp/" />
-    <meta property="og:image" content="https://komenoichi.jp/komenoichi_logo_profile.png" />
+    <meta property="og:image" content="https://komenoichi.jp/apple-touch-icon.png" />
     <meta property="og:site_name" content="こめのいち" />
     <meta name="twitter:card" content="summary_large_image" />
     
+    <style>
+      /* すべての要素で「余白込み」でサイズ計算させる（ズレの特効薬） */
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
 
+      html, body {
+        background-color: #ffffff !important;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden; /* 横スクロールをブロック */
+        width: 100%; /* 横幅を画面ぴったりに固定 */
+      }
+      
+      #root {
+        overflow-x: hidden;
+        width: 100%;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
