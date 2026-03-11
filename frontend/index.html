@@ -21,7 +21,6 @@
     <meta name="twitter:card" content="summary_large_image" />
     
     <style>
-      /* すべての要素で「余白込み」でサイズ計算させる（ズレの特効薬） */
       *, *::before, *::after {
         box-sizing: border-box;
       }
@@ -30,8 +29,8 @@
         background-color: #ffffff !important;
         margin: 0;
         padding: 0;
-        overflow-x: hidden; /* 横スクロールをブロック */
-        width: 100%; /* 横幅を画面ぴったりに固定 */
+        overflow-x: hidden;
+        width: 100%;
       }
       
       #root {
@@ -39,9 +38,7 @@
         width: 100%;
       }
 
-      /* ========================================= */
       /* スプラッシュスクリーンの魔法 */
-      /* ========================================= */
       #splash-screen {
         position: fixed;
         top: 0;
@@ -52,9 +49,9 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        /* ★ 追加：画面の下部に余白を持たせて、ロゴ全体を上に押し上げる（12vh=画面高さの12%分） */
         padding-bottom: 12vh;
         z-index: 9999;
+        /* アニメーションはそのまま */
         animation: fadeOutSplash 0.4s ease-in-out 1.2s forwards;
       }
 
@@ -83,6 +80,20 @@
       <img src="/logo-mark.svg" alt="こめのいち" />
     </div>
 
+    <script>
+      (function() {
+        const splash = document.getElementById('splash-screen');
+        // ブラウザのセッション（タブを開いてからの記憶）に「見たよ」マークがあるかチェック
+        if (sessionStorage.getItem('splashShown')) {
+          // すでに見たことがある（更新ボタンなどを押した）場合は、一瞬で非表示にする
+          splash.style.display = 'none';
+          splash.style.animation = 'none';
+        } else {
+          // 初めて開いた場合は、「見たよ」マークをつける
+          sessionStorage.setItem('splashShown', 'true');
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
