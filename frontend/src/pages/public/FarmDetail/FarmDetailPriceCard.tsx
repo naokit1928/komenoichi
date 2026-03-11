@@ -1,3 +1,14 @@
+import React from "react";
+
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  gold:      "#C49A1A",
+  goldLight: "rgba(196,154,26,0.08)",
+  goldBorder:"rgba(196,154,26,0.3)",
+  ink:       "#1a1108",
+  border:    "#e8e2d8",
+} as const;
+
 type Kg = 5 | 10 | 25;
 
 type Size = {
@@ -65,15 +76,16 @@ export default function FarmDetailPriceCard({
                 }
               }}
               style={{
-                border: active ? "1px solid #1f7a36" : "1px solid #e5e7eb",
-                boxShadow: active ? "0 0 0 2px #bbf7d0" : "none",
+                border: active ? `1px solid ${C.gold}` : `1px solid ${C.border}`,
+                boxShadow: active ? `0 0 0 2px rgba(196,154,26,0.15)` : "none",
                 cursor: disabled ? "not-allowed" : "pointer",
                 opacity: disabled ? 0.5 : 1,
+                transition: "all 0.2s ease",
               }}
             >
               <div>
-                <div style={{ fontSize: 15, fontWeight: 500 }}>{s.label}</div>
-                <div style={{ fontSize: 15, marginTop: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 450, color: C.ink }}>{s.label}</div>
+                <div style={{ fontSize: 15, marginTop: 4, color: C.ink }}>
                   {s.price != null ? `${money(s.price)}円` : "未設定"}
                 </div>
                 <div style={{ marginTop: 8, minHeight: 20 }}>
@@ -81,11 +93,12 @@ export default function FarmDetailPriceCard({
                     <span
                       style={{
                         fontSize: 12,
-                        padding: "2px 8px",
+                        padding: "3px 8px",
                         borderRadius: 999,
-                        background: "#ecfdf5",
-                        color: "#166534",
-                        border: "1px solid #a7f3d0",
+                        background: C.goldLight,
+                        color: C.gold,
+                        border: `1px solid ${C.goldBorder}`,
+                        fontWeight: 500,
                       }}
                     >
                       選択中
@@ -111,14 +124,15 @@ export default function FarmDetailPriceCard({
                   style={{
                     width: 26,
                     height: 26,
-                    border: "1px solid #e5e7eb",
+                    border: `1px solid ${C.border}`,
                     borderRadius: 6,
                     background: "#fff",
+                    color: C.ink,
                   }}
                 >
                   −
                 </button>
-                <span style={{ width: 14, textAlign: "center" }}>
+                <span style={{ width: 14, textAlign: "center", color: C.ink }}>
                   {qtyByKg[s.kg]}
                 </span>
                 <button
@@ -130,9 +144,10 @@ export default function FarmDetailPriceCard({
                   style={{
                     width: 26,
                     height: 26,
-                    border: "1px solid #e5e7eb",
+                    border: `1px solid ${C.border}`,
                     borderRadius: 6,
                     background: "#fff",
+                    color: C.ink,
                   }}
                 >
                   ＋
@@ -151,7 +166,7 @@ export default function FarmDetailPriceCard({
         .price-card {
           background: #fff;
           border-radius: 12px;
-          padding: 10px;
+          padding: 12px 10px;
           min-height: 126px;
           display: flex;
           flex-direction: column;
@@ -160,12 +175,6 @@ export default function FarmDetailPriceCard({
           text-align: center;
         }
 
-        /* =========================================================
-           モバイル（基本）：常に横スライド
-           - 2段化を絶対に防ぐ
-           - 大きめスマホでは「3枚が自然に収まる」ように
-             min幅 + 余白で均等に少しだけ太る（maxで止める）
-           ========================================================= */
         .price-card-container {
           display: flex;
           gap: 10px;
@@ -176,17 +185,11 @@ export default function FarmDetailPriceCard({
         }
 
         .price-card {
-          /* ★最小80pxから開始。余白があれば均等に太る */
-          flex: 1 0 80px; /* grow=1 / shrink=0 / basis=80px */
-          /* ★太りすぎ防止。これで「2枚しか入らない」事故を防ぐ */
+          flex: 1 0 80px;
           max-width: 140px;
           scroll-snap-align: start;
         }
 
-        /* =========================================================
-           タブレット以上（必要なら grid）
-           - スマホでの事故を避けるため、grid はここからだけ
-           ========================================================= */
         @media (min-width: 768px) {
           .price-card-container {
             display: grid;

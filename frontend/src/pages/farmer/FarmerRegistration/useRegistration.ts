@@ -118,7 +118,7 @@ export function useRegistration() {
     firstKana: "",
     phone: "",
     ownerPostal: "",
-    pref: "徳島県",
+    pref: "",
     city: "",
     addr1: "",
     addr2: "",

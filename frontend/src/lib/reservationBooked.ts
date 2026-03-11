@@ -6,7 +6,6 @@ export type ReservationBookedResponse = {
   context: {
     pickup_display: string;
     pickup_place_name?: string;
-    pickup_map_url?: string;
     pickup_detail_memo?: string;
 
     qty_5: number;
@@ -28,56 +27,27 @@ export type ReservationBookedResponse = {
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 // ============================================================
-// 既存互換：reservation_id 指定版（残す）
-// GET /api/reservations/booked?reservation_id=xx
+// 予約詳細取得 API（ID指定 or 最新の1件）
 // ============================================================
-
 export async function fetchReservationBooked(
-  reservationId: number
+  reservationId?: string | number | null
 ): Promise<ReservationBookedResponse> {
   if (!API_BASE) {
     throw new Error("VITE_API_BASE is not defined");
   }
 
-  const res = await fetch(
-    `${API_BASE}/api/reservations/booked?reservation_id=${reservationId}`,
-    {
-      credentials: "include",
-    }
-  );
+  // ★ reservationId があれば特定の予約を、なければ最新の予約（me）を取得する
+  const url = reservationId
+    ? `${API_BASE}/api/reservations/booked?reservation_id=${reservationId}`
+    : `${API_BASE}/api/reservations/booked/me`;
+
+  const res = await fetch(url, {
+    credentials: "include",
+  });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(
-      `Failed to fetch reservation booked: ${res.status} ${text}`
-    );
-  }
-
-  return res.json();
-}
-
-// ============================================================
-// 新正式：consumer セッション基点版
-// GET /api/reservations/booked/me
-// ============================================================
-
-export async function fetchReservationBookedMe(): Promise<ReservationBookedResponse> {
-  if (!API_BASE) {
-    throw new Error("VITE_API_BASE is not defined");
-  }
-
-  const res = await fetch(
-    `${API_BASE}/api/reservations/booked/me`,
-    {
-      credentials: "include",
-    }
-  );
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(
-      `Failed to fetch my reservation booked: ${res.status} ${text}`
-    );
+    throw new Error(`Failed to fetch reservation booked: ${res.status} ${text}`);
   }
 
   return res.json();

@@ -53,10 +53,10 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             【キャンセルについて】
           </div>
           <p style={{ margin: 0, marginBottom: 4 }}>
-            ・受け渡し開始の3時間前までキャンセルできます。
+            ・キャンセルされる場合は、受け渡し開始時刻までにお手続きをお願いします。
           </p>
           <p style={{ margin: 0, marginBottom: 4 }}>
-            ・農家へのお支払い分にはキャンセル料はかかりません。
+            ・農家へのお支払い分（お米代）にはキャンセル料はかかりません。
           </p>
           <p style={{ margin: 0 }}>
             ※ 運営サポート費（300円）は返金されません。
@@ -79,6 +79,7 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             alignItems: "center",
             gap: 8,
             fontWeight: 500,
+            fontSize: 15, // 文字サイズを明示して読みやすく
           }}
         >
           <input
@@ -88,11 +89,18 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             style={{
               width: 18,
               height: 18,
-              accentColor: "#1f7a36",
+              accentColor: "#4b3e2a", // こげ茶色
             }}
           />
-          上記に同意します
+          {/* ★修正: 枠内だけでなく「利用規約」全体への同意を明示 */}
+          上記の内容、および利用規約に同意します
         </label>
+      </div>
+
+      {/* 法的保護のためのリンク文言 */}
+      <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "#7a6c58", lineHeight: 1.6 }}>
+        詳細なキャンセル・返品に関する規定等は<br />
+        <a href="/law" target="_blank" rel="noopener noreferrer" style={{ color: "#4b3e2a", textDecoration: "underline" }}>特定商取引法に基づく表記</a> および <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#4b3e2a", textDecoration: "underline" }}>利用規約</a> をご確認ください。
       </div>
     </>
   );

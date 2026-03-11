@@ -1,3 +1,4 @@
+# app_v2/customer_booking/services/reservation_booked_service.py
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -33,13 +34,6 @@ class ReservationBookedViewDTO(BaseModel):
 
 
 class ReservationBookedService:
-    """
-    STEP3 確定版:
-    - 表示: DB の pickup_display
-    - ロジック: DB の event_start_at / event_end_at
-    - Builder: 表示コンテキストのみ
-    """
-
     def __init__(
         self,
         repo: Optional[ReservationBookedRepository] = None,
@@ -88,7 +82,6 @@ class ReservationBookedService:
             if not farm_row:
                 return None
 
-            # 表示用 Context（event_* なし）
             reservation_for_builder = {
               "reservation_id": reservation_row["reservation_id"],
               "items_json": reservation_row["items_json"],
@@ -102,9 +95,9 @@ class ReservationBookedService:
                farm=dict(farm_row),
             )
 
-
-            # キャンセル期限（DB event_start_at 基準）
-            cancel_deadline = event_start_at - timedelta(hours=3)
+            # ★ 修正: キャンセル期限を「受け渡し終了時刻（event_end_at）」に変更
+            now_utc = datetime.now(tz=timezone.utc)
+            cancel_deadline = event_end_at
             cancel_token_exp = int(cancel_deadline.timestamp())
 
             ctx = ReservationContextDTO(
@@ -125,12 +118,16 @@ class ReservationBookedService:
                 cancel_token_exp=cancel_token_exp,
             )
 
-            payload = CancelTokenPayload(
-                reservation_id=ctx.reservation_id,
-                consumer_id=ctx.consumer_id,
-                exp=ctx.cancel_token_exp,
-            )
-            ctx.cancel_token = create_cancel_token(payload)
+            # 終了時刻まではキャンセルボタンを表示
+            if now_utc < cancel_deadline:
+                payload = CancelTokenPayload(
+                    reservation_id=ctx.reservation_id,
+                    consumer_id=ctx.consumer_id,
+                    exp=ctx.cancel_token_exp,
+                )
+                ctx.cancel_token = create_cancel_token(payload)
+            else:
+                ctx.cancel_token = None
 
             confirmed_at = self._parse_utc(
                 reservation_row["confirmed_at"]

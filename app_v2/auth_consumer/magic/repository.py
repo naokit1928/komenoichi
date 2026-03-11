@@ -46,14 +46,8 @@ class MagicLinkRepository:
         consumer_id: Optional[int] = None,
     ) -> None:
         """
-        magic_link_tokens に 1 レコード INSERT
-
-        方針:
-        - Confirm 用: reservation_id を入れる / consumer_id は NULL
-        - LoginOnly 用: consumer_id を入れる / reservation_id は NULL
-        - confirm_context_json は旧仕様互換のため "{}" を入れる
+        magic_link_tokens に新規トークンを保存する
         """
-
         conn = self._get_conn()
         try:
             cur = conn.cursor()
@@ -62,111 +56,28 @@ class MagicLinkRepository:
                 INSERT INTO magic_link_tokens (
                     token,
                     email,
-                    confirm_context_json,
                     reservation_id,
-                    consumer_id,
                     agreed,
-                    used,
                     expires_at,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+                    created_at,
+                    consumer_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     token,
                     email,
-                    "{}",  # ← 旧仕様互換用ダミー
                     reservation_id,
-                    consumer_id,
                     1 if agreed else 0,
                     expires_at.isoformat(),
                     created_at.isoformat(),
-                ),
-            )
-            conn.commit()
-        finally:
-            if self._external_conn is None:
-                conn.close()
-
-    # =========================================================
-    # consume
-    # =========================================================
-
-    def get_by_token(self, token: str) -> Optional[dict]:
-        """
-        token で magic_link_tokens を 1 件取得
-        """
-
-        conn = self._get_conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT
-                    id,
-                    token,
-                    email,
-                    reservation_id,
                     consumer_id,
-                    agreed,
-                    used,
-                    expires_at,
-                    created_at,
-                    used_at
-                FROM magic_link_tokens
-                WHERE token = ?
-                LIMIT 1
-                """,
-                (token,),
-            )
-            row = cur.fetchone()
-            if not row:
-                return None
-
-            return {
-                "id": row["id"],
-                "token": row["token"],
-                "email": row["email"],
-                "reservation_id": row["reservation_id"],
-                "consumer_id": row["consumer_id"],
-                "agreed": bool(row["agreed"]),
-                "used": bool(row["used"]),
-                "expires_at": row["expires_at"],
-                "created_at": row["created_at"],
-                "used_at": row["used_at"],
-            }
-        finally:
-            if self._external_conn is None:
-                conn.close()
-
-    def mark_used(self, token: str, used_at: datetime) -> None:
-        """
-        token を使用済みにする
-        """
-
-        conn = self._get_conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                UPDATE magic_link_tokens
-                SET used = 1,
-                    used_at = ?
-                WHERE token = ?
-                  AND used = 0
-                """,
-                (
-                    used_at.isoformat(),
-                    token,
                 ),
             )
             conn.commit()
         finally:
             if self._external_conn is None:
                 conn.close()
-
-    # =========================================================
-    # attach consumer
-    # =========================================================
 
     def attach_consumer_id(
         self,
@@ -189,6 +100,52 @@ class MagicLinkRepository:
                 WHERE token = ?
                 """,
                 (consumer_id, token),
+            )
+            conn.commit()
+        finally:
+            if self._external_conn is None:
+                conn.close()
+
+    # =========================================================
+    # consume (今回追加分)
+    # =========================================================
+
+    def get_token_record(self, token: str) -> Optional[dict]:
+        """
+        token に一致するレコードを取得する。
+        """
+        conn = self._get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT token, email, reservation_id, consumer_id, used, expires_at
+                FROM magic_link_tokens
+                WHERE token = ?
+                LIMIT 1
+                """,
+                (token,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
+        finally:
+            if self._external_conn is None:
+                conn.close()
+
+    def mark_used(self, *, token: str, used_at: datetime) -> None:
+        """
+        token を使用済み (used=1) に更新する。
+        """
+        conn = self._get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE magic_link_tokens
+                SET used = 1, used_at = ?
+                WHERE token = ?
+                """,
+                (used_at.isoformat(), token),
             )
             conn.commit()
         finally:

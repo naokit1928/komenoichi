@@ -23,12 +23,43 @@ class LatestReservationRepository:
         *,
         consumer_id: int,
     ) -> Optional[int]:
+        """
+        最新の予約IDを返す（reservation_booked_api 等で使用）
+        """
         conn = sqlite3.connect(self.db_path)
         try:
             cur = conn.cursor()
             cur.execute(
                 """
                 SELECT reservation_id
+                FROM reservations
+                WHERE consumer_id = ?
+                  AND status = 'confirmed'
+                  AND event_end_at > CURRENT_TIMESTAMP
+                ORDER BY event_end_at ASC
+                LIMIT 1
+                """,
+                (consumer_id,),
+            )
+            row = cur.fetchone()
+            return int(row[0]) if row else None
+        finally:
+            conn.close()
+
+    def get_latest_confirmed_farm_id(
+        self,
+        *,
+        consumer_id: int,
+    ) -> Optional[int]:
+        """
+        最新の農家IDを返す（public_reservations_api 経由で一覧ページで使用）
+        """
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT farm_id
                 FROM reservations
                 WHERE consumer_id = ?
                   AND status = 'confirmed'

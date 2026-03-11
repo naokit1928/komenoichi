@@ -1,10 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { API_BASE } from "@/config/api";
-
-/* ヘッダー */
-import { FarmsListHeader as PublicPageHeader } from "@/components/PublicPageHeader";
-import SimplePageHeader from "@/components/SimplePageHeader";
 
 /* Confirm 専用カード */
 import { RiceBreakdown } from "./components/RiceBreakdown";
@@ -12,6 +8,14 @@ import { ServiceFeeCard } from "./components/ServiceFeeCard";
 import { AgreementBlock } from "./components/AgreementBlock";
 
 import { calcTotalKg, isOverMaxKg } from "../FarmDetail/rules/orderRules";
+
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  red:       "#A83020",
+  ink:       "#1a1108",
+  ink3:      "#7a6c58", // エラー画面などのサブテキスト用
+  border:    "#e8e2d8",
+} as const;
 
 type ConfirmCtx = {
   farmId: string;
@@ -36,11 +40,20 @@ async function fetchIdentity(): Promise<{
   return res.json();
 }
 
-/* ===== PENDING 取得（唯一のデータソース） ===== */
-async function fetchPendingReservation(): Promise<ConfirmCtx | null> {
-  const res = await fetch(`${API_BASE}/api/reservations/pending/me`, {
+/* ===== Active（confirmed）取得 ===== */
+async function fetchActiveReservation(): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/api/reservations/booked/me`, {
     credentials: "include",
   });
+  return res.ok;
+}
+
+/* ===== PENDING（ConfirmSession 単位） ===== */
+async function fetchConfirmContext(cs: string): Promise<ConfirmCtx | null> {
+  const res = await fetch(
+    `${API_BASE}/api/confirm/sessions/${encodeURIComponent(cs)}/context`,
+    { credentials: "include" }
+  );
   if (!res.ok) return null;
 
   const data = await res.json();
@@ -50,22 +63,19 @@ async function fetchPendingReservation(): Promise<ConfirmCtx | null> {
     riceSubtotal: data.rice_subtotal,
     serviceFee: data.service_fee,
     total: data.total,
-    items: data.items.map((it: any) => ({
+    items: (data.items || []).map((it: any) => ({
       kg: it.size_kg,
       qty: it.quantity,
       unitPrice: it.unit_price,
     })),
     pickupSlotCode: data.pickup_slot_code,
     nextPickupDisplay: data.pickup_display,
-    clientNextPickupDeadlineIso: null,
+    clientNextPickupDeadlineIso: data.client_next_pickup_deadline_iso || null,
   };
 }
 
 /* ===== stripe ===== */
-async function checkoutFromConfirm(payload: {
-  agreed: boolean;
-  confirm_context: any;
-}) {
+async function checkoutFromConfirm(payload: { agreed: boolean; cs: string }) {
   const res = await fetch(`${API_BASE}/stripe/checkout/from-confirm`, {
     method: "POST",
     credentials: "include",
@@ -83,6 +93,8 @@ async function checkoutFromConfirm(payload: {
 
 export default function ConfirmPage() {
   const { farmId = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const cs = searchParams.get("cs");
   const navigate = useNavigate();
 
   const [ctx, setCtx] = useState<ConfirmCtx | null>(null);
@@ -90,36 +102,28 @@ export default function ConfirmPage() {
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [consumerEmail, setConsumerEmail] =
-    useState<string | undefined>(undefined);
-
-  /* ===== identity ===== */
+  /* ===== Confirm Context 取得 ===== */
   useEffect(() => {
     async function run() {
-      const data = await fetchIdentity();
-      if (data?.is_logged_in) {
-        setIsLoggedIn(true);
-        if (data.email) setConsumerEmail(data.email);
-      } else {
-        setIsLoggedIn(false);
+      try {
+        if (!cs) {
+          throw new Error("confirm_session_id がありません");
+        }
+
+        const hasActive = await fetchActiveReservation();
+        if (hasActive) {
+          navigate(`/farms/${farmId}/active`, { replace: true });
+          return;
+        }
+
+        const context = await fetchConfirmContext(cs);
+        setCtx(context);
+      } catch (e: any) {
+        setErr(String(e.message || e));
       }
     }
     run();
-  }, []);
-
-  /* ===== PENDING 取得（唯一の真実） ===== */
-  useEffect(() => {
-    async function run() {
-      const pending = await fetchPendingReservation();
-      if (pending && pending.farmId === farmId) {
-        setCtx(pending);
-      } else {
-        setCtx(null);
-      }
-    }
-    run();
-  }, [farmId]);
+  }, [cs, farmId, navigate]);
 
   const riceLines = useMemo(() => {
     if (!ctx) return [];
@@ -133,7 +137,7 @@ export default function ConfirmPage() {
 
   async function handleMainAction() {
     try {
-      if (!ctx) return;
+      if (!ctx || !cs) return;
       setErr("");
 
       if (!agreed) {
@@ -152,26 +156,7 @@ export default function ConfirmPage() {
 
       setLoading(true);
 
-      const data = await checkoutFromConfirm({
-        agreed: true,
-        confirm_context: {
-          farm_id: Number(ctx.farmId),
-          pickup_slot_code: ctx.pickupSlotCode,
-          pickup_display: ctx.nextPickupDisplay,
-          items: ctx.items
-            .filter((i) => i.qty > 0)
-            .map((i) => ({
-              size_kg: i.kg,
-              quantity: i.qty,
-            })),
-          rice_subtotal: ctx.riceSubtotal,
-          service_fee: ctx.serviceFee,
-          total: ctx.total,
-          client_next_pickup_deadline_iso:
-            ctx.clientNextPickupDeadlineIso,
-        },
-      });
-
+      const data = await checkoutFromConfirm({ agreed: true, cs });
       window.location.href = data.checkout_url;
     } catch (e: any) {
       setErr(String(e.message || e));
@@ -180,68 +165,114 @@ export default function ConfirmPage() {
     }
   }
 
-  /* ctx が無い = サーバーに PENDING が無い。ここで隠さない */
-  if (!ctx) return null;
-
-  return (
-    <>
-      {isLoggedIn ? (
-        <PublicPageHeader
-          title="予約内容の確認"
-          consumerEmail={consumerEmail}
-          hideMenu
-          showBack
-          onBack={() => navigate(`/farms/${farmId}`)}  
-        />
-      ) : (
-        <SimplePageHeader title="予約内容の確認" />
-      )}
-
+  /* データがない場合（エラー時）の表示 */
+  if (!ctx) {
+    return (
       <div
         style={{
-          padding: 16,
-          paddingBottom: 32,
           maxWidth: 520,
           margin: "0 auto",
+          padding: "64px 24px",
+          textAlign: "center",
         }}
       >
-        <RiceBreakdown
-          riceSubtotal={ctx.riceSubtotal}
-          lines={riceLines}
-          pickupDisplay={ctx.nextPickupDisplay}
-        />
-
-        <ServiceFeeCard
-          serviceFee={ctx.serviceFee}
-          termLabel="運営サポート費"
-        />
-
-        <AgreementBlock agreed={agreed} onChange={setAgreed} />
-
-        {err && (
-          <div style={{ color: "#b91c1c", marginTop: 12 }}>
-            {err}
-          </div>
-        )}
-
+        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink }}>
+          予約情報が見つかりませんでした
+        </div>
+        <div style={{ color: C.ink3, fontSize: 14, marginTop: 12 }}>
+          農家詳細ページに戻って、もう一度予約を開始してください。
+        </div>
         <button
-          onClick={handleMainAction}
-          disabled={loading}
+          onClick={() => navigate(`/farms/${farmId}`)}
           style={{
-            width: "100%",
-            padding: "12px 16px",
-            background: loading ? "#ddd" : "#1f7a36",
-            color: loading ? "#666" : "#fff",
-            borderRadius: 9999,
-            border: "none",
-            fontWeight: 600,
-            fontSize: 15,
             marginTop: 24,
+            padding: "12px 24px",
+            background: "#fff",
+            color: C.ink,
+            border: `1px solid ${C.border}`,
+            borderRadius: 9999,
+            cursor: "pointer",
+            fontWeight: 600,
           }}
         >
-          {loading ? "処理中…" : "予約確定に進む"}
+          詳細に戻る
         </button>
       </div>
-    </>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        padding: "24px 16px 64px", // 上の余白を少し調整
+        maxWidth: 520,
+        margin: "0 auto",
+      }}
+    >
+      {/* 改善1: ページタイトルを配置し、何をする画面か明確にする */}
+      <h1
+        style={{
+          fontSize: 18,
+          fontWeight: 600,
+          color: C.ink,
+          textAlign: "center",
+          margin: "0 0 24px 0",
+          fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
+        }}
+      >
+        予約内容の確認
+      </h1>
+
+      <RiceBreakdown
+        riceSubtotal={ctx.riceSubtotal}
+        lines={riceLines}
+        pickupDisplay={ctx.nextPickupDisplay}
+      />
+
+      <ServiceFeeCard
+        serviceFee={ctx.serviceFee}
+        termLabel="運営サポート費"
+      />
+      <AgreementBlock agreed={agreed} onChange={setAgreed} />
+
+      {err && (
+        <div
+          style={{
+            color: C.red,
+            marginTop: 16,
+            textAlign: "center",
+            fontSize: 14,
+            fontWeight: 600,
+          }}
+        >
+          {err}
+        </div>
+      )}
+
+      {/* (前略... 219行目付近のボタン部分を以下に差し替え) */}
+      <button
+        onClick={handleMainAction}
+        disabled={loading}
+        style={{
+          width: "100%",
+          height: 52,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: loading ? "#d1d5db" : "#4b3e2a", // ← 赤から濃い茶色へ
+          color: "#fff",
+          borderRadius: 9999,
+          border: "none",
+          fontWeight: 600,
+          fontSize: 16,
+          marginTop: 32,
+          cursor: loading ? "not-allowed" : "pointer",
+          transition: "all 0.2s ease",
+          boxShadow: loading ? "none" : "0 4px 12px rgba(75, 62, 42, 0.25)", // 影も茶色へ
+        }}
+      >
+        {loading ? "処理中…" : "予約確定に進む"}
+      </button>
+    </div>
   );
 }

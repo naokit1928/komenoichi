@@ -1,3 +1,14 @@
+// frontend/src/pages/public/ConfirmPage/components/RiceBreakdown.tsx
+import React from "react";
+
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  ink:       "#1a1108",
+  ink2:      "#4b3e2a", // 濃い茶色（注意書きなど）
+  ink3:      "#7a6c58", // 薄い茶色（ラベルなど）
+  border:    "#e8e2d8",
+} as const;
+
 type Line = {
   label: string;
   amount: number;
@@ -32,7 +43,7 @@ export function RiceBreakdown({
           <div
             style={{
               fontSize: 12,
-              color: "#6b7280",
+              color: C.ink3, // ← グレーから薄い茶色に変更
               marginBottom: 2,
             }}
           >
@@ -42,7 +53,7 @@ export function RiceBreakdown({
             style={{
               fontSize: 16,
               fontWeight: 700,
-              color: "#111827",
+              color: "#111827", // 読ませるために黒のまま
               whiteSpace: "nowrap",
             }}
           >
@@ -62,11 +73,12 @@ export function RiceBreakdown({
           marginBottom: 2,
         }}
       >
-        <span>お米代合計</span>
+        <span style={{ color: "#111827" }}>お米代合計</span>
         <span
           style={{
-            background: "#f3f4f6",
-            color: "#374151",
+            background: "#f4f1ed", // ← グレーから茶系の薄い背景に変更
+            color: C.ink2,         // ← 文字色も濃い茶色に変更
+            border: `1px solid ${C.border}`,
             borderRadius: 9999,
             padding: "2px 8px",
             fontSize: 11,
@@ -81,7 +93,8 @@ export function RiceBreakdown({
         style={{
           fontSize: 22,
           fontWeight: 800,
-          marginBottom: 12, // ← 注文内容との段差
+          marginBottom: 12,
+          color: "#111827", // 黒のまま
         }}
       >
         {money(riceSubtotal)}円
@@ -93,7 +106,7 @@ export function RiceBreakdown({
           fontSize: 13,
           fontWeight: 600,
           marginBottom: 6,
-          color: "#374151",
+          color: "#374151", // 黒のまま
         }}
       >
         注文内容
@@ -106,10 +119,10 @@ export function RiceBreakdown({
             style={{
               display: "flex",
               justifyContent: "space-between",
-              fontSize: 15,          // ← 少しだけ格上げ
+              fontSize: 15,
               fontWeight: 500,
-              color: "#111827",
-              padding: "4px 0",      // ← 行間を確保
+              color: "#111827", // 黒のまま
+              padding: "4px 0",
             }}
           >
             <span>{l.label}</span>
@@ -121,8 +134,9 @@ export function RiceBreakdown({
       <div
         style={{
           marginTop: 8,
-          color: "#6b7280",
+          color: C.ink2, // ← グレーから濃い茶色に変更
           fontSize: 12,
+          fontWeight: 500,
         }}
       >
         ※ 受け渡し当日に、農家さんに現金でお支払いください。

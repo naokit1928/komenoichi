@@ -1,0 +1,113 @@
+Komenoichi / Komet: 予約・決済アーキテクチャマスター設計書 (V2 統合版)
+最終更新: 2026-02
+
+1. コア設計思想（The Komenoichi Way）
+本システムは、シングルオペレーターによるフルスタック開発において「システム全体の因果律を完全に掌握し、事故を防ぐ」ことを最優先としたアーキテクチャを採用している。
+
+Single Source of Truth（信頼できる唯一の情報源）
+
+バックエンドのDBとService層が「業務上の正」である。フロントエンドから送られる価格、日時、状態はすべて「ユーザーの希望」に過ぎず、バックエンドが必ず再計算・検証・上書きを行う。
+
+宣言（Declaration）と解釈（Interpretation）の分離
+
+農家モジュールは「毎週水曜の19時（WED_19_20）」というルールを宣言するだけ。それを「何月何日か」「期限切れか」と解釈するのはConsumerモジュールの責務である。
+
+JIT (Just-In-Time) PENDING モデル
+
+「購入意思が不確実なユーザー」の操作で reservations テーブルを汚さない。カート状態は confirm_sessions（ドラフト）で保持し、本当に決済フローに乗る直前にのみ PENDING レコードを生成する。
+
+2. 予約のライフサイクルとデータフロー
+予約は以下のフェーズを経て確定へと至る。
+
+Phase 1: ドラフト作成（Farm Detail）
+ユーザーアクション: 数量を選び「次へ」を押す。
+
+処理: POST /api/confirm/sessions が叩かれ、confirm_sessions テーブルに draft_json が保存される（有効期限30分）。
+
+状態: まだ reservations テーブルには何も書き込まれない。未ログインの場合はフロントエンドの sessionStorage にも状態を退避させ、ログイン画面（Phase 1.5）へ誘導する。
+
+Phase 1.5: パスワードレス認証（Magic Link Login）
+処理: POST /api/auth/consumer/magic/send-login でトークンを生成しメール送信。ユーザーがリンク（/consume-login）を踏むことでセッションに consumer_id が確立される。
+
+安全性: 旧式の「予約枠を作ってからメールを送る」方式は廃止済。純粋な認証のみを行い、認証後にPhase 2へ復帰する。
+
+Phase 2: PENDING 生成（Confirm Session 変換）
+ユーザーアクション: Confirm画面の表示、または確認ボタンの押下時。
+
+処理: POST /api/confirm/from-session がコールされ、ConfirmService.create_pending_reservation に処理が委譲される。
+
+防波堤（絶対ルール）: 1. 価格の再計算: フロントの小計は無視し、DBの farms から単価を引き直す。
+2. 3時間前ルールの厳格適用（サーバーサイド）: 現在時刻(JST)と pickup_slot_code を比較し、受取時間の3時間前を過ぎていればエラーを返し、予約を遮断する。
+3. 表示文字列の再生成: 改ざん防止のため、バックエンド側で pickup_slot_code から正しい表示文字列（例: "11/29（水）10:00–12:00"）を再計算し、DBの pickup_display を上書きする。
+
+状態: ここで初めて reservations テーブルに status = 'PENDING' がINSERTされる。通信エラー時の重複を防ぐため confirm_session_id で冪等性を担保する。
+
+Phase 3: 決済と確定（Stripe Payment）
+処理: PENDINGな reservation_id を元に Stripe Checkout Session を作成。
+
+確定 (Webhook): Stripeから checkout.session.completed を受け取った時点で Booking_Lifecycle_Service.confirm() が呼ばれ、status = 'confirmed' となる。同時に event_start_at / event_end_at が最終確定する。
+
+3. 時間・跨ぎ・表示の管理仕様
+時間に関するバグ（日付跨ぎ、3時間前ルールのすり抜け）を防ぐための明確な責務境界。
+
+3.1 3時間前ルール（跨ぎ防止）の2段構え
+フロントエンド（UXの担保）:
+
+ユーザーが Detail ページで「次へ」を押した瞬間に sessionStorage.detail_passed_at を記録。Confirm ページ滞在中に「受取の3時間前」を過ぎた場合、Stripe に遷移させずにエラー表示で弾く。
+
+バックエンド（最終防衛線）:
+
+ユーザーが通信を改ざんしたり、古いタブを開きっぱなしにしていた場合に備え、ConfirmService が PENDING 作成時に現在時刻で厳密に再検証する。Stripeに入る前に確実に遮断し、「支払ったのに無効になった」という最悪のUXを排除する。
+
+3.2 画面表示（BookingContextBuilder）の制限
+やること: pickup_codeの生成、数量集計、マップURLの生成など、UI表示に必要な派生データの組み立て。
+
+やらないこと（禁止）: event_start_at などの時刻計算や週判定。
+
+理由: Confirm画面でユーザーに同意させた時刻（pickup_display）と、確定後のBooked画面での時刻がズレる事故を防ぐため。表示の正解は常にDBに保存された pickup_display である。
+
+4. 履歴と二重予約ガード
+4.1 前回予約ハイライト（consumer_history）
+目的: Listing（農家一覧）ページで「前回予約した農家」をハイライトする。
+
+判定基準: * reservations.status = 'confirmed' である直近の farm_id。
+
+現在時刻や「受取が終わったかどうか（active/inactive）」は一切考慮しない。「履歴」としての事実のみを参照する。
+
+4.2 Active 予約ガード（二重予約の防止）
+目的: すでに未受取の予約（Active）があるユーザーが、別の予約をしてしまうのを防ぐ。
+
+判定基準:
+
+status = 'confirmed' かつ event_end_at > CURRENT_TIMESTAMP である予約。
+
+制御: * Farm Detail ページで「次へ」を押すタイミング（ConfirmGuard）でのみ判定を行う。Confirm ページ自体は「支払い直前の最終確認」という純粋な中間状態に専念し、この判定を行わない。
+
+5. 開発者向け：禁止事項とチェックリスト（Don'ts & Do's）
+保守・機能追加の際、以下のルールを絶対に破ってはならない。
+
+🚫 禁止事項 (Don'ts)
+フロントエンドの値を信用すること:
+
+金額、日時、数量上限（50kg）など、ビジネスロジックに関わる値はすべてバックエンド（ConfirmService 等）で再検証・再計算すること。
+
+Webhook 内で reservations レコードを新規作成（INSERT）すること:
+
+在庫ロックとトランザクション保護のため、Stripeへ遷移する「前」に PENDING レコードを作っておく（JIT PENDING）。Webhookは UPDATE（Confirmedへの状態遷移）に専念させる。
+
+ORM に依存した暗黙のクエリ発行:
+
+V2以降のアーキテクチャでは生SQL（sqlite3）を使用する。DTOの変更時はRepositoryのSQL文とセットで見直すこと。
+
+confirm_session_api.py の中で直接 SQL（INSERT/UPDATE）を書くこと:
+
+ルーターは HTTP の受け口に過ぎない。業務ロジックやDB操作は必ず ConfirmService や Repository に委譲すること。
+
+✅ 変更時のチェックリスト (Do's)
+[ ] DBスキーマ変更: DTO（dataclass / pydantic）のフィールド追加と、RepositoryのSQL修正を必ず同時に行ったか？
+
+[ ] 状態遷移: status を変更する場合、直接 UPDATE せず Booking_Lifecycle_Service を経由させているか？
+
+[ ] 冪等性の担保: APIを連打されたり、ブラウザのリロードが行われたりしても、同じ confirm_session_id からは1つの reservation_id しか返らないようになっているか？
+
+[ ] ガベージコレクション: 定期実行のクリーンアップバッチが、古い PENDING や expired な confirm_sessions を正しく掃除する設定になっているか？

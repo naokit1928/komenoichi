@@ -1,232 +1,61 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Optional
+from typing import Optional
+from urllib.parse import urlparse, parse_qs
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
 from app_v2.auth_consumer.magic.schemas import (
-    MagicLinkSendRequest,
-    MagicLinkSendResponse,
     MagicLinkLoginSendRequest,
+    MagicLinkLoginSendResponse,
 )
 from app_v2.auth_consumer.magic.service import MagicLinkService
-
-from app_v2.customer_booking.services.confirm_service import ConfirmService
-from app_v2.customer_booking.dtos import ReservationFormDTO
 
 from app_v2.integrations.payments.stripe.reservation_payment_repo import (
     ReservationPaymentRepository,
 )
+from app_v2.customer_booking.repository.consumer_repo import ConsumerRepository
 
-from app_v2.customer_booking.repository.consumer_repo import (
-    ConsumerRepository,
-)
-
-from app_v2.customer_booking.repository.reservation_repo import (
-    get_reservation_by_id,
-)
-
-# ============================================================
-# Router
-# ============================================================
-
-router = APIRouter(
-    prefix="/auth/consumer/magic",
-    tags=["auth-consumer-magic"],
-)
-
+router = APIRouter(prefix="/auth/consumer/magic", tags=["auth-consumer-magic"])
 _service = MagicLinkService()
 
-# ============================================================
-# POST /auth/consumer/magic/send  (Confirm 用)
-# ============================================================
-
-@router.post(
-    "/send",
-    response_model=MagicLinkSendResponse,
-)
-def send_magic_link(
-    payload: MagicLinkSendRequest,
-) -> MagicLinkSendResponse:
-
-    if not payload.agreed:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Agreement is required",
-        )
-
-    try:
-        form = ReservationFormDTO(**payload.confirm_context)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid confirm_context: {e}",
-        )
-
-    try:
-        confirm_service = ConfirmService()
-        result = confirm_service.create_pending_reservation(form)
-        reservation_id = int(result.reservation_id)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create reservation: {e}",
-        )
-
-    try:
-        magic_link_url = _service.send_magic_link(
-            email=payload.email,
-            reservation_id=reservation_id,
-            agreed=payload.agreed,
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
-
-    return MagicLinkSendResponse(
-        ok=True,
-        debug_magic_link_url=magic_link_url,
-    )
-
+def _extract_token_from_url(magic_link_url: str) -> str:
+    parsed = urlparse(magic_link_url)
+    qs = parse_qs(parsed.query)
+    token_list = qs.get("token")
+    if not token_list:
+        raise HTTPException(status_code=500, detail="Token parameter missing in generated URL")
+    return token_list[0]
 
 # ============================================================
-# POST /auth/consumer/magic/send-login  (LoginOnly 用)
+# Magic Link 送信（ログイン・新規登録共通）
 # ============================================================
-
-@router.post("/send-login")
-def send_login_magic_link(payload: MagicLinkLoginSendRequest):
-
+@router.post("/send-login", response_model=MagicLinkLoginSendResponse)
+def send_magic_link_login(
+    request: Request,
+    payload: MagicLinkLoginSendRequest,
+):
     email = payload.email.strip()
-    if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="email is required",
-        )
+    redirect = payload.redirect
 
     consumer_repo = ConsumerRepository()
-    consumer_id = consumer_repo.get_consumer_id_by_email(email=email)
-
-    if consumer_id is None:
-        return {"ok": True}
+    consumer_id = consumer_repo.get_or_create_consumer_id_by_email(email=email)
 
     magic_link_url = _service.send_login_magic_link(
         email=email,
         consumer_id=consumer_id,
+        redirect_path=redirect,
     )
 
-    return {
-        "ok": True,
-        "debug_magic_link_url": magic_link_url,
-    }
-
+    return MagicLinkLoginSendResponse(ok=True, debug_magic_link_url=magic_link_url)
 
 # ============================================================
-# GET /auth/consumer/magic/consume  (Confirm 専用)
+# Magic Link 消費（ログイン完了処理）
 # ============================================================
-
-@router.get("/consume")
-def consume_magic_link(request: Request, token: str):
-
-    try:
-        result: Any = _service.consume_magic_link(token)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    reservation_id: Optional[int] = None
-    email: Optional[str] = None
-
-    if isinstance(result, dict):
-        if result.get("reservation_id") is not None:
-            reservation_id = int(result["reservation_id"])
-        if isinstance(result.get("email"), str):
-            email = result["email"]
-
-    if not reservation_id or not email:
-        raise HTTPException(status_code=500, detail="invalid magic link token")
-
-    # --- consumer 確定 ---
-    consumer_repo = ConsumerRepository()
-    consumer_id = consumer_repo.get_or_create_consumer_id_by_email(email=email)
-
-    try:
-        _service.attach_consumer_id(token=token, consumer_id=consumer_id)
-    except Exception:
-        pass
-
-    # --- reservation に consumer + PENDING を保証 ---
-    try:
-        reservation_repo = ReservationPaymentRepository()
-        conn = reservation_repo.open_connection()
-        try:
-            # consumer を attach
-            reservation_repo.attach_consumer(
-                conn,
-                reservation_id=reservation_id,
-                consumer_id=consumer_id,
-            )
-
-            # ★ ここが追加：PENDING を保証 ★
-            cur = conn.cursor()
-            cur.execute(
-                """
-                UPDATE reservations
-                SET status = 'PENDING'
-                WHERE reservation_id = ?
-                """,
-                (reservation_id,),
-            )
-            conn.commit()
-
-            # ★ デバッグ用（今だけ）
-            cur.execute(
-               "SELECT reservation_id, consumer_id, status FROM reservations WHERE reservation_id = ?",
-               (reservation_id,),
-            )
-            print("DEBUG AFTER UPDATE:", cur.fetchone())
-
-        finally:
-            conn.close()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    # --- session 確立 ---
-    request.session["consumer_id"] = consumer_id
-
-    # --- reservation から farm_id を解決 ---
-    reservation = get_reservation_by_id(reservation_id)
-    if not reservation:
-        raise HTTPException(status_code=404, detail="reservation not found")
-
-    farm_id = reservation["farm_id"]
-
-    frontend_origin = os.getenv("FRONTEND_BASE_URL")
-    if not frontend_origin:
-        raise HTTPException(status_code=500, detail="FRONTEND_BASE_URL is not set")
-
-    return RedirectResponse(
-        url=f"{frontend_origin}/farms/{farm_id}/confirm",
-        status_code=status.HTTP_302_FOUND,
-    )
-
-
-# ============================================================
-# GET /auth/consumer/magic/consume-login  (LoginOnly 専用)
-# ============================================================
-
 @router.get("/consume-login")
-def consume_login_only(request: Request, token: str):
-
+def consume_login_only(request: Request, token: str, redirect: Optional[str] = None):
     try:
         result = _service.consume_magic_link(token)
     except Exception as e:
@@ -236,27 +65,21 @@ def consume_login_only(request: Request, token: str):
     if not consumer_id:
         raise HTTPException(status_code=400, detail="consumer_id missing in token")
 
-    request.session["consumer_id"] = consumer_id
+    # セッションに consumer と magic_token を保存
+    request.session["consumer_id"] = int(consumer_id)
+    request.session["magic_token"] = token
 
     frontend_origin = os.getenv("FRONTEND_BASE_URL")
     if not frontend_origin:
         raise HTTPException(status_code=500, detail="FRONTEND_BASE_URL is not set")
 
+    if redirect and redirect.startswith("/"):
+        return RedirectResponse(
+            url=f"{frontend_origin}{redirect}",
+            status_code=status.HTTP_302_FOUND,
+        )
+
     return RedirectResponse(
-        url=f"{frontend_origin}/reservation/booked",
+        url=f"{frontend_origin}/",
         status_code=status.HTTP_302_FOUND,
     )
-
-
-# ============================================================
-# GET /auth/consumer/magic/test-entry
-# ============================================================
-
-@router.get("/test-entry")
-def magic_test_entry():
-
-    env = os.getenv("ENV", "development")
-    if env not in ("development", "dev", "local"):
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    raise HTTPException(status_code=400, detail="stripe-entry is removed")

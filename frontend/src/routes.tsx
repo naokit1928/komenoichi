@@ -5,51 +5,31 @@ import RequireFarmerSession from "./pages/farmer/RequireFarmerSession";
 
 import HomeRedirectPage from "./pages/public/HomeRedirectPage";
 
-import ConfirmGuard from "./pages/public/Confirm/ConfirmGuard";
-
-
-/* =========================
-   Auth
-   ========================= */
-const AuthLoginPage = React.lazy(
-  () => import("./pages/auth/AuthLoginPage")
-);
-
+const AuthLoginPage = React.lazy(() => import("./pages/auth/AuthLoginPage"));
 const AuthEmailRegisterPage = React.lazy(
   () => import("./pages/auth/AuthEmailRegisterPage")
 );
 
-/* =========================
-   Layout
-   ========================= */
 import FarmerLayout from "./pages/farmer/FarmerLayout";
 
-/* =========================
-   Farmer pages
-   ========================= */
 const FarmerReservationTable = React.lazy(
   () =>
     import(
       "./pages/farmer/FarmerReservationTable/FarmerReservationTable"
     )
 );
-
 const FarmerSettingsPage = React.lazy(
-  () =>
-    import("./pages/farmer/FarmerSettings/FarmerSettingsPage")
+  () => import("./pages/farmer/FarmerSettings/FarmerSettingsPage")
 );
-
 const FarmerPickupSettingsPage = React.lazy(
   () =>
     import(
       "./pages/farmer/FarmerPickupSettings/FarmerPickupSettingsPage"
     )
 );
-
 const FarmerMenu = React.lazy(
   () => import("./pages/farmer/FarmerMenu/FarmerMenu")
 );
-
 const FarmerRegistrationPage = React.lazy(
   () =>
     import(
@@ -57,56 +37,46 @@ const FarmerRegistrationPage = React.lazy(
     )
 );
 
-/* =========================
-   Public pages
-   ========================= */
 const FarmsListPage = React.lazy(
   () => import("./pages/public/FarmsList/FarmsListPage")
 );
-
 const FarmDetailPage = React.lazy(
   () => import("./pages/public/FarmDetail/FarmDetailPage")
 );
-
 const ConfirmPage = React.lazy(
   () => import("./pages/public/Confirm/ConfirmPage")
 );
-
+const ActiveReservationGuardPage = React.lazy(
+  () =>
+    import(
+      "./pages/public/Confirm/ActiveReservationGuardPage"
+    )
+);
 const AccountSettingsPage = React.lazy(
   () =>
     import(
       "./pages/public/AccountSettings/AccountSettingsPage"
     )
 );
-
 const PaymentSuccessPage = React.lazy(
-  () =>
-    import("./pages/public/PaymentSuccess/PaymentSuccessPage")
+  () => import("./pages/public/PaymentSuccess/PaymentSuccessPage")
 );
-
-
-
 const ReservationBookedPage = React.lazy(
   () =>
     import(
       "./pages/public/ReservationBooked/ReservationBookedPage"
     )
 );
-
 const CancelConfirmPage = React.lazy(
   () =>
     import(
       "./pages/public/ReservationBooked/CancelConfirmPage"
     )
 );
-
 const ReservationsRedirectPage = React.lazy(
   () => import("./pages/public/Reservations")
 );
 
-/* =========================
-   Amazon型 Login
-   ========================= */
 const LoginOrRegisterPage = React.lazy(
   () =>
     import(
@@ -114,22 +84,33 @@ const LoginOrRegisterPage = React.lazy(
     )
 );
 
-// ★ LoginOnly（予約確認専用）
-const LoginOnlyPage = React.lazy(
-  () =>
-    import(
-      "./pages/public/Login/LoginOnlyPage"
-    )
+const FavoritesPage = React.lazy(
+  () => import("./pages/public/Favorites/FavoritesPage")
 );
 
+const LoginOnlyPage = React.lazy(
+  () =>
+    import("./pages/public/Login/LoginOnlyPage")
+);
 
-/* =========================
-   Admin
-   ========================= */
+// ===== 法務・ポリシー系ページ =====
+const LawPage = React.lazy(
+  () => import("./pages/public/Legal/LawPage")
+);
+const TermsPage = React.lazy(
+  () => import("./pages/public/Legal/TermsPage")
+);
+const PrivacyPage = React.lazy(
+  () => import("./pages/public/Legal/PrivacyPage")
+);
+// ★追加: 農家向け利用規約のインポート
+const FarmerTermsPage = React.lazy(
+  () => import("./pages/public/Legal/FarmerTermsPage")
+);
+
 const AdminReservationWeeksPage = React.lazy(
   () => import("./pages/admin/AdminReservationWeeksPage")
 );
-
 const AdminReservationEventDetailPage = React.lazy(
   () =>
     import(
@@ -137,9 +118,6 @@ const AdminReservationEventDetailPage = React.lazy(
     )
 );
 
-/* =========================
-   ErrorBoundary
-   ========================= */
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { error: any }
@@ -148,11 +126,9 @@ class ErrorBoundary extends React.Component<
     super(props);
     this.state = { error: null };
   }
-
   static getDerivedStateFromError(error: any) {
     return { error };
   }
-
   render() {
     if (this.state.error) {
       return (
@@ -165,10 +141,7 @@ class ErrorBoundary extends React.Component<
         >
           <h2>Runtime Error in Route</h2>
           <pre style={{ whiteSpace: "pre-wrap" }}>
-            {String(
-              this.state.error?.message ||
-                this.state.error
-            )}
+            {String(this.state.error?.message || this.state.error)}
           </pre>
         </div>
       );
@@ -177,31 +150,24 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-/* =========================
-   Routes
-   ========================= */
 export default function AppRoutes() {
   return (
     <ErrorBoundary>
       <Suspense fallback={<div style={{ padding: 16 }}>Loading…</div>}>
         <Routes>
-          {/* Top */}
           <Route path="/" element={<HomeRedirectPage />} />
 
-          {/* Auth */}
           <Route path="/auth/login" element={<AuthLoginPage />} />
           <Route
             path="/auth/email-register"
             element={<AuthEmailRegisterPage />}
           />
 
-          {/* Amazon型 Consumer Login */}
           <Route path="/login" element={<LoginOrRegisterPage />} />
-
-          {/* LoginOnly（予約確認専用） */}
           <Route path="/login-only" element={<LoginOnlyPage />} />
-
-          {/* Public */}
+          
+          <Route path="/favorites" element={<FavoritesPage />} />
+          
           <Route
             path="/account/settings"
             element={<AccountSettingsPage />}
@@ -210,15 +176,13 @@ export default function AppRoutes() {
           <Route path="/farms/:farmId" element={<FarmDetailPage />} />
           <Route
             path="/farms/:farmId/confirm"
-            element={
-              <ConfirmGuard>
-                <ConfirmPage />
-              </ConfirmGuard>
-            }
+            element={<ConfirmPage />}
+          />
+          <Route
+            path="/farms/:farmId/active"
+            element={<ActiveReservationGuardPage />}
           />
 
-
-          
           <Route
             path="/reservations"
             element={<ReservationsRedirectPage />}
@@ -227,39 +191,36 @@ export default function AppRoutes() {
             path="/reservation/booked"
             element={<ReservationBookedPage />}
           />
-          
-          
           <Route
             path="/cancel/confirm"
             element={<CancelConfirmPage />}
-          />   
+          />
           <Route
             path="/payment_success"
             element={<PaymentSuccessPage />}
           />
           <Route
             path="/payment/success"
-            element={
-              <Navigate to="/payment_success" replace />
-            }
+            element={<Navigate to="/payment_success" replace />}
           />
 
-          {/* Farmer Registration */}
+          {/* ===== 法務・ポリシー系ルート ===== */}
+          <Route path="/law" element={<LawPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          {/* ★追加: 農家向け利用規約のルート */}
+          <Route path="/terms/farmer" element={<FarmerTermsPage />} />
+
           <Route
             path="/farmer/registration"
             element={<FarmerRegistrationPage />}
           />
-
-          {/* Farmer Hub */}
           <Route path="/farmer" element={<RequireFarmerSession />}>
             <Route element={<FarmerLayout />}>
               <Route
                 index
                 element={
-                  <Navigate
-                    to="/farmer/reservations"
-                    replace
-                  />
+                  <Navigate to="/farmer/reservations" replace />
                 }
               />
               <Route
@@ -278,7 +239,6 @@ export default function AppRoutes() {
             </Route>
           </Route>
 
-          {/* Admin */}
           <Route
             path="/admin/reservations/weeks"
             element={<AdminReservationWeeksPage />}
@@ -288,7 +248,6 @@ export default function AppRoutes() {
             element={<AdminReservationEventDetailPage />}
           />
 
-          {/* 404 */}
           <Route
             path="*"
             element={

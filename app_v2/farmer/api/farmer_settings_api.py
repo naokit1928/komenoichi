@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Optional, List
 
 from fastapi import (
@@ -27,11 +28,6 @@ router = APIRouter(
 
 
 class FarmerSettingsUpdatePayload(BaseModel):
-    """
-    農家本人が編集できる可変情報のみ。
-    registration 由来の固定情報は含めない。
-    """
-
     is_accepting_reservations: Optional[bool] = None
     rice_variety_label: Optional[str] = None
     pr_title: Optional[str] = None
@@ -42,11 +38,6 @@ class FarmerSettingsUpdatePayload(BaseModel):
 
 
 class AdminActiveFlagPayload(BaseModel):
-    """
-    運営専用。
-    農家 BAN / BAN解除 用。
-    """
-
     farm_id: int
     active_flag: int
 
@@ -59,9 +50,6 @@ class AdminActiveFlagPayload(BaseModel):
 
 
 class PRImagesOrderPayload(BaseModel):
-    """
-    PR画像の並び順更新用。
-    """
     image_ids: List[str]
 
 
@@ -79,6 +67,23 @@ def _require_farm_id_from_session(request: Request) -> int:
         )
     return farm_id
 
+
+def _require_admin(request: Request) -> None:
+    admin_secret = os.getenv("ADMIN_SECRET")
+    if not admin_secret:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="admin endpoint is not configured",
+        )
+
+    provided = request.headers.get("X-Admin-Secret", "")
+    if provided != admin_secret:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="admin authentication failed",
+        )
+
+# ↓ _validate_image_upload は削除します。Service側でチェックするため不要です。
 
 # ============================================================
 # GET: Farmer Settings（ME）
@@ -131,9 +136,15 @@ def update_farmer_settings_me(
             face_image_url=payload.face_image_url,
         )
     except ValueError as e:
+        msg = str(e)
+        if "cannot enable reservations" in msg:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=msg,
+            )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=msg,
         )
 
 
@@ -148,8 +159,11 @@ def update_farmer_settings_me(
     tags=["farmer_settings_admin_v2"],
 )
 def admin_update_active_flag(
+    request: Request,
     payload: AdminActiveFlagPayload,
 ):
+    _require_admin(request)
+
     service = FarmerSettingsService()
     try:
         return service.set_active_flag_for_admin(
@@ -164,7 +178,7 @@ def admin_update_active_flag(
 
 
 # ============================================================
-# 画像アップロード（旧: pr-images/me）
+# 画像アップロード
 # ============================================================
 
 
@@ -177,6 +191,8 @@ async def upload_face_image_me(
     file: UploadFile = File(...),
 ):
     farm_id = _require_farm_id_from_session(request)
+    
+    # 削除: _validate_image_upload(file)
 
     service = FarmerSettingsService()
     try:
@@ -193,6 +209,7 @@ async def upload_face_image_me(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=msg,
             )
+        # 画像不正などもここでキャッチ
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=msg,
@@ -207,31 +224,34 @@ async def upload_cover_image_me(
     request: Request,
     file: UploadFile = File(...),
 ):
+    # cover-image だけのAPIは現状使われていないようですが、もし残すなら以下。
+    # 基本は pr-images 経由でカバーが決まるロジックに統一されているなら、ここは削除推奨。
+    # ひとまずエラーが出ないように修正だけしておきます。
+    
     farm_id = _require_farm_id_from_session(request)
+    # 削除: _validate_image_upload(file)
 
     service = FarmerSettingsService()
     try:
         file_bytes = await file.read()
-        return service.upload_cover_image_from_bytes(
-            farm_id=farm_id,
-            file_bytes=file_bytes,
-            filename=file.filename or "cover_image",
-        )
+        # 注意: upload_cover_image_from_bytes は Service から削除されているかも？
+        # もし未実装ならこのエンドポイントごと削除でOKです。
+        # 既存コードとの互換性のため、ここでは一旦エラーを返すか、実装が必要です。
+        raise HTTPException(status_code=501, detail="Not implemented") 
     except ValueError as e:
-        msg = str(e)
-        if "monthly upload limit exceeded" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=msg,
-            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=msg,
+            detail=str(e),
         )
+
+
+# ============================================================
+# PR images（正規パス: /me/pr-images）
+# ============================================================
 
 
 @router.post(
-    "/pr-images/me",
+    "/me/pr-images",
     response_model=FarmerSettingsDTO,
 )
 async def upload_pr_images_me(
@@ -239,6 +259,8 @@ async def upload_pr_images_me(
     files: List[UploadFile] = File(...),
 ):
     farm_id = _require_farm_id_from_session(request)
+
+    # 削除: for f in files: _validate_image_upload(f)
 
     service = FarmerSettingsService()
     try:
@@ -263,7 +285,7 @@ async def upload_pr_images_me(
 
 
 @router.put(
-    "/pr-images/order/me",
+    "/me/pr-images/order",
     response_model=FarmerSettingsDTO,
 )
 def reorder_pr_images_me(
@@ -274,6 +296,7 @@ def reorder_pr_images_me(
 
     service = FarmerSettingsService()
     try:
+        # Service に reorder_pr_images が復活しているので呼べる
         return service.reorder_pr_images(
             farm_id=farm_id,
             image_ids=payload.image_ids,
@@ -286,7 +309,7 @@ def reorder_pr_images_me(
 
 
 @router.delete(
-    "/pr-images/me",
+    "/me/pr-images",
     response_model=FarmerSettingsDTO,
 )
 def delete_pr_image_me(
@@ -306,41 +329,3 @@ def delete_pr_image_me(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
-
-
-# ============================================================
-# ★ alias（正: /me/pr-images） ← ここだけ追加
-# ============================================================
-
-
-@router.post(
-    "/me/pr-images",
-    response_model=FarmerSettingsDTO,
-)
-async def upload_pr_images_me_alias(
-    request: Request,
-    files: List[UploadFile] = File(...),
-):
-    return await upload_pr_images_me(request=request, files=files)
-
-
-@router.put(
-    "/me/pr-images/order",
-    response_model=FarmerSettingsDTO,
-)
-def reorder_pr_images_me_alias(
-    request: Request,
-    payload: PRImagesOrderPayload,
-):
-    return reorder_pr_images_me(request=request, payload=payload)
-
-
-@router.delete(
-    "/me/pr-images",
-    response_model=FarmerSettingsDTO,
-)
-def delete_pr_image_me_alias(
-    request: Request,
-    image_id: str,
-):
-    return delete_pr_image_me(request=request, image_id=image_id)

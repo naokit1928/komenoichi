@@ -1,3 +1,4 @@
+# app_v2/customer_booking/consumer_history/consumer_history_repo.py
 from __future__ import annotations
 
 import sqlite3
@@ -30,10 +31,6 @@ class ConsumerHistoryRepository:
     ) -> Optional[int]:
         """
         consumer_id に紐づく、直近で confirmed 状態の farm_id を返す。
-
-        - confirmed の定義は reservations.status = 'confirmed'
-        - 並び順は payment_succeeded_at → reservation_id
-        - 該当なしの場合は None を返す
         """
 
         cur = self.conn.execute(
@@ -42,7 +39,7 @@ class ConsumerHistoryRepository:
                 farm_id
             FROM reservations
             WHERE consumer_id = ?
-              AND status = 'confirmed'
+              AND LOWER(status) = 'confirmed'
             ORDER BY
                 payment_succeeded_at DESC,
                 reservation_id DESC
@@ -50,6 +47,34 @@ class ConsumerHistoryRepository:
             """,
             (consumer_id,),
         )
-
         row = cur.fetchone()
-        return int(row["farm_id"]) if row else None
+        return row["farm_id"] if row else None
+
+    def get_consumer_reservations_with_farm_info(
+        self,
+        consumer_id: int,
+    ) -> list[sqlite3.Row]:
+        """
+        consumer_id に紐づく全予約履歴（農家名つき）を取得する。
+        - 支払いが完了（confirmed）またはキャンセル（canceled）されたものを対象とする。
+        """
+        cur = self.conn.execute(
+            """
+            SELECT
+                r.reservation_id,
+                r.status,
+                r.pickup_display,
+                r.rice_subtotal,
+                r.event_end_at,
+                f.farm_id,
+                f.name AS farm_name,
+                f.last_name
+            FROM reservations r
+            JOIN farms f ON r.farm_id = f.farm_id
+            WHERE r.consumer_id = ?
+              AND LOWER(r.status) IN ('confirmed', 'canceled', 'cancelled') -- ★ 大文字/小文字や綴り揺れに対応
+            ORDER BY r.reservation_id DESC
+            """,
+            (consumer_id,)
+        )
+        return cur.fetchall()

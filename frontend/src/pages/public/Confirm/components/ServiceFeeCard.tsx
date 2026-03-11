@@ -1,3 +1,15 @@
+// frontend/src/pages/public/ConfirmPage/components/ServiceFeeCard.tsx
+import React from "react";
+
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  gold:      "#C49A1A", // カード外枠の強調用
+  ink2:      "#4b3e2a", // 濃い茶色（バッジテキスト用）
+  ink3:      "#7a6c58", // 薄い茶色（注釈用）
+  bgPale:    "#f4f1ed", // 薄い茶系の背景（バッジ用）
+  border:    "#e8e2d8", // バッジの枠線
+} as const;
+
 type Props = {
   serviceFee: number;
   termLabel: string;
@@ -9,13 +21,12 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
   return (
     <section
       style={{
-        border: "1px solid #e5e7eb",
         borderRadius: 12,
         padding: 16,
         background: "#fff",
         marginBottom: 12,
-        borderWidth: 2,
-        borderColor: "rgba(31,122,54,0.55)",
+        border: `1.5px solid ${C.gold}`, // カードの枠線は黄金色で強調を維持
+        boxShadow: `0 0 0 2px rgba(196,154,26,0.15)`, 
       }}
     >
       {/* ===== 1行目：費目 × 金額 ===== */}
@@ -27,6 +38,7 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
           fontWeight: 700,
           fontSize: 16,
           marginBottom: 6,
+          color: "#111827", // 黒のまま
         }}
       >
         <span>{termLabel}</span>
@@ -39,7 +51,7 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
          marginTop: 4,
          marginBottom: 8,
          fontSize: 12,
-         color: "#6b7280",
+         color: C.ink3,
          lineHeight: 1.4,
        }}
       >
@@ -51,8 +63,9 @@ export function ServiceFeeCard({ serviceFee, termLabel }: Props) {
         <span
           style={{
             display: "inline-block",
-            background: "rgba(31,122,54,0.1)",
-            color: "#1f7a36",
+            background: C.bgPale,  // ★ 黄金色から薄い茶色に変更
+            color: C.ink2,         // ★ 黄金色からこげ茶色に変更
+            border: `1px solid ${C.border}`,
             borderRadius: 9999,
             padding: "2px 8px",
             fontSize: 11,

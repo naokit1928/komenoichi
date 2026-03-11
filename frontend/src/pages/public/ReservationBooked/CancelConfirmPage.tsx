@@ -6,15 +6,6 @@ import { API_BASE } from "@/config/api";
 
 /**
  * キャンセル確認ページ
- *
- * 役割：
- * - token クエリパラメータを受け取り、キャンセル用リンクの有効性をチェック
- * - ユーザーに「本当にキャンセルするか？」だけをシンプルに確認
- * - 確定ボタン押下でキャンセル API を叩く
- *
- * ★ 注意：
- *   - API のパスは仮で `/api/reservation/cancel` を使っています。
- *   - 実際のバックエンド実装に合わせて URL / メソッドだけ必要に応じて調整してください。
  */
 
 const CANCEL_API_URL = `${API_BASE}/api/reservation/cancel`;
@@ -29,7 +20,7 @@ const CancelConfirmPage: React.FC = () => {
   const [confirming, setConfirming] = useState(false); // キャンセル実行中
   const [done, setDone] = useState(false); // キャンセル完了フラグ
 
-  // 共通レイアウト（ReservationBookedPage と同じ構造）
+  // 共通レイアウト
   const renderShell = (child: React.ReactNode) => (
     <div
       style={{
@@ -77,8 +68,6 @@ const CancelConfirmPage: React.FC = () => {
       setConfirming(true);
       setError(null);
 
-      // ★ 仮実装：
-      //   - POST /api/reservation/cancel に { token } を送って実際のキャンセルを実行する想定
       const res = await fetch(CANCEL_API_URL, {
         method: "POST",
         headers: {
@@ -88,15 +77,29 @@ const CancelConfirmPage: React.FC = () => {
       });
 
       if (!res.ok) {
+        let backendMsg = "";
+        try {
+          const data = await res.json();
+          backendMsg = data.detail || "";
+        } catch (e) {
+          // ignore
+        }
+
+        // バックエンドから期限切れのエラーが返ってきた場合、日本語に変換（3時間前という表記は削除）
+        if (res.status === 400 && backendMsg.toLowerCase().includes("deadline")) {
+          throw new Error("受け渡し時間を過ぎているため、キャンセルできません。");
+        }
+
         throw new Error("cancel failed");
       }
 
-      // 正常終了：同じ画面内で「完了表示」に切り替える
       setDone(true);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       setError(
-        "キャンセル手続きに失敗しました。時間をおいて再度お試しください。"
+        e.message !== "cancel failed" 
+          ? e.message 
+          : "キャンセル手続きに失敗しました。時間をおいて再度お試しください。"
       );
     } finally {
       setConfirming(false);
@@ -121,6 +124,8 @@ const CancelConfirmPage: React.FC = () => {
 
   // エラー表示
   if (error && !done) {
+    const isDeadlineError = error.includes("過ぎて");
+
     return renderShell(
       <div
         style={{
@@ -138,7 +143,7 @@ const CancelConfirmPage: React.FC = () => {
               padding: "4px 10px",
               fontSize: 11,
               fontWeight: 600,
-              color: "#b91c1c",
+              color: "#b91c1c", // エラーは本当にエラーだと伝えるため赤を残す
             }}
           >
             キャンセル手続きエラー
@@ -148,7 +153,7 @@ const CancelConfirmPage: React.FC = () => {
         <div
           style={{
             fontSize: 14,
-            color: "#b91c1c",
+            color: "#b91c1c", // エラーは本当にエラーだと伝えるため赤を残す
             marginBottom: 8,
             fontWeight: 500,
           }}
@@ -162,7 +167,9 @@ const CancelConfirmPage: React.FC = () => {
             lineHeight: 1.7,
           }}
         >
-          このページを再読み込みするか、予約一覧から再度お試しください。
+          {isDeadlineError 
+            ? "お困りの場合は、直接農家へご相談ください。" 
+            : "このページを再読み込みするか、予約一覧から再度お試しください。"}
         </div>
       </div>
     );
@@ -182,12 +189,12 @@ const CancelConfirmPage: React.FC = () => {
               display: "inline-flex",
               alignItems: "center",
               borderRadius: 9999,
-              background: "#ecfdf3",
-              border: "1px solid #bbf7d0",
+              background: "#f4f1ed", // ★ 「当日現地払い」と同じ薄い茶系に変更
+              border: "1px solid #e8e2d8",
               padding: "4px 10px",
               fontSize: 11,
               fontWeight: 600,
-              color: "#166534",
+              color: "#4b3e2a", // ★ 濃い茶色に変更
             }}
           >
             キャンセルが完了しました
@@ -214,37 +221,56 @@ const CancelConfirmPage: React.FC = () => {
         >
          キャンセルを受け付けました。ご都合のよい別の日時で、またのご予約をお待ちしています。 
         </p>
+
+        {/* ★ 追加：ホームに戻るボタン（ここに行き止まり防止の導線を設置） */}
+        <div style={{ marginTop: 32 }}>
+          <button
+            type="button"
+            onClick={() => window.location.href = "/farms"}
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              borderRadius: 9999,
+              border: "none",
+              background: "#4b3e2a", // ★ ブランドカラーの濃い茶色
+              color: "#ffffff",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            農家一覧へ戻る
+          </button>
+        </div>
       </div>
     );
   }
 
-  // 通常：キャンセル確認画面（ここが今回決めた「あっさり版」文面）
+  // 通常：キャンセル確認画面
   return renderShell(
     <div
       style={{
         padding: "12px 4px 4px",
       }}
     >
-      {/* バッジ */}
       <header style={{ marginBottom: 16 }}>
         <div
           style={{
             display: "inline-flex",
             alignItems: "center",
             borderRadius: 9999,
-            background: "#fef2f2",
-            border: "1px solid #fee2e2",
+            background: "#f4f1ed", // ★ 赤から薄い茶色に変更
+            border: "1px solid #e8e2d8",
             padding: "4px 10px",
             fontSize: 11,
             fontWeight: 600,
-            color: "#b91c1c",
+            color: "#4b3e2a", // ★ 濃い茶色に変更
           }}
         >
           キャンセル確認
         </div>
       </header>
 
-      {/* タイトル */}
       <h1
         style={{
           fontSize: 18,
@@ -255,7 +281,6 @@ const CancelConfirmPage: React.FC = () => {
         キャンセルを確定しますか？
       </h1>
 
-      {/* 説明（シンプル） */}
       <p
         style={{
           marginTop: 10,
@@ -269,7 +294,6 @@ const CancelConfirmPage: React.FC = () => {
         お米代のお支払いは発生しません。
       </p>
 
-      {/* 注意書き（小さめ） */}
       <p
         style={{
           marginTop: 6,
@@ -281,7 +305,6 @@ const CancelConfirmPage: React.FC = () => {
         ※ すでにお支払いいただいたシステム利用料（300円）は返金されません。
       </p>
 
-      {/* ボタン群 */}
       <div
         style={{
           marginTop: 20,
@@ -290,7 +313,6 @@ const CancelConfirmPage: React.FC = () => {
           gap: 8,
         }}
       >
-        {/* キャンセル実行ボタン */}
         <button
           type="button"
           onClick={handleConfirm}
@@ -301,7 +323,7 @@ const CancelConfirmPage: React.FC = () => {
             borderRadius: 9999,
             border: "none",
             outline: "none",
-            background: confirming ? "#9ca3af" : "#b91c1c",
+            background: confirming ? "#9ca3af" : "#4b3e2a", // ★ 実行ボタンを赤から濃い茶色に変更
             color: "#ffffff",
             fontSize: 14,
             fontWeight: 700,
@@ -311,7 +333,6 @@ const CancelConfirmPage: React.FC = () => {
           {confirming ? "キャンセル処理中…" : "キャンセルを確定する"}
         </button>
 
-        {/* 戻るリンク（ブラウザバック推奨） */}
         <button
           type="button"
           onClick={() => window.history.back()}

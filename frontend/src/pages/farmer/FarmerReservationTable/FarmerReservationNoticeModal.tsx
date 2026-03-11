@@ -1,5 +1,3 @@
-// frontend/src/pages/farmer/FarmerReservationNoticeModal.tsx
-
 import React from "react";
 import styles from "./FarmerReservationTable.module.css";
 
@@ -70,49 +68,67 @@ const FarmerReservationNoticeModal: React.FC<
         </header>
 
         <div className={styles.modalBody}>
-          {/* 小さなリード文 */}
-          <p
-            className={styles.noticeLead}
-            style={{ margin: 0, textAlign: "center" }}
-          >
-            必ず一度はお読みください。
-          </p>
+          {/* 目立たせるリード文ボックス */}
+          <div className={styles.noticeLeadBox}>
+            安全な運用のために、必ず一度はお読みください。
+          </div>
 
           {/* 本文エリア（スクロール可能） */}
           <div className={styles.noticeScrollArea}>
-            <p style={{ marginTop: 0, marginBottom: 8 }}>
-              <span style={{ fontWeight: 600 }}>
-                ① 予約の締め切りは受け渡し開始時刻の3時間前です。
-              </span>
-              その時点でその週の予約表が確定し、それ以降の新規予約はすべて翌週扱いに
-              なります。
-            </p>
+            <div className={styles.ruleList}>
+              
+              <div className={styles.ruleItem}>
+                <div className={styles.ruleTitle}>
+                  <span className={styles.ruleIcon}>①</span>
+                  新規予約の受付は開始時刻の3時間前に締め切られます
+                </div>
+                <p className={styles.ruleDesc}>
+                  それ以降の新規予約はすべて翌週扱いになります。ただし、<b>予約者からのキャンセル手続きは直前まで可能</b>な仕様となっています。受け渡しに向かう前に、必ず最新の予約一覧をご確認ください。
+                </p>
+              </div>
 
-            <p style={{ marginTop: 0, marginBottom: 8 }}>
-              <span style={{ fontWeight: 600 }}>
-                ② 無断キャンセルへの補償はありません。
-              </span>
-              ただし、農家さんの負担を減らすため、無断キャンセルを繰り返す利用者には
-              予約制限をかける仕組みを運営側で設けています。
-            </p>
+              {/* ★修正: 「仕組みがない」という表現を削り、スッキリさせました */}
+              <div className={styles.ruleItem}>
+                <div className={styles.ruleTitle}>
+                  <span className={styles.ruleIcon}>②</span>
+                  無断キャンセルへの補償・運営の介入はありません
+                </div>
+                <p className={styles.ruleDesc}>
+                  お米代は現地での現金決済となるため、無断キャンセル（ノーショー）が発生した場合の補償や、運営側での仲裁・ペナルティ付与等はいたしかねます。あらかじめご了承ください。
+                </p>
+              </div>
 
-            <p style={{ marginTop: 0, marginBottom: 8 }}>
-              <span style={{ fontWeight: 600 }}>
-                ③ 一部だけ事前に精米・袋詰めしておくことを推奨します。
-              </span>
-              予約者には、LINE で「最大10分ほどの待ち時間があり得ます」と事前に案内
-              しています。待ち時間がそれ以上長くならないように、一部のお米だけ事前に
-              精米・袋詰めしておくことをおすすめします。
-            </p>
+              <div className={styles.ruleItem}>
+                <div className={styles.ruleTitle}>
+                  <span className={styles.ruleIcon}>③</span>
+                  一部だけ事前に精米・袋詰めしておくことを推奨します
+                </div>
+                <p className={styles.ruleDesc}>
+                  予約者には「最大10分ほどの待ち時間があり得ます」と事前に案内しています。待ち時間が長引きすぎないよう、一部のお米だけ事前に準備しておくことをおすすめします。
+                </p>
+              </div>
 
-            <p style={{ marginTop: 0, marginBottom: 0 }}>
-              <span style={{ fontWeight: 600 }}>
-                ④ 全ての量を事前に精米・袋詰めしておくことは推奨しません。
-              </span>
-              無断キャンセルの可能性もあるため、すべてのお米を事前に精米・袋詰め
-              しておくことは推奨しません。一部は事前に準備し、残りはお客さんの前で
-              精米するなど、どこまで事前準備するかは各農家さんの判断にお任せします。
-            </p>
+              <div className={styles.ruleItem}>
+                <div className={styles.ruleTitle}>
+                  <span className={styles.ruleIcon}>④</span>
+                  全ての量を事前に準備しておくことは推奨しません
+                </div>
+                <p className={styles.ruleDesc}>
+                  無断キャンセルのリスクもあるため、すべてのお米を事前に精米しておくことは推奨しません。どこまで事前準備するかは、各農家さんのご判断にお任せしています。
+                </p>
+              </div>
+
+              <div className={styles.ruleItem}>
+                <div className={styles.ruleTitle}>
+                  <span className={styles.ruleIcon}>⑤</span>
+                  品質等に関するトラブルは当事者間でご解決ください
+                </div>
+                <p className={styles.ruleDesc}>
+                  運営は品質に関するクレームに一切関与いたしません。なお、予約者には「返品・交換の申し出は受け渡し時にその場で行うこと」と規約で定めています。受け渡し日以降の返品対応は原則不要ですが、実際の対応は各農家さんのご判断にお任せします。
+                </p>
+              </div>
+
+            </div>
           </div>
 
           {/* フッター：チェックボックス */}

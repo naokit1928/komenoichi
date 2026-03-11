@@ -1,134 +1,71 @@
-import { useNavigate } from "react-router-dom";
-import { createPortal } from "react-dom";
+import React from "react";
+import { Link } from "react-router-dom";
 
-type Props = {
-  title?: string;
-  consumerEmail?: string | null;
-  sticky?: boolean;
-  hideMenu?: boolean;
-  showBack?: boolean;        // ★ 追加
-  onBack?: () => void;       // ★ 追加
-};
+type Props = { title?: string };
 
-export function FarmsListHeader({
-  title = "農家一覧",
-  consumerEmail,
-  sticky = false,
-  hideMenu = false,
-  showBack = false,         // ★
-  onBack,                  // ★
-}: Props) {
-  const navigate = useNavigate();
-
-  const header = (
-    <div
+/**
+ * PublicPageHeader — FarmsListPage 専用
+ * sticky + すりガラス + インライン SVG とんぼ（モックアップ完全再現）
+ * 他ページ（FarmDetail / Confirm 等）では SimplePageHeader を使うこと
+ */
+export function PublicPageHeader({ title }: Props) {
+  return (
+    <header
       style={{
-        backgroundColor: "#ffffff",
-        borderBottom: "1px solid #eee",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        background: "rgba(253,252,250,0.94)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid #e8e2d8",
+        height: 56,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
       }}
     >
-      <div
+      <Link
+        to="/"
         style={{
-          maxWidth: 520,
-          margin: "0 auto",
-          padding: "12px",
-          position: "relative",
-          textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          textDecoration: "none",
+          color: "inherit",
         }}
       >
-        {/* ← 戻る（Confirm など必要なページだけ表示） */}
-{showBack && (
-  <button
-    onClick={onBack}
-    style={{
-      position: "absolute",
-      left: 16,
-      top: 14,
-      width: 40,
-      height: 40,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: 9999,
-      background: "rgba(0,0,0,0.03)",
-      border: "none",
-      cursor: "pointer",
-      fontSize: 22,
-      color: "#111",
-    }}
-    aria-label="戻る"
-  >
-    ‹
-  </button>
-)}
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 80 80"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          aria-hidden="true"
+          style={{ flexShrink: 0 }}
+        >
+          <path d="M40 38 C34 30, 18 24, 6 28 C-2 31, -3 40, 8 42 C20 44, 36 39, 40 38Z"
+            stroke="#A83020" strokeWidth="2.4" fill="rgba(168,48,32,0.06)" strokeLinejoin="round"/>
+          <path d="M40 38 C46 30, 62 24, 74 28 C82 31, 83 40, 72 42 C60 44, 44 39, 40 38Z"
+            stroke="#A83020" strokeWidth="2.4" fill="rgba(168,48,32,0.06)" strokeLinejoin="round"/>
+          <path d="M40 42 C34 40, 18 40, 6 47 C0 51, 2 58, 12 58 C24 58, 37 50, 40 45Z"
+            stroke="#A83020" strokeWidth="1.8" fill="rgba(168,48,32,0.04)" strokeLinejoin="round"/>
+          <path d="M40 42 C46 40, 62 40, 74 47 C80 51, 78 58, 68 58 C56 58, 43 50, 40 45Z"
+            stroke="#A83020" strokeWidth="1.8" fill="rgba(168,48,32,0.04)" strokeLinejoin="round"/>
+          <line x1="40" y1="18" x2="40" y2="68" stroke="#A83020" strokeWidth="2.8" strokeLinecap="round"/>
+          <circle cx="40" cy="14" r="6" fill="#A83020"/>
+        </svg>
 
-
-        {/* 三本線（hideMenu=true のときは表示しない） */}
-        {!hideMenu && (
-          <button
-            onClick={() => navigate("/account/settings")}
-            style={{
-              position: "absolute",
-              right: 12,
-              top: 12,
-              fontSize: 22,
-              lineHeight: 1,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#222",
-            }}
-            aria-label="アカウント設定"
-          >
-            ≡
-          </button>
-        )}
-
-        {title && (
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#222",
-              lineHeight: 1.4,
-            }}
-          >
-            {title}
-          </div>
-        )}
-
-        {consumerEmail && (
-          <div
-            style={{
-              marginTop: title ? 4 : 0,
-              fontSize: 13,
-              color: "#6b7280",
-              wordBreak: "break-all",
-            }}
-          >
-            {consumerEmail}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  if (!sticky) {
-    return header;
-  }
-
-  return createPortal(
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-      }}
-    >
-      {header}
-    </div>,
-    document.body
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, alignItems: "center" }}>
+          <span style={{ fontSize: 17, fontWeight: 400, letterSpacing: "0.12em", color: "#1a1108" }}>
+            こめのいち
+          </span>
+          <span style={{ fontSize: 9, letterSpacing: "0.12em", color: "#7a6c58", fontWeight: 300, marginTop: 2 }}>
+            KOME NO ICHI
+          </span>
+        </div>
+      </Link>
+    </header>
   );
 }

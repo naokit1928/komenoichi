@@ -23,6 +23,12 @@ export default function PublishToggleCard({
     onToggle(next);
   };
 
+  /** dangerouslySetInnerHTML の代替。太字スタイルを直接指定する。 */
+  const boldStyle: React.CSSProperties = {
+    fontWeight: 800,
+    color: "#111827",
+  };
+
   return (
     <section className={`w-full ${className}`} style={{ marginTop: 24 }}>
       {/* TitleEditor と同一の card 構造 */}
@@ -42,21 +48,12 @@ export default function PublishToggleCard({
           textAlign: "center",
         }}
       >
-        {/* このコンポーネント内だけで使う太字指定 */}
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-              .pub-bold {
-                font-weight: 800 !important;
-                color: #111827 !important;
-              }
-            `,
-          }}
-        />
-
         <div className="w-full flex flex-col items-center">
           {/* タイトル */}
-          <div className="text-[15px] sm:text-base tracking-wide pub-bold">
+          <div
+            className="text-[15px] sm:text-base tracking-wide"
+            style={boldStyle}
+          >
             予約受付
           </div>
 
@@ -114,13 +111,13 @@ export default function PublishToggleCard({
           >
             {isOn ? (
               <>
-                現在 <span className="pub-bold">公開中</span> です。いつでも停止できます。
+                現在 <span style={boldStyle}>公開中</span> です。いつでも停止できます。
                 <br />
                 既存の予約はキャンセルされません。
               </>
             ) : (
               <>
-                現在 <span className="pub-bold">非公開</span> です。いつでも公開にできます。
+                現在 <span style={boldStyle}>非公開</span> です。いつでも公開にできます。
                 <br />
                 既存の予約はキャンセルされません。
               </>

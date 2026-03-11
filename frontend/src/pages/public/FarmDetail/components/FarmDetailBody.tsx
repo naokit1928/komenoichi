@@ -5,37 +5,32 @@ import FarmDetailProfileCard from "../FarmDetailProfileCard";
 import FarmDetailPickupTimeCard from "../FarmDetailPickupTimeCard";
 import FarmDetailAreaMapCard from "../FarmDetailAreaMapCard";
 
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  ink:       "#1a1108",
+  ink2:      "#4b3e2a", // 品種ラベルなどを引き締める
+  ink3:      "#7a6c58",
+} as const;
+
 type Kg = 5 | 10 | 25;
 
 type Props = {
   titleText: string | null;
   harvestYear: number;
   riceVarietyLabel?: string | null;
-
   loading: boolean;
   errorMsg: string | null;
-
-  sizes: readonly {
-    kg: Kg;
-    label: string;
-    price: number | null;
-  }[];
-
+  sizes: readonly { kg: Kg; label: string; price: number | null }[];
   selectedKg: Kg;
   qtyByKg: { 5: number; 10: number; 25: number };
-
   onSelectKg: (kg: Kg) => void;
   onInc: (kg: Kg) => void;
   onDec: (kg: Kg) => void;
-
   money: (n: number) => string;
-
   farm: any;
   ownerFullName: string | null;
   shortLocation: string | null;
-
   pickupTextCard: string;
-
   centerLat?: number;
   centerLng?: number;
 };
@@ -44,10 +39,8 @@ export default function FarmDetailBody({
   titleText,
   harvestYear,
   riceVarietyLabel,
-
   loading,
   errorMsg,
-
   sizes,
   selectedKg,
   qtyByKg,
@@ -55,38 +48,41 @@ export default function FarmDetailBody({
   onInc,
   onDec,
   money,
-
   farm,
   ownerFullName,
   shortLocation,
-
   pickupTextCard,
   centerLat,
   centerLng,
 }: Props) {
   return (
     <>
+      {/* タイトル：19px, 黒 (Level 1) */}
       {titleText && (
         <h1
           style={{
             textAlign: "center",
-            fontSize: 20,
-            fontWeight: 700,
-            margin: "4px 0 8px",
-            lineHeight: 1.35,
+            fontSize: 19,
+            fontWeight: 600,
+            color: C.ink,
+            margin: "4px 0 6px",
+            lineHeight: 1.4,
+            fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
           }}
         >
           {titleText}
         </h1>
       )}
 
+      {/* 品種：14px, 濃い茶色 (Level 2) - 薄茶色から濃茶色へ変更 */}
       {riceVarietyLabel && (
         <div
           style={{
             textAlign: "center",
-            fontSize: 15,
-            fontWeight: 700,
-            marginBottom: 12,
+            fontSize: 14,
+            fontWeight: 500,
+            color: C.ink2,
+            marginBottom: 16,
           }}
         >
           {harvestYear}年産　{riceVarietyLabel}

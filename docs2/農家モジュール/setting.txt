@@ -1,0 +1,13 @@
+今後の長期的な保守・変更をスムーズに行うための、「農家設定ページ（特にPR画像・プロフィール周り）」のアーキテクチャ設計書を作成しました。このドキュメントをプロジェクトの README.md や開発メモに残しておくと、数ヶ月後の自分や他の開発者が助かります。🚜 農家設定ページ (Farmer Settings) 構成ドキュメント1. ディレクトリ構造とファイルの役割主なファイルは src/pages/farmer/FarmerSettings/ に配置されています。今回のリファクタリングにより、**「表示（View）」「ロジック（Hook）」「部品（UI）」**の3層に分離されました。A. PR画像スライダー (PrGallery 関連)ファイル名分類役割・主な責務PrGallery.tsxViewメインの表示コンポーネント・usePrGalleryUpload フックを呼び出し、状態を受け取る。・画面レイアウト（ドラッグ＆ドロップ領域、ボタン配置）を担当。・<button> の入れ子問題（DOM Nesting Warning）対策済み（外枠は div）。usePrGalleryUpload.tsLogicビジネスロジック・カスタムフック・状態管理: 画像リスト、アップロード中フラグ、プレビュー状態。・画像処理: ファイル選択時のバリデーション（サイズ・縦横比）、圧縮処理 (browser-image-compression)。・通信: APIへの POST (アップロード), PUT (並び替え), DELETE。・設定値: 最大枚数、許容サイズなどの定数定義。PrGalleryParts.tsxUI再利用可能なUIパーツ集・SortableItem: 並べ替え可能な画像タイル。・PreviewModal: 拡大表示＆削除確認モーダル。・Spinner / UploadToast: ローディング表示。・CenterModal: 画面中央へのポータル表示制御。B. プロフィール画像 (FaceAvatar 関連)ファイル名分類役割・主な責務FaceAvatar.tsxView+Logicプロフィール画像のクロップ＆アップロード・react-easy-crop を使用した画像の切り抜きUI。・ファイルの選択からアップロードまでの完結した機能を持つ。・※将来的にロジックが肥大化したら、これも分離候補。2. 重要な設定値（カスタマイズ箇所）仕様変更（「もっと枚数を増やしたい」「画質を上げたい」など）があった場合、usePrGalleryUpload.ts の以下の定数を変更してください。TypeScript// src/pages/farmer/FarmerSettings/usePrGalleryUpload.ts
+
+export const MAX_IMAGES = 4;           // 最大登録枚数
+const MAX_FILE_SIZE_PRE_MB = 50;       // 圧縮前の許容サイズ（ブラウザ保護用）
+const MAX_FILE_SIZE_POST_MB = 5;       // 圧縮後の許容サイズ（サーバー保護用）
+
+// 圧縮設定（imageCompression関数内）
+const compressOptions = {
+  maxSizeMB: 2,           // 目標ファイルサイズ (MB)
+  maxWidthOrHeight: 1920, // 画像の長辺ピクセル数
+  initialQuality: 0.85,   // 初期画質 (0.85程度推奨)
+};
+3. データフロー（処理の流れ）画像アップロードの流れUser: ファイルを選択（複数可）。Logic: MAX_FILE_SIZE_PRE_MB (50MB) チェック → 超過なら弾く。Logic: 縦横比チェック（縦長はNG） → NGファイルを除外。Logic: browser-image-compression で圧縮（WebWorker使用）。Logic: 圧縮後サイズが MAX_FILE_SIZE_POST_MB (5MB) を超えていないか最終確認。API: POST /api/farmer/settings-v2/me/pr-images へ送信。並び替え（DnD）の流れView: ユーザーがドラッグ操作 (dnd-kit)。Logic: onDragEnd 発火。UI更新: 先に画面上の並び順を即時更新（Optimistic UI）。API: バックグラウンドで PUT .../order を送信し、確定させる。4. 今後の改善ロードマップ開発が進んだら、以下の手順でブラッシュアップを行うとスムーズです。共通パーツのグローバル化PrGalleryParts.tsx にある Spinner, UploadToast, CenterModal は汎用性が高いため、src/components/ui/ などの共通フォルダへ移動させる（他の設定画面でも使うため）。PickupSettings のリファクタリング現在の手順と同様に UI / Logic / View に分離して整理する。プレビュー機能の実装ヘッダー等に「公開ページを確認」ボタンを設置し、消費者の視点でページを確認できるようにする。

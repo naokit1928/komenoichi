@@ -1,69 +1,68 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 
-type ConfirmCtx = {
-  farmId: string;
-  riceSubtotal: number;
-  serviceFee: number;
-  total: number;
-  items: { kg: 5 | 10 | 25; qty: number; unitPrice: number }[];
-  pickupSlotCode?: string | null;
-  nextPickupDisplay?: string | null;
-  clientNextPickupDeadlineIso?: string | null;
-};
-
-const CONFIRM_CTX_KEY = "CONFIRM_CTX";
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  ink:       "#1a1108",
+  ink2:      "#4b3e2a",
+  ink3:      "#7a6c58",
+  border:    "#e8e2d8",
+  bgPale:    "#f4f1ed",
+  bgBase:    "#fdfcfa",
+  red:       "#A83020",
+} as const;
 
 type MagicLinkResponse = {
   ok: boolean;
   debug_magic_link_url?: string | null;
 };
 
-async function sendMagicLink(payload: {
-  email: string;
-  confirm_context: any;
-  agreed: boolean;
-}): Promise<MagicLinkResponse> {
-  const res = await fetch(`${API_BASE}/api/auth/consumer/magic/send`, {
+/**
+ * mode=confirm   → FarmDetail から来た「予約用ログイン」
+ * mode=loginonly → Bookedを見るための「ログインのみ」
+ *
+ * B方式：どちらも send-login を使う
+ */
+function getModeFromQuery(searchParams: URLSearchParams): "confirm" | "loginonly" {
+  const m = searchParams.get("mode");
+  return m === "confirm" ? "confirm" : "loginonly";
+}
+
+async function sendMagicLinkLoginOnly(
+  email: string,
+  redirect: string | null
+): Promise<MagicLinkResponse> {
+  const res = await fetch(`${API_BASE}/api/auth/consumer/magic/send-login`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      email,
+      redirect,
+    }),
   });
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data?.detail || "認証処理に失敗しました。");
+    throw new Error(data?.detail || "認証メールの送信に失敗しました。");
   }
 
   return res.json();
 }
 
 export default function LoginOrRegisterPage() {
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mode = useMemo(() => getModeFromQuery(searchParams), [searchParams]);
 
-  const [ctx, setCtx] = useState<ConfirmCtx | null>(null);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [magicLinkUrl, setMagicLinkUrl] = useState<string | null>(null);
   const [err, setErr] = useState("");
 
-  useEffect(() => {
-    const saved = sessionStorage.getItem(CONFIRM_CTX_KEY);
-    if (!saved) return;
-    try {
-      setCtx(JSON.parse(saved));
-    } catch {}
-  }, []);
-
   async function handleContinue() {
     try {
       setErr("");
-
-      if (!ctx) {
-        setErr("購入情報が見つかりません。Confirm からやり直してください。");
-        return;
-      }
 
       if (!email) {
         setErr("メールアドレスを入力してください。");
@@ -72,25 +71,44 @@ export default function LoginOrRegisterPage() {
 
       setLoading(true);
 
-      const res = await sendMagicLink({
-        email,
-        agreed: true,
-        confirm_context: {
-          farm_id: Number(ctx.farmId),
-          items: ctx.items
-            .filter((i) => i.qty > 0)
-            .map((i) => ({
-              size_kg: i.kg,
-              quantity: i.qty,
-            })),
-          pickup_slot_code: ctx.pickupSlotCode,
-          pickup_display: ctx.nextPickupDisplay,
-          rice_subtotal: ctx.riceSubtotal,
-          service_fee: ctx.serviceFee,
-          total: ctx.total,
-          client_next_pickup_deadline_iso: ctx.clientNextPickupDeadlineIso,
-        },
-      });
+      let redirectPath: string | null = null;
+
+      // ★ confirm のときだけ、FarmDetail が保存した CONFIRM_CTX から ConfirmSession を作る
+      if (mode === "confirm") {
+        const raw = sessionStorage.getItem("CONFIRM_CTX");
+        if (!raw) {
+          throw new Error(
+            "予約情報が見つかりません。最初からやり直してください。"
+          );
+        }
+        const confirmCtx = JSON.parse(raw);
+
+        // ★ Phase2: ConfirmSession を作る（draft保存）
+        const res = await fetch(`${API_BASE}/api/confirm/sessions`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(confirmCtx),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(
+            data?.detail || "予約セッションの作成に失敗しました。"
+          );
+        }
+
+        const data = await res.json();
+        const cs = data.confirm_session_id;
+        if (!cs) {
+          throw new Error("confirm_session_id が取得できません。");
+        }
+
+        // ★ MagicLink の戻り先は cs を持つ ConfirmPage へ
+        redirectPath = `/farms/${confirmCtx.farm_id}/confirm?cs=${cs}`;
+      }
+
+      const res = await sendMagicLinkLoginOnly(email, redirectPath);
 
       if (!res.debug_magic_link_url) {
         throw new Error("magic link が取得できません。");
@@ -104,120 +122,139 @@ export default function LoginOrRegisterPage() {
     }
   }
 
+  const title =
+    mode === "confirm"
+      ? "予約へ進む"
+      : "ログイン・新規登録";
+
+  const sub =
+    mode === "confirm"
+      ? "予約を完了するため、メールアドレスを入力してください。登録済みの方はログイン、はじめての方は新規登録となります。"
+      : "機能を利用するため、メールアドレスを入力してください。はじめての方も自動でアカウントが作成されます。";
+
   return (
-    <div
-      style={{
-        maxWidth: 520,
-        margin: "0 auto",
-        padding: "16px 20px 32px", // ← 左右を明示的に確保
-        boxSizing: "border-box",
-      }}
-    >
-      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>
-        サインインまたはアカウント作成
-      </div>
-
-      <div style={{ color: "#555", fontSize: 13, marginBottom: 14 }}>
-        メールアドレスを入力して続行してください。
-      </div>
-
-      {!magicLinkUrl ? (
-        <>
-          <input
-            type="email"
-            placeholder="メールアドレス"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-              boxSizing: "border-box", // ← 重要
-            }}
-          />
-
-          {err && (
-            <div style={{ color: "#b91c1c", marginTop: 10 }}>{err}</div>
-          )}
-
-          <button
-            onClick={handleContinue}
-            disabled={loading}
-            style={{
-              width: "100%",
-              maxWidth: 260,    
-              margin: "14px auto 0",
-              display: "block",
-              padding: "12px 16px",
-              background: loading ? "#ddd" : "#111",
-              color: loading ? "#666" : "#fff",
-              borderRadius: 10,
-              border: "none",
-              fontWeight: 700,
-              fontSize: 15,
-              cursor: loading ? "default" : "pointer",
-              marginTop: 14,
-              boxSizing: "border-box",
-            }}
-          >
-            {loading ? "処理中…" : "続行"}
-          </button>
-
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              width: "100%",
-              maxWidth: 260, 
-              margin: "10px auto 0",
-              display: "block",
-              padding: "10px 16px",
-              background: "transparent",
-              color: "#111",
-              borderRadius: 10,
-              border: "1px solid #ddd",
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: "pointer",
-              marginTop: 10,
-              boxSizing: "border-box",
-            }}
-          >
-            戻る
-          </button>
-        </>
-      ) : (
-        <div
+    <div style={{ minHeight: "100vh", backgroundColor: C.bgBase }}>
+      <section
+        style={{
+          maxWidth: 420,
+          margin: "0 auto",
+          padding: "48px 16px 32px",
+          boxSizing: "border-box",
+        }}
+      >
+        <h1
           style={{
-            marginTop: 12,
-            padding: 14,
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            background: "#fafafa",
-            wordBreak: "break-all",
-            boxSizing: "border-box",
+            fontSize: 20,
+            fontWeight: 700,
+            color: C.ink,
+            marginBottom: 24,
+            textAlign: "center",
           }}
         >
-          <div style={{ fontWeight: 800, marginBottom: 8 }}>
-            開発中のため、以下のリンクをクリックしてください
-          </div>
+          {title}
+        </h1>
 
-          <a
-            href={magicLinkUrl}
-            style={{
-              color: "#2563eb",
-              textDecoration: "underline",
-              fontSize: 14,
-            }}
-          >
-            {magicLinkUrl}
-          </a>
+        {!magicLinkUrl ? (
+          <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            
+            <div style={{ color: C.ink, fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
+              {sub}
+            </div>
 
-          <div style={{ fontSize: 12, color: "#555", marginTop: 10 }}>
-            このリンクを開くとログインが完了し、そのまま決済画面に進みます。
+            <input
+              type="email"
+              placeholder="メールアドレス"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                fontSize: 15,
+                color: C.ink,
+                marginBottom: 12,
+                boxSizing: "border-box",
+                outline: "none",
+              }}
+            />
+
+            {err && (
+              <div style={{ color: C.red, fontSize: 13, marginBottom: 16, fontWeight: 600, textAlign: "center" }}>
+                {err}
+              </div>
+            )}
+
+            <button
+              onClick={handleContinue}
+              disabled={loading}
+              style={{
+                width: "100%",
+                display: "block",
+                padding: "14px",
+                background: loading ? "#d1d5db" : C.ink2,
+                color: "#ffffff",
+                borderRadius: 9999, // 丸ボタン
+                border: "none",
+                fontWeight: 600,
+                fontSize: 15,
+                cursor: loading ? "default" : "pointer",
+                transition: "all 0.2s",
+                marginTop: 8,
+              }}
+            >
+              {loading ? "処理中…" : "続行"}
+            </button>
+
+            {/* 規約への同意文言 */}
+            <div style={{ marginTop: 24, fontSize: 12, color: C.ink3, textAlign: "center", lineHeight: 1.6 }}>
+              続行することで、<a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: C.ink2 }}>利用規約</a> および <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: C.ink2 }}>プライバシーポリシー</a> に同意したものとみなされます。
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: "32px 24px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            
+            {/* チェックアイコン */}
+            <div style={{ 
+              display: "inline-flex", alignItems: "center", justifyContent: "center", 
+              width: 48, height: 48, borderRadius: "50%", backgroundColor: C.bgPale, color: C.ink2, marginBottom: 16
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            
+            <p style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginBottom: 12 }}>
+              メールを送信しました
+            </p>
+            <p style={{ fontSize: 14, color: C.ink3, lineHeight: 1.6, marginBottom: 24 }}>
+              メール内のリンクを開いてください。<br />
+              {mode === "confirm"
+                ? "認証後、自動的に予約確認画面へ進みます。"
+                : "認証後、自動的に元のページに戻ります。"}
+            </p>
+
+            {/* 開発中のデバッグリンク表示（本番では消すか隠れる部分） */}
+            <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px dashed ${C.border}`, textAlign: "left", wordBreak: "break-all" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, marginBottom: 8 }}>
+                【開発用】以下のリンクをクリックしてテストログイン
+              </div>
+              <a
+                href={magicLinkUrl}
+                style={{
+                  color: "#2563eb",
+                  textDecoration: "underline",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                }}
+              >
+                {magicLinkUrl}
+              </a>
+            </div>
+
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -40,3 +40,19 @@ class StripeWebhookRepository:
             (payment_intent_id,),
         ).fetchone()
         return dict(row) if row else None
+
+    # ★ NEW: ConfirmSession(cs) で PENDING を取得
+    def fetch_pending_by_confirm_session(
+        self, conn: sqlite3.Connection, confirm_session_id: str
+    ) -> Optional[Dict[str, Any]]:
+        row = conn.execute(
+            """
+            SELECT *
+            FROM reservations
+            WHERE status = 'PENDING'
+              AND confirm_session_id = ?
+            LIMIT 1
+            """,
+            (confirm_session_id,),
+        ).fetchone()
+        return dict(row) if row else None

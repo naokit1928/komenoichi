@@ -14,9 +14,6 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
   const handleClick = () => {
     if (!cancelActionUri) return;
 
-    // cancelActionUri は
-    // /api/reservation/cancel?token=xxxx
-    // の想定なので token だけ抜く
     const url = new URL(cancelActionUri, window.location.origin);
     const token = url.searchParams.get("token");
 
@@ -25,7 +22,6 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
       return;
     }
 
-    // フロントのキャンセル確認ページへ遷移
     navigate(`/cancel/confirm?token=${token}`);
   };
 
@@ -43,35 +39,39 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
         キャンセル手続き
       </div>
 
-      <div style={{ fontSize: 13, marginBottom: 12 }}>
-        この予約を取り消す場合は、下のボタンから手続きできます。
-      </div>
-
       {disabled ? (
-        <div style={{ fontSize: 12, color: "#6b7280" }}>
-          この予約はキャンセルできません。
+        <div style={{ fontSize: 13, color: "#b91c1c", lineHeight: 1.5, fontWeight: 500 }}>
+          受け渡し時間を過ぎているため、システムからのキャンセルはできません。<br />
+          お困りの場合は、直接農家へご相談ください。
         </div>
       ) : (
-        <button
-          onClick={handleClick}
-          style={{
-            display: "block",
-            margin: "0 auto",
-            maxWidth: 260,
-            width: "100%",
-            textAlign: "center",
-            padding: "11px 16px",
-            borderRadius: 9999,
-            background: "#b91c1c",
-            color: "#ffffff",
-            fontSize: 14,
-            fontWeight: 600,
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          この予約をキャンセルする
-        </button>
+        <>
+          <div style={{ fontSize: 13, marginBottom: 12, color: "#374151" }}>
+            急用などで受け渡しに行けなくなった場合は、農家さんをお待たせしないよう、
+            <strong style={{ color: "#111827" }}>受け渡し開始時刻までに</strong>
+            下のボタンから手続きをお願いします。
+          </div>
+          <button
+            onClick={handleClick}
+            style={{
+              display: "block",
+              margin: "0 auto",
+              maxWidth: 260,
+              width: "100%",
+              textAlign: "center",
+              padding: "12px 16px",
+              background: "#b91c1c",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: 9999,
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            予約をキャンセルする
+          </button>
+        </>
       )}
     </section>
   );

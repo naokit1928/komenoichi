@@ -1,28 +1,41 @@
 import React from "react";
 
-// 一覧カード用の内部データ
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  red:       "#A83020",
+  redLight:  "rgba(168,48,32,0.07)",
+  redBorder: "rgba(168,48,32,0.16)",
+  gold:      "#C49A1A",
+  ink:       "#1a1108",
+  ink2:      "#4b3e2a",
+  ink3:      "#7a6c58",
+  border:    "#e8e2d8",
+  bg:        "#ffffff",
+} as const;
+
+// ── Types ─────────────────────────────────────────
 export type FarmCardData = {
   id: number;
-  name: string; // owner_label （◯◯さんのお米）
+  name: string;
   price10kg: number;
-  avatarUrl: string; // face_image_url
-  images: string[]; // pr_images（先頭をカバーとして使用）
-  title: string; // pr_title
-  addressLabel: string; // owner_address_label
-  pickupTime: string; // next_pickup_display
+  avatarUrl: string;
+  images: string[];
+  title: string;
+  addressLabel: string;
+  pickupTime: string;
   lat: number | null;
   lng: number | null;
 };
 
-// ====== UI helpers ======
+// ── Heart icon ────────────────────────────────────
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
     <svg
-      width="18"
-      height="18"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill={filled ? "#dc2626" : "none"}
-      stroke={filled ? "#dc2626" : "#111827"}
+      stroke={filled ? "#dc2626" : C.ink}
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -33,6 +46,7 @@ function HeartIcon({ filled }: { filled: boolean }) {
   );
 }
 
+// ── FarmCard ──────────────────────────────────────
 export function FarmCard({
   farm,
   isFav,
@@ -42,31 +56,36 @@ export function FarmCard({
   isFav: boolean;
   toggleFav: (id: number, e?: React.MouseEvent) => void;
 }) {
-  const card = {
-    border: "1px solid #e5e7eb",
-    borderRadius: 12,
-    background: "#fff",
-    overflow: "hidden",
-    transition: "box-shadow 150ms, transform 150ms",
-  } as const;
+  const [hovered, setHovered] = React.useState(false);
 
-  const text = { padding: 16 } as const;
-
-  // ★ カバー写真は常に1枚目
   const coverImage =
     farm.images?.[0] || "https://placehold.co/1500x1000?text=No+Image";
-
   const displayTitle = farm.title || farm.name;
 
   return (
-    <article style={card}>
-      {/* --- カバー画像（1枚のみ） --- */}
+    <article
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: C.bg,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        overflow: "hidden",
+        transition: "box-shadow 180ms ease, transform 180ms ease",
+        boxShadow: hovered
+          ? `0 8px 28px rgba(168,48,32,0.10), 0 2px 8px rgba(0,0,0,0.06)`
+          : "none",
+        transform: hovered ? "translateY(-2px)" : "none",
+      }}
+    >
+      {/* ── Cover image ── */}
       <div
         style={{
           position: "relative",
           width: "100%",
           aspectRatio: "3 / 2",
           overflow: "hidden",
+          background: "#f0ede8",
         }}
       >
         <img
@@ -77,9 +96,12 @@ export function FarmCard({
             height: "100%",
             objectFit: "cover",
             display: "block",
+            transition: "transform 300ms ease",
+            transform: hovered ? "scale(1.03)" : "scale(1)",
           }}
         />
 
+        {/* Fav button */}
         <button
           type="button"
           aria-pressed={isFav}
@@ -88,84 +110,117 @@ export function FarmCard({
             position: "absolute",
             top: 10,
             right: 10,
-            width: 38,
-            height: 38,
-            borderRadius: 9999,
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: "rgba(255,255,255,0.9)",
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            border: "1px solid rgba(255,255,255,0.5)",
+            background: "rgba(255,255,255,0.88)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
+            transition: "background 150ms",
           }}
         >
           <HeartIcon filled={isFav} />
         </button>
       </div>
 
-      {/* --- テキスト --- */}
-      <div style={text}>
-        <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+      {/* ── Body ── */}
+      <div style={{ padding: "14px 16px 16px" }}>
+
+        {/* Avatar + title */}
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 2 }}>
           <img
             src={farm.avatarUrl || "https://placehold.co/80x80?text=F"}
             alt={farm.name}
             style={{
-              width: 50,
-              height: 50,
+              width: 46,
+              height: 46,
               borderRadius: "50%",
-              border: "1px solid #d1d5db",
+              border: `1.5px solid ${C.border}`,
               objectFit: "cover",
+              flexShrink: 0,
             }}
           />
           <div>
-            <h2 style={{ fontSize: 19, fontWeight: 700, margin: 0 }}>
+            <h2
+              style={{
+                fontSize: 17,
+                fontWeight: 450,
+                lineHeight: 1.35,
+                color: C.ink,
+                margin: 0,
+                marginBottom: 2,
+                fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
+              }}
+            >
               {displayTitle}
             </h2>
-            <div style={{ fontSize: 13, color: "#4b5563" }}>{farm.name}</div>
+            <div style={{ fontSize: 12, color: C.ink3 }}>{farm.name}</div>
           </div>
         </div>
 
+        {/* Address */}
         {farm.addressLabel && (
           <p
             style={{
-              fontSize: 14,
-              color: "#4b5563",
+              fontSize: 13,
+              color: C.ink2,
               lineHeight: 1.6,
               display: "-webkit-box",
               WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical" as any,
+              WebkitBoxOrient: "vertical" as const,
               overflow: "hidden",
+              marginBottom: 2,
             }}
           >
             {farm.addressLabel}
           </p>
         )}
 
-        <div style={{ marginTop: 12 }}>
+        {/* Price */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 5 }}>
           <span
             style={{
-              fontSize: 18,
-              fontWeight: 700,
-              textDecoration: "underline",
-              marginRight: 6,
+              fontSize: 19,
+              fontWeight: 500,
+              color: C.ink,
+              fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
             }}
           >
-            ¥{farm.price10kg}
+            ¥{farm.price10kg.toLocaleString()}
           </span>
-          <span style={{ fontSize: 13, color: "#374151" }}>(10kg)</span>
-
-          {farm.pickupTime && (
-            <div
-              style={{
-                marginTop: 4,
-                fontSize: 12,
-                color: "#6b7280",
-              }}
-            >
-              次回受取日 {farm.pickupTime}
-            </div>
-          )}
+          <span style={{ fontSize: 12, color: C.ink3 }}>（10kg）</span>
         </div>
+
+        {/* Pickup time */}
+        {farm.pickupTime && (
+          <div
+            style={{
+              fontSize: 12,
+              color: C.ink3,
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            {/* Gold dot */}
+            <span
+              style={{
+                display: "inline-block",
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background: C.gold,
+                flexShrink: 0,
+              }}
+            />
+            次回受取日　{farm.pickupTime}
+          </div>
+        )}
       </div>
     </article>
   );

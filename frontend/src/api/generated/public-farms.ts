@@ -892,8 +892,6 @@ export interface components {
             pickup_display: string;
             /** Pickup Place Name */
             pickup_place_name?: string | null;
-            /** Pickup Map Url */
-            pickup_map_url?: string | null;
             /** Pickup Detail Memo */
             pickup_detail_memo?: string | null;
             /** Items Display */
@@ -1534,8 +1532,6 @@ export interface components {
             pickup_display: string;
             /** Pickup Place Name */
             pickup_place_name?: string | null;
-            /** Pickup Map Url */
-            pickup_map_url?: string | null;
             /** Pickup Detail Memo */
             pickup_detail_memo?: string | null;
             /**

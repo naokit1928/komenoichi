@@ -9,7 +9,6 @@ from app_v2.db.core import resolve_db_path
 class ReservationPaymentRepository:
 
     """
-
     責務：
       - reservations / consumers テーブルへの CRUD
       - DB接続と commit 管理

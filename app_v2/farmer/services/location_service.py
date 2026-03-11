@@ -10,7 +10,7 @@ from typing import Optional
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-# V2 共通：受け渡し地点の標準半径（400mルール）
+# ★ 追加: 受け渡し地点の制限半径（400m）
 DEFAULT_PICKUP_RADIUS_METERS: int = 400
 
 # .env からキーを読む（V1 geocoding.py と同じ優先順位）
@@ -104,7 +104,7 @@ def geocode_address(address: str, region: str = "jp", timeout_sec: float = 5.0) 
             ok=False,
             lat=None,
             lng=None,
-            status="PARSE_ERROR",
+            status=PARSE_ERROR,
             error_message=f"failed to parse geocoding response: {e}",
         )
 

@@ -4,6 +4,7 @@ import Cropper from "react-easy-crop";
 type Props = {
   faceImageUrl?: string | null;
   onUpload: (file: File) => void;
+  /** 削除ハンドラ。親側で face_image_url="" を POST する。UI ボタンは未実装。 */
   onDelete?: () => void;
   uploading?: boolean;
   deleting?: boolean;
@@ -30,7 +31,7 @@ const SPACER_BELOW_BTN_PX = 44;
 export default function FaceAvatar({
   faceImageUrl,
   onUpload,
-  onDelete: _onDelete,   // ← unused 回避
+  onDelete,
   uploading,
   deleting,
   className = "",
@@ -152,6 +153,10 @@ export default function FaceAvatar({
 
   const imageSrc = preview ?? "";
 
+  // onDelete は親から渡されるが、現在 UI 上に削除ボタンは無い。
+  // 将来削除機能を追加する場合は onDelete を呼ぶボタンをここに配置する。
+  void onDelete;
+
   return (
     <section className={`w-full ${className}`}>
       <style>{`
@@ -177,8 +182,8 @@ export default function FaceAvatar({
         .fa-busy-wrap { display:flex; flex-direction:column; align-items:center; }
       `}</style>
 
-      <button
-        type="button"
+      {/* 【修正】button -> div に変更して入れ子エラーを解消 */}
+      <div
         className="w-full bg-white"
         style={{
           backgroundColor: "#FFFFFF",
@@ -251,7 +256,7 @@ export default function FaceAvatar({
 
         {/* input */}
         <input ref={inputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden" />
-      </button>
+      </div>
 
 
       {/* ===== Crop モーダル ===== */}

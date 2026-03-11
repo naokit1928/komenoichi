@@ -1,85 +1,37 @@
-from typing import Any, Dict, Optional
-
+from typing import Optional
 from pydantic import BaseModel, Field
-
 
 # ============================================================
 # Request
 # ============================================================
 
-class MagicLinkSendRequest(BaseModel):
-    """
-    ConfirmPage から送られてくる Magic Link 発行リクエスト。
-
-    方針:
-    - confirm_context の中身は一切解釈しない
-    - JSON として保存できることだけを保証する
-    """
-
-    email: str = Field(
-        ...,
-        description="連絡用メールアドレス（厳密な検証は行わない）",
-        min_length=1,
-    )
-
-    confirm_context: Dict[str, Any] = Field(
-        ...,
-        description="ConfirmPage の state をそのまま格納するコンテキスト",
-    )
-
-    agreed: bool = Field(
-        ...,
-        description="利用規約・同意チェック（true 必須）",
-    )
-
-
 class MagicLinkLoginSendRequest(BaseModel):
     """
-    LoginOnlyPage から送られてくる Magic Link 発行リクエスト（ログイン専用）。
+    LoginOnlyPage / FarmDetail から送られてくる Magic Link 発行リクエスト（ログイン専用）。
 
     方針:
     - 予約は新規作成しない
-    - confirm_context は一切持たない
     - email のみで consumer を解決する
+    - redirect があれば consume-login 後にそのパスへ戻す
     """
-
     email: str = Field(
         ...,
         description="ログイン用メールアドレス",
         min_length=1,
     )
-
+    redirect: Optional[str] = Field(
+        default=None,
+        description="Magic Link 消費後に戻すフロントエンドのパス（省略時は booked に行かない）",
+    )
 
 # ============================================================
 # Response
 # ============================================================
 
 class MagicLinkSendResponse(BaseModel):
-    """
-    Magic Link 送信結果レスポンス（Confirm 用）。
-
-    Phase B（開発モード）方針:
-    - 実メール送信は行わない
-    - magic link URL をフロントに返し、必ず consume を通す
-    """
-
     ok: bool = True
-
-    # 開発用: フロントに表示する magic link
-    # 本番では返さない想定（mailer 差し替えで削除可）
     debug_magic_link_url: Optional[str] = None
 
-
 class MagicLinkLoginSendResponse(BaseModel):
-    """
-    Magic Link 送信結果レスポンス（ログイン専用）。
-
-    方針:
-    - 成否のみを返す
-    - 本番では debug_magic_link_url は削除可能
-    """
-
     ok: bool = True
-
-    # 開発用（Confirm と同様）
     debug_magic_link_url: Optional[str] = None

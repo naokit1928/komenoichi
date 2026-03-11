@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import FarmerSettingsHeader from "./FarmerSettingsHeader";
 import FaceAvatar from "./FaceAvatar";
@@ -13,45 +12,11 @@ import { API_BASE } from "@/config/api";
 
 type PrImage = { id: string; url: string; order: number };
 
-type FarmerStatus = {
-  is_ready_to_publish: boolean;
-  missing_fields?: string[];
-  thumbnail_url?: string | null;
-  active_flag?: number;
-};
-
-type FarmerProfile = {
-  pr_title: string;
-  pr_text: string;
-  face_image_url?: string | null;
-  cover_image_url?: string | null;
-  pr_images: PrImage[];
-  monthly_upload_bytes?: number;
-  monthly_upload_limit?: number;
-  next_reset_at?: string | null;
-};
-
-type Farm = {
-  id: number;
-  farm_name: string;
-  price_10kg: number;
-  price_5kg: number;
-  price_25kg: number;
-  rice_variety_label?: string | null;
-  location_name?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  is_accepting_reservations: boolean;
-  is_active: boolean;
-};
-
-type SettingsResponse = {
-  farm: Farm;
-  profile: FarmerProfile;
-  status: FarmerStatus;
-};
-
-type SettingsV2Response = {
+/**
+ * V2 API のレスポンス型。
+ * 旧 V1 の farm / profile / status 分割は廃止し、フラット構造をそのまま使う。
+ */
+type SettingsV2 = {
   farm_id: number;
   farm_name?: string | null;
   rice_variety_label?: string | null;
@@ -77,7 +42,7 @@ type SettingsV2Response = {
 };
 
 export default function FarmerSettingsPage() {
-  const [initial, setInitial] = useState<SettingsResponse | null>(null);
+  const [data, setData] = useState<SettingsV2 | null>(null);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [riceVariety, setRiceVariety] = useState("");
@@ -87,6 +52,7 @@ export default function FarmerSettingsPage() {
 
   useEffect(() => {
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchAll() {
@@ -95,81 +61,75 @@ export default function FarmerSettingsPage() {
       const res = await fetch(`${API_BASE}/api/farmer/settings-v2/me`, {
         credentials: "include",
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        console.error("settings fetch failed:", res.status);
+        return;
+      }
 
-      const v2: SettingsV2Response = await res.json();
-
-      const mapped: SettingsResponse = {
-        farm: {
-          id: v2.farm_id,
-          farm_name: v2.farm_name ?? "",
-          price_10kg: v2.price_10kg ?? 0,
-          price_5kg: v2.price_5kg ?? 0,
-          price_25kg: v2.price_25kg ?? 0,
-          rice_variety_label: v2.rice_variety_label ?? null,
-          location_name: v2.pickup_place_name ?? null,
-          latitude: v2.pickup_lat ?? null,
-          longitude: v2.pickup_lng ?? null,
-          is_accepting_reservations: !!v2.is_accepting_reservations,
-          is_active: (v2.active_flag ?? 1) === 1,
-        },
-        profile: {
-          pr_title: v2.pr_title ?? "",
-          pr_text: v2.pr_text ?? "",
-          face_image_url: v2.face_image_url ?? null,
-          cover_image_url: v2.cover_image_url ?? null,
-          pr_images: v2.pr_images ?? [],
-          monthly_upload_bytes: v2.monthly_upload_bytes,
-          monthly_upload_limit: v2.monthly_upload_limit,
-          next_reset_at: v2.next_reset_at,
-        },
-        status: {
-          is_ready_to_publish: v2.is_ready_to_publish ?? false,
-          missing_fields: v2.missing_fields ?? [],
-          thumbnail_url: v2.thumbnail_url ?? v2.cover_image_url ?? null,
-          active_flag: v2.active_flag ?? 1,
-        },
-      };
-
-      setInitial(mapped);
-      setTitle(mapped.profile.pr_title);
-      setText(mapped.profile.pr_text);
-      setRiceVariety(mapped.farm.rice_variety_label ?? "");
+      const v2: SettingsV2 = await res.json();
+      setData(v2);
+      setTitle(v2.pr_title ?? "");
+      setText(v2.pr_text ?? "");
+      setRiceVariety(v2.rice_variety_label ?? "");
+    } catch (err) {
+      console.error("settings fetch error:", err);
     } finally {
       setBusy(false);
     }
   }
 
-  async function postMe(payload: any) {
-    await fetch(`${API_BASE}/api/farmer/settings-v2/me`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
+  async function postMe(payload: Record<string, unknown>) {
+    try {
+      const res = await fetch(`${API_BASE}/api/farmer/settings-v2/me`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        console.error("postMe failed:", res.status, body);
+        alert("保存に失敗しました。もう一度お試しください。");
+        return;
+      }
+    } catch (err) {
+      console.error("postMe error:", err);
+      alert("通信エラーが発生しました。もう一度お試しください。");
+    }
     await fetchAll();
   }
 
-  async function uploadSingle(kind: "face" | "cover", file: File) {
+  async function uploadFaceImage(file: File) {
     const fd = new FormData();
     fd.append("file", file);
 
-    const endpoint =
-      kind === "face"
-        ? `${API_BASE}/api/farmer/settings-v2/face-image/me`
-        : `${API_BASE}/api/farmer/settings-v2/cover-image/me`;
-
-    await fetch(endpoint, {
-      method: "POST",
-      credentials: "include",
-      body: fd,
-    });
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/farmer/settings-v2/face-image/me`,
+        {
+          method: "POST",
+          credentials: "include",
+          body: fd,
+        }
+      );
+      if (!res.ok) {
+        const body = await res.text();
+        console.error("face upload failed:", res.status, body);
+        if (body.includes("monthly upload limit exceeded")) {
+          alert("月間アップロード上限に達しました。");
+        } else {
+          alert("画像のアップロードに失敗しました。");
+        }
+      }
+    } catch (err) {
+      console.error("face upload error:", err);
+      alert("通信エラーが発生しました。もう一度お試しください。");
+    }
   }
 
-  // ★ ここが重要：JSX の外で公開ガードを計算
   const canPublish =
-    !!initial &&
-    initial.status.is_ready_to_publish &&
+    !!data &&
+    !!data.is_ready_to_publish &&
     !busy;
 
   return (
@@ -179,7 +139,7 @@ export default function FarmerSettingsPage() {
       <div className="mx-auto max-w-3xl pb-12">
         <section className="px-4 sm:px-6 mt-6">
           <PublishToggleCard
-            isOn={!!initial?.farm.is_accepting_reservations}
+            isOn={!!data?.is_accepting_reservations}
             disabled={!canPublish}
             onToggle={(v) =>
               postMe({ is_accepting_reservations: v })
@@ -188,32 +148,32 @@ export default function FarmerSettingsPage() {
         </section>
 
         <PrGallery
-          initialImages={initial?.profile.pr_images ?? []}
-          coverFallbackUrl={initial?.profile.cover_image_url ?? null}
+          initialImages={data?.pr_images ?? []}
+          coverFallbackUrl={data?.cover_image_url ?? null}
           onChanged={fetchAll}
         />
 
         <PriceEditor
-          initialPrice10={initial?.farm.price_10kg}
+          initialPrice10={data?.price_10kg ?? undefined}
           onSaved={fetchAll}
-          disabled={!initial}
+          disabled={!data}
         />
 
         <RiceVarietyLabelEditor
           value={riceVariety}
           saving={busy}
-          disabled={!initial}
+          disabled={!data}
           onChange={setRiceVariety}
           onSave={(v) => postMe({ rice_variety_label: v })}
         />
 
         <FaceAvatar
-          faceImageUrl={initial?.profile.face_image_url ?? null}
+          faceImageUrl={data?.face_image_url ?? null}
           uploading={uploadingFace}
           deleting={deletingFace}
           onUpload={async (f) => {
             setUploadingFace(true);
-            await uploadSingle("face", f);
+            await uploadFaceImage(f);
             await fetchAll();
             setUploadingFace(false);
           }}

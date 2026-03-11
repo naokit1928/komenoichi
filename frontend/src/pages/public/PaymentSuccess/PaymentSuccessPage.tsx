@@ -2,6 +2,13 @@
 
 import type { CSSProperties } from "react";
 
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  ink:  "#1a1108",
+  ink2: "#4b3e2a", // ★ メインカラーを濃い茶色に
+  ink3: "#7a6c58",
+} as const;
+
 export default function PaymentSuccessPage() {
   return (
     <div style={sx.container}>
@@ -75,7 +82,7 @@ const sx: Record<string, CSSProperties> = {
     width: 64,
     height: 64,
     borderRadius: "50%",
-    background: "#10B981",
+    background: C.ink2, // 濃い茶色へ変更
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -86,28 +93,28 @@ const sx: Record<string, CSSProperties> = {
     fontSize: 20,
     lineHeight: "28px",
     fontWeight: 700,
-    color: "#111827",
+    color: C.ink,
     textAlign: "center",
   },
   subtext: {
     marginTop: 6,
     fontSize: 13,
     lineHeight: "20px",
-    color: "#4B5563",
+    color: C.ink3,
     textAlign: "center",
   },
   confirmBtn: {
     display: "block",
     width: "100%",
     textAlign: "center",
-    background: "#10B981",
+    background: C.ink2, // 濃い茶色へ変更
     color: "#fff",
     textDecoration: "none",
     fontSize: 15,
     fontWeight: 600,
-    padding: "12px 14px",
-    borderRadius: 10,
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    padding: "14px",
+    borderRadius: 9999,
+    boxShadow: "0 4px 12px rgba(75, 62, 42, 0.2)", // 影も茶色ベースに
   },
 };
 

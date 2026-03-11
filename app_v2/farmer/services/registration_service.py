@@ -60,7 +60,7 @@ class RegistrationService:
         return float(result.lat), float(result.lng)
 
     # --------------------------------------------------------
-    # Public API（最終形）
+    # Public API
     # --------------------------------------------------------
 
     def complete_registration(
@@ -88,7 +88,11 @@ class RegistrationService:
         if existing is None:
             raise RegistrationError("farm not found")
 
-        # 2. build DTOs
+        # 2. pickup 座標の妥当性チェック
+        if not (-90 <= pickup_lat <= 90) or not (-180 <= pickup_lng <= 180):
+            raise RegistrationError("invalid pickup coordinates")
+
+        # 3. build DTOs
         owner_dto = OwnerDTO(
             owner_last_name=owner_last_name,
             owner_first_name=owner_first_name,
@@ -110,19 +114,19 @@ class RegistrationService:
             pickup_time=pickup_time,
         )
 
-        # 3. geocode owner address
+        # 4. geocode owner address
         owner_lat, owner_lng = self._geocode_owner_address(
             owner_pref=owner_pref,
             owner_city=owner_city,
             owner_addr_line=owner_addr_line,
         )
 
-        # 4. initial state（既存仕様を維持）
+        # 5. initial state
         active_flag = 1
         is_public = 0
         is_accepting_reservations = 0
 
-        # 5. persist
+        # 6. persist
         try:
             self.repo.update_farm_registration(
                 farm_id=farm_id,
@@ -135,16 +139,17 @@ class RegistrationService:
                 is_accepting_reservations=is_accepting_reservations,
             )
 
-            # registration 完了の確定（既存仕様踏襲）
+            # owner_farmer_id を自身に設定
+            # NOTE: 現状 farm = farmer の 1:1 対応。将来分離する場合は要変更。
             self.repo.set_owner_farmer_id(
                 farm_id=farm_id,
                 owner_farmer_id=farm_id,
             )
 
-            # ★ registration_status を 1段階進める
+            # registration_status を1段階進める
             self.repo.set_registration_status(
-               farm_id=farm_id,
-               registration_status="PROFILE_COMPLETED",
+                farm_id=farm_id,
+                registration_status="PROFILE_COMPLETED",
             )
 
             self.repo.commit()
@@ -152,6 +157,8 @@ class RegistrationService:
         except Exception:
             self.repo.rollback()
             raise
+        finally:
+            self.repo.close()
 
         return RegistrationResult(
             farm_id=farm_id,

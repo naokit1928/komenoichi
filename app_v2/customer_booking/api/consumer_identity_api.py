@@ -12,17 +12,19 @@ router = APIRouter(
 @router.get("/identity")
 def get_consumer_identity(request: Request):
     """
-    consumer identity API（表示専用・確定版）
+    consumer identity API（フロー判定用・正解版）
 
-    - consumer セッションがある場合のみ email を返す
-    - email は consumers.email を唯一の正とする（人格）
-    - 未ログイン時は email = null
-    - 業務ロジック・分岐には一切使用しない
+    ルール:
+    - 本当に「ログイン済み」と言えるのは
+        session.consumer_id があり
+        かつ consumers.email が存在する場合のみ
+    - それ以外（MagicLink直後 / 壊れたsession / 未ログイン）は
+        is_logged_in = False
     """
 
     consumer_id = request.session.get("consumer_id")
 
-    # 未ログイン
+    # session が無い → 未ログイン
     if not consumer_id:
         return {
             "is_logged_in": False,
@@ -32,7 +34,7 @@ def get_consumer_identity(request: Request):
     try:
         consumer_id_int = int(consumer_id)
     except Exception:
-        # session が壊れている場合も表示しない
+        # session が壊れている
         return {
             "is_logged_in": False,
             "email": None,
@@ -57,13 +59,14 @@ def get_consumer_identity(request: Request):
     finally:
         conn.close()
 
-    # ログインはしているが email 未設定（理論上は初回直後のみ）
+    # email が無い = MagicLink途中 or 未確定 → 未ログイン扱い
     if not email:
         return {
-            "is_logged_in": True,
+            "is_logged_in": False,
             "email": None,
         }
 
+    # ここに来たときだけ「ログイン済み」
     return {
         "is_logged_in": True,
         "email": email,

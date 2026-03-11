@@ -1,5 +1,5 @@
 import React from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 
 type Tab = {
   key: string;
@@ -36,6 +36,9 @@ export default function FarmerLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // ★ 修正1: RequireFarmerSession から流れてきたデータを受け取る
+  const context = useOutletContext();
+
   const isActive = (path: string) =>
     location.pathname.startsWith(path);
 
@@ -47,8 +50,8 @@ export default function FarmerLayout() {
         paddingBottom: BOTTOM_TAB_HEIGHT,
       }}
     >
-      {/* ===== ページ本体 ===== */}
-      <Outlet />
+      {/* ★ 修正2: 受け取ったデータをさらに子画面（Menuなど）へ流す */}
+      <Outlet context={context} />
 
       {/* ===== Bottom Tab ===== */}
       <nav

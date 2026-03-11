@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { API_BASE } from "@/config/api";
 
 /* =========================
-   型定義（既存から移植）
+   型定義
    ========================= */
 
 export type EventMeta = {
@@ -96,73 +96,14 @@ function totalRiceSubtotalFromRows(rows: ReservationRow[]): number {
    Hook 本体
    ========================= */
 
-type Params = {
-  mode: "farmer" | "admin";
-  reservationId?: number;
-};
-
-export function useFarmerReservations({
-  mode,
-  reservationId,
-}: Params) {
-  const [data, setData] =
-    useState<ExpandedReservationResponse | null>(null);
+// ★ offset（何週間ずらすか）を引数として受け取る
+export function useFarmerReservations(offset: number = 0) {
+  const [data, setData] = useState<ExpandedReservationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /* ---------- Admin モード ---------- */
+  /* ---------- Farmer データ取得 ---------- */
   useEffect(() => {
-    if (mode !== "admin") return;
-    if (!reservationId) return;
-
-    const fetchAdminReservation = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const res = await fetch(
-          `${API_BASE}/api/admin/reservations?reservation_id=${reservationId}`
-        );
-        const json = await res.json();
-        const item = json.items?.[0];
-
-        if (!item) {
-          setData(null);
-          return;
-        }
-
-        const detailRes = await fetch(
-          `${API_BASE}/reservations/${item.reservation_id}`
-        );
-        const detailJson = await detailRes.json();
-
-        setData({
-          event_meta: null,
-          rows: [
-            {
-              reservation_id: item.reservation_id,
-              pickup_code: `R${item.reservation_id}-${item.user_id}`,
-              created_at: item.created_at,
-              rice_subtotal: item.rice_subtotal,
-              items: detailJson.items,
-            },
-          ],
-        });
-      } catch (e) {
-        console.error("admin fetch error", e);
-        setError("管理画面用の予約データ取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAdminReservation();
-  }, [mode, reservationId]);
-
-  /* ---------- Farmer モード ---------- */
-  useEffect(() => {
-    if (mode === "admin") return;
-
     let cancelled = false;
 
     const fetchData = async () => {
@@ -170,15 +111,14 @@ export function useFarmerReservations({
       setError(null);
 
       try {
-        const res = await fetch(
-          `${API_BASE}/reservations/expanded`,
-          { credentials: "include" }
-        );
+        // ★ クエリパラメータに offset を付与
+        const res = await fetch(`${API_BASE}/reservations/expanded?offset=${offset}`, {
+          credentials: "include",
+        });
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
-        const json =
-          (await res.json()) as ExpandedReservationResponse;
+        const json = (await res.json()) as ExpandedReservationResponse;
 
         if (!cancelled) {
           setData(json);
@@ -202,12 +142,11 @@ export function useFarmerReservations({
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [offset]); // ★ offset が変わるたびに再取得する
 
   /* ---------- 派生データ ---------- */
 
-  const hasRows =
-    !!data && Array.isArray(data.rows) && data.rows.length > 0;
+  const hasRows = !!data && Array.isArray(data.rows) && data.rows.length > 0;
 
   const totalBySize = SIZE_COLUMNS.map((size) => {
     if (!data || !hasRows) return 0;
@@ -217,9 +156,7 @@ export function useFarmerReservations({
       Array.isArray(data.bundle_summary.items) &&
       data.bundle_summary.items.length > 0
     ) {
-      const found = data.bundle_summary.items.find(
-        (i) => i.size_kg === size
-      );
+      const found = data.bundle_summary.items.find((i) => i.size_kg === size);
       if (found) return found.total_quantity;
     }
 

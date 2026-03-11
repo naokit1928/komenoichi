@@ -1,13 +1,24 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  ink:       "#1a1108",
+  ink2:      "#4b3e2a",
+  ink3:      "#7a6c58",
+  border:    "#e8e2d8",
+  bgBase:    "#fdfcfa",
+  red:       "#A83020",
+} as const;
 
 const LoginOnlyPage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // ?redirect=/reservation/booked
+  // ?redirect=/favorites などを取得
   const redirectTo = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get("redirect") || "/reservation/booked";
+    return params.get("redirect") || "/farms"; // デフォルトは農家一覧へ
   }, [location.search]);
 
   const [email, setEmail] = useState("");
@@ -32,27 +43,25 @@ const LoginOnlyPage: React.FC = () => {
       setSending(true);
       setError(null);
 
-      const res = await fetch(
-        `${apiBase}/api/auth/consumer/magic/send-login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ email }),
-        }
-      );
+      // ★ 修正: リダイレクト先をバックエンドに伝えるためにパラメータを追加
+      const targetUrl = `${apiBase}/api/auth/consumer/magic/send-login?redirect=${encodeURIComponent(redirectTo)}`;
+      
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
 
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || "送信に失敗しました");
       }
 
-      // 開発環境では debug_magic_link_url が返る想定
-      const data = await res.json();
-
       // DEV: magic link をそのまま開けるようにしておく（本番では不要）
+      const data = await res.json();
       if (data?.debug_magic_link_url) {
         console.log("DEBUG MAGIC LINK:", data.debug_magic_link_url);
       }
@@ -63,18 +72,15 @@ const LoginOnlyPage: React.FC = () => {
     } finally {
       setSending(false);
     }
-  }, [email, apiBase]);
+  }, [email, apiBase, redirectTo]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: C.bgBase }}>
       <section
         style={{
           maxWidth: 420,
           margin: "0 auto",
-          paddingTop: 32,
-          paddingBottom: 32,
-          paddingLeft: 16,
-          paddingRight: 16,
+          padding: "48px 16px 32px",
           boxSizing: "border-box",
         }}
       >
@@ -82,7 +88,8 @@ const LoginOnlyPage: React.FC = () => {
           style={{
             fontSize: 20,
             fontWeight: 700,
-            marginBottom: 16,
+            color: C.ink,
+            marginBottom: 24,
             textAlign: "center",
           }}
         >
@@ -90,16 +97,16 @@ const LoginOnlyPage: React.FC = () => {
         </h1>
 
         {!sent && (
-          <>
+          <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             <p
               style={{
                 fontSize: 14,
-                color: "#374151",
+                color: C.ink,
                 marginBottom: 20,
                 lineHeight: 1.6,
               }}
             >
-              予約内容を確認するために、ご予約時に使用したメールアドレスを入力してください。
+              機能を利用するには、ご予約時に使用したメールアドレスを入力してください。
             </p>
 
             <input
@@ -109,21 +116,25 @@ const LoginOnlyPage: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               style={{
                 width: "100%",
-                padding: "12px 16px",        // ★ 左右を 16px に統一
-                borderRadius: 10,            // ★ button と合わせる
-                border: "1px solid #d1d5db",
-                fontSize: 14,
+                padding: "14px 16px",
+                borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                fontSize: 15,
+                color: C.ink,
                 marginBottom: 12,
-                boxSizing: "border-box",     // ★ 念押し
+                boxSizing: "border-box",
+                outline: "none",
               }}
             />
 
             {error && (
               <div
                 style={{
-                  color: "#b91c1c",
+                  color: C.red,
                   fontSize: 13,
-                  marginBottom: 12,
+                  marginBottom: 16,
+                  fontWeight: 600,
+                  textAlign: "center"
                 }}
               >
                 {error}
@@ -135,17 +146,17 @@ const LoginOnlyPage: React.FC = () => {
               disabled={sending}
               style={{
                 width: "100%",
-                maxWidth: 260, 
-                margin: "0 auto", 
                 display: "block",
-                padding: "12px",
-                background: sending ? "#9ca3af" : "#10B981",
+                padding: "14px",
+                background: sending ? "#d1d5db" : C.ink2,
                 color: "#ffffff",
-                borderRadius: 10,
+                borderRadius: 9999, // 丸ボタンに変更
                 border: "none",
                 fontWeight: 600,
                 fontSize: 15,
                 cursor: sending ? "default" : "pointer",
+                transition: "all 0.2s",
+                marginTop: 8,
               }}
             >
               {sending ? "送信中…" : "ログイン用メールを送信"}
@@ -154,48 +165,52 @@ const LoginOnlyPage: React.FC = () => {
             <p
               style={{
                 fontSize: 12,
-                color: "#6b7280",
-                marginTop: 16,
+                color: C.ink3,
+                marginTop: 20,
                 textAlign: "center",
-              }}
-            >
-              ※ メール内のリンクを開くと、<br />
-              自動的に予約内容ページへ戻ります。
-            </p>
-          </>
-        )}
-
-        {sent && (
-          <div style={{ textAlign: "center", padding: "24px 0" }}>
-            <p
-              style={{
-                fontSize: 15,
-                fontWeight: 600,
-                marginBottom: 12,
-              }}
-            >
-              ログイン用メールを送信しました
-            </p>
-            <p
-              style={{
-                fontSize: 14,
-                color: "#374151",
                 lineHeight: 1.6,
               }}
             >
+              ※ メール内のリンクを開くと、<br />
+              自動的に元のページへ戻ります。
+            </p>
+          </div>
+        )}
+
+        {sent && (
+          <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: "32px 24px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            <div style={{ 
+              display: "inline-flex", alignItems: "center", justifyContent: "center", 
+              width: 48, height: 48, borderRadius: "50%", backgroundColor: C.bgPale, color: C.ink2, marginBottom: 16
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            
+            <p style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginBottom: 12 }}>
+              メールを送信しました
+            </p>
+            <p style={{ fontSize: 14, color: C.ink3, lineHeight: 1.6, marginBottom: 24 }}>
               メール内のリンクを開いてください。<br />
-              認証後、自動的に予約内容ページに戻ります。
+              認証後、自動的に元のページに戻ります。
             </p>
 
-            <p
+            <button
+              onClick={() => navigate("/farms")}
               style={{
-                fontSize: 12,
-                color: "#9ca3af",
-                marginTop: 16,
+                padding: "10px 24px",
+                borderRadius: 9999,
+                backgroundColor: "#fff",
+                color: C.ink2,
+                border: `1px solid ${C.border}`,
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: "pointer",
               }}
             >
-              （戻り先：{redirectTo}）
-            </p>
+              農家一覧へ戻る
+            </button>
           </div>
         )}
       </section>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, status
+from fastapi import APIRouter, Request, HTTPException, status, Query
 
 from app_v2.customer_booking.dtos import ExportReservationsResponseDTO
 from app_v2.customer_booking.services.reservation_expanded_service import (
@@ -24,19 +24,16 @@ _service = ReservationExpandedService()
 )
 def get_reservations_expanded(
     request: Request,
+    offset: int = Query(0, description="週のオフセット（0=今週, -1=先週, 1=来週）")
 ) -> ExportReservationsResponseDTO:
     """
     Export ページ V2 用の ViewModel API（ME 前提）。
 
     - farm_id は URL / Query / Body からは一切受け取らない
     - request.session["farm_id"] を唯一の正とする
-    - 今週の受け渡しイベント（1回分）を判定し
+    - offset（週の移動）を加味してイベントを判定し
     - そのイベントに属する confirmed 予約だけを集め
     - ExportBluePrint.md どおりの DTO を返す
-
-    注意:
-    - reservations 系の API / Service / Repo は参照しない
-    - confirmed_v2 を正とする
     """
 
     farm_id = request.session.get("farm_id")
@@ -46,4 +43,5 @@ def get_reservations_expanded(
             detail="Not authenticated",
         )
 
-    return _service.build_export_view(farm_id=farm_id)
+    # offset を Service に渡す
+    return _service.build_export_view(farm_id=farm_id, offset=offset)

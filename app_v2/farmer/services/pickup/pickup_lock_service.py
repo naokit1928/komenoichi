@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+# ★ timedelta を追加
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from app_v2.customer_booking.utils.pickup_time_utils import JST
@@ -8,7 +9,7 @@ from app_v2.customer_booking.repository.reservation_expanded_repo import (
     ReservationExpandedRepository,
 )
 from app_v2.customer_booking.services.reservation_expanded_service import (
-    _calc_event_for_export,
+    _resolve_slot_to_utc_event,
     _calc_event_for_booking,
     _parse_db_datetime,
 )
@@ -17,15 +18,6 @@ from app_v2.customer_booking.services.reservation_expanded_service import (
 class PickupLockService:
     """
     Pickup 設定が「予約によりロックされているか」を判定する専用サービス。
-
-    責務:
-    - reservation_expanded と同一ロジックで
-      「今のイベントに属する confirmed 予約が存在するか」を判定する
-    - pickup_settings / API / DB 更新処理は一切知らない
-
-    重要:
-    - pickup_time が未設定なら必ず「ロックなし」
-    - 内部エラーが起きても例外は投げない（安全側に倒す）
     """
 
     def __init__(self) -> None:
@@ -40,14 +32,6 @@ class PickupLockService:
         farm_id: int,
         pickup_time: Optional[str],
     ) -> int:
-        """
-        reservation_expanded と完全に同じ考え方で、
-
-        - pickup_time（スロット）が未設定 → 0
-        - status = confirmed のみ対象
-        - created_at から booking event を計算
-        - 「今の export event」と同じ週に属するものだけをカウント
-        """
         if not pickup_time:
             return 0
 
@@ -60,8 +44,17 @@ class PickupLockService:
         if not records:
             return 0
 
-        now = datetime.now(JST)
-        export_event_start, _ = _calc_event_for_export(now, pickup_time)
+        now_utc = datetime.now(timezone.utc)
+        
+        # 純粋にイベント終了時刻を基準にする
+        base_start_utc, base_end_utc = _resolve_slot_to_utc_event(now_utc, pickup_time)
+        
+        # 現在時刻が受け渡し終了時刻(20:00)を過ぎていれば、ロックの対象を「来週」に切り替える
+        if now_utc >= base_end_utc:
+            # ★ 修正: datetime.timedelta ではなく、直接 timedelta(days=7) を使用
+            lock_target_start = base_start_utc.date() + timedelta(days=7)
+        else:
+            lock_target_start = base_start_utc.date()
 
         count = 0
         for rec in records:
@@ -71,7 +64,6 @@ class PickupLockService:
             try:
                 created_at_dt = _parse_db_datetime(rec.created_at)
             except Exception:
-                # 壊れた created_at は無視
                 continue
 
             booking_event_start, _ = _calc_event_for_booking(
@@ -79,8 +71,8 @@ class PickupLockService:
                 pickup_time,
             )
 
-            # 今表示対象のイベントと同じ週か
-            if booking_event_start.date() == export_event_start.date():
+            # 予約がロック対象の週に属しているか
+            if booking_event_start.date() == lock_target_start:
                 count += 1
 
         return count
@@ -94,17 +86,15 @@ class PickupLockService:
         farm_id: int,
         pickup_time: Optional[str],
     ) -> int:
-        """
-        今のイベントに属する confirmed 予約数を返す。
-        例外は外に出さない。
-        """
         try:
             return self._count_confirmed_for_current_event(
                 farm_id=farm_id,
                 pickup_time=pickup_time,
             )
-        except Exception:
-            # 何か壊れても「予約なし」として扱う（編集不能にしない）
+        except Exception as e:
+            # ★ 修正: エラーを握りつぶさず、ターミナルに詳細を出力して気付けるようにする
+            import traceback
+            traceback.print_exc()
             return 0
 
     def is_locked(
@@ -112,12 +102,6 @@ class PickupLockService:
         farm_id: int,
         pickup_time: Optional[str],
     ) -> bool:
-        """
-        pickup 設定がロックされているかどうか。
-
-        - confirmed が 1 件以上 → True
-        - それ以外 → False
-        """
         return self.get_active_reservations_count(
             farm_id=farm_id,
             pickup_time=pickup_time,

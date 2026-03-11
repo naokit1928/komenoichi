@@ -1,1 +1,1 @@
-export { default } from "./ReservationsRedirectPage";
+export { default } from "./ReservationsPage";

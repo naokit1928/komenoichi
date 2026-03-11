@@ -76,8 +76,8 @@ export default function MapBottomSheet({
         >
           <span
             style={{
-              fontSize: 20,
-              fontWeight: 700,
+              fontSize: 17,
+              fontWeight: 500,
               color: "#111827",
               lineHeight: 1,
             }}
@@ -131,8 +131,8 @@ export default function MapBottomSheet({
             {/* タイトル */}
             <div
               style={{
-                fontSize: 15,
-                fontWeight: 700,
+                fontSize: 14,
+                fontWeight: 500,
                 color: "#111827",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
@@ -145,7 +145,7 @@ export default function MapBottomSheet({
             {/* 住所 */}
             <div
               style={{
-                fontSize: 13,
+                fontSize: 11,
                 color: "#374151",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
@@ -159,8 +159,8 @@ export default function MapBottomSheet({
             {/* 価格 */}
             <div
               style={{
-                fontSize: 15,
-                fontWeight: 700,
+                fontSize: 14,
+                fontWeight: 500,
                 color: "#111827",
               }}
             >

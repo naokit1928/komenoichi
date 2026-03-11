@@ -17,7 +17,7 @@ type Props = {
 };
 
 // -------------------------
-// 型定義（親に残す）
+// 型定義
 // -------------------------
 type EventMeta = {
   pickup_slot_code: string;
@@ -40,72 +40,53 @@ type ReservationRow = {
 };
 
 // -------------------------
-// 表示用ユーティリティ（親に残す）
+// 表示用ユーティリティ
 // -------------------------
 function formatEventLabel(meta: EventMeta | null): string {
   return meta?.pickup_display ?? "";
 }
 
-// ----------------------------------------------
-// FarmerReservationTable
-// ----------------------------------------------
 const FarmerReservationTable: React.FC<Props> = ({
-  reservationId,
   mode = "farmer",
 }) => {
-  // -------------------------
-  // データ取得（hook）
-  // -------------------------
-  const {
-    data,
-    loading,
-    error,
-    hasRows,
-    totalBySize,
-    totalAmount,
-    formatYen,
-  } = useFarmerReservations({
-    mode,
-    reservationId,
-  });
+  // ★ 週の切り替え用ステート
+  const [offset, setOffset] = useState(0);
 
-  // -------------------------
-  // UI state
-  // -------------------------
-  const [selectedRow, setSelectedRow] =
-    useState<ReservationRow | null>(null);
+  // ★ フックに offset を渡す
+  const { data, loading, error, hasRows, totalBySize, totalAmount, formatYen } = useFarmerReservations(offset);
 
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [dontShowNoticeAgain, setDontShowNoticeAgain] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<ReservationRow | null>(null);
 
-  // -------------------------
-  // 初回ルールモーダル
-  // -------------------------
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      const ack = window.localStorage.getItem(NOTICE_STORAGE_KEY);
-      if (ack === "1") {
-        setDontShowNoticeAgain(true);
-        setShowNoticeModal(false);
-      } else {
-        setDontShowNoticeAgain(false);
-        setShowNoticeModal(mode === "farmer");
+    const ack = localStorage.getItem(NOTICE_STORAGE_KEY);
+    if (ack === "true") {
+      setDontShowNoticeAgain(true);
+    } else {
+      if (mode === "farmer") {
+        setShowNoticeModal(true);
       }
-    } catch {
-      setDontShowNoticeAgain(false);
-      setShowNoticeModal(mode === "farmer");
     }
   }, [mode]);
 
-  // -------------------------
-  // handlers
-  // -------------------------
+  const handleCloseNoticeModal = () => setShowNoticeModal(false);
+  
+  const handlePrimaryCloseNoticeModal = () => {
+    if (dontShowNoticeAgain) {
+      localStorage.setItem(NOTICE_STORAGE_KEY, "true");
+    } else {
+      localStorage.removeItem(NOTICE_STORAGE_KEY);
+    }
+    setShowNoticeModal(false);
+  };
+
+  const handleOpenNoticeModal = () => setShowNoticeModal(true);
+  
   const handleBack = () => {
     window.history.back();
   };
-
+  
   const handlePrint = () => {
     window.print();
   };
@@ -113,35 +94,13 @@ const FarmerReservationTable: React.FC<Props> = ({
   const handleRowClick = (row: ReservationRow) => {
     setSelectedRow(row);
   };
-
+  
   const handleCloseDetailModal = () => {
     setSelectedRow(null);
   };
 
-  const handleOpenNoticeModal = () => {
-    setShowNoticeModal(true);
-  };
+  const rows = data?.rows ?? [];
 
-  const handleCloseNoticeModal = () => {
-    setShowNoticeModal(false);
-  };
-
-  const handlePrimaryCloseNoticeModal = () => {
-    try {
-      if (typeof window !== "undefined") {
-        if (dontShowNoticeAgain) {
-          window.localStorage.setItem(NOTICE_STORAGE_KEY, "1");
-        } else {
-          window.localStorage.removeItem(NOTICE_STORAGE_KEY);
-        }
-      }
-    } catch {}
-    setShowNoticeModal(false);
-  };
-
-  // -------------------------
-  // render
-  // -------------------------
   return (
     <div className={styles.page}>
       <div className={styles.card}>
@@ -156,19 +115,55 @@ const FarmerReservationTable: React.FC<Props> = ({
           />
         )}
 
+        {/* ---------- 週切り替えナビゲーション ---------- */}
+        {mode === "farmer" && (
+          <div className={styles.weekNav}>
+            <button 
+              onClick={() => setOffset((o) => o - 1)} 
+              className={styles.weekNavBtn}
+              disabled={loading}
+            >
+              ＜ 先週
+            </button>
+            <span className={styles.weekNavLabel}>
+              {offset === 0 ? "今週" : offset < 0 ? `${Math.abs(offset)}週間前` : `${offset}週間後`}
+            </span>
+            <button 
+              onClick={() => setOffset((o) => o + 1)} 
+              className={styles.weekNavBtn}
+              disabled={loading}
+            >
+              来週 ＞
+            </button>
+          </div>
+        )}
+
         {/* ---------- Summary Table ---------- */}
         {mode === "farmer" && (
           <section className={styles.tableSection}>
-            <ReservationSummaryTable
-              loading={loading}
-              error={error}
-              hasRows={hasRows}
-              rows={data?.rows ?? []}
-              totalBySize={totalBySize}
-              totalAmount={totalAmount}
-              formatYen={formatYen}
-              onRowClick={handleRowClick}
-            />
+            {loading ? (
+              <div className={styles.infoText}>読み込み中...</div>
+            ) : error ? (
+              <div className={styles.errorText}>{error}</div>
+            ) : !hasRows ? (
+              <div className={styles.emptyState}>
+                <p className={styles.emptyText}>
+                  まだ予約はありません。<br />
+                  新しい予約が入るとここに表示されます。
+                </p>
+              </div>
+            ) : (
+              <ReservationSummaryTable
+                loading={loading}
+                error={error}
+                hasRows={hasRows}
+                rows={rows}
+                totalBySize={totalBySize}
+                totalAmount={totalAmount}
+                formatYen={formatYen}
+                onRowClick={handleRowClick}
+              />
+            )}
           </section>
         )}
       </div>

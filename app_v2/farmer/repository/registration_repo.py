@@ -13,6 +13,9 @@ class RegistrationRepository:
         self.conn = sqlite3.connect(db_path)
         self.conn.row_factory = sqlite3.Row
 
+    def close(self) -> None:
+        self.conn.close()
+
     # -------------------------------------------------
     # Query
     # -------------------------------------------------
@@ -115,7 +118,6 @@ class RegistrationRepository:
             (owner_farmer_id, farm_id),
         )
 
-    # ★★★ 追加：registration_status 更新（ここだけが変更点） ★★★
     def set_registration_status(
         self,
         *,

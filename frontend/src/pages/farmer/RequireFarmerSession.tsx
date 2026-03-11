@@ -2,22 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 
-/**
- * /farmer/* 用 セッション & 登録ガード
- *
- * 責務：
- * 1. 未ログイン → /auth/login
- * 2. ログイン済・未登録 → /farmer/registration
- * 3. ログイン済・登録完了 → 通過
- *
- * 前提：
- * - 認証状態の唯一の正はサーバーセッション
- * - farm_id / owner_farmer_id をフロントは一切保持しない
- * - 判定は /api/farmer/me のみを信頼する
- */
 type FarmerMeResponse = {
   farm_id: number;
   is_registered: boolean;
+  email: string | null;
 };
 
 export default function RequireFarmerSession() {
@@ -26,6 +14,8 @@ export default function RequireFarmerSession() {
   const [status, setStatus] = useState<
     "checking" | "authorized" | "unauthorized" | "unregistered"
   >("checking");
+
+  const [farmerData, setFarmerData] = useState<FarmerMeResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,26 +28,19 @@ export default function RequireFarmerSession() {
 
         if (cancelled) return;
 
-        // 未ログイン
-        if (res.status === 401 || res.status === 403) {
-          setStatus("unauthorized");
-          return;
-        }
-
-        if (!res.ok) {
+        if (res.status === 401 || res.status === 403 || !res.ok) {
           setStatus("unauthorized");
           return;
         }
 
         const data: FarmerMeResponse = await res.json();
+        setFarmerData(data);
 
-        // ログイン済だが未登録
         if (!data.is_registered) {
           setStatus("unregistered");
           return;
         }
 
-        // ログイン済 & 登録完了
         setStatus("authorized");
       } catch {
         if (!cancelled) {
@@ -73,12 +56,10 @@ export default function RequireFarmerSession() {
     };
   }, [location.pathname]);
 
-  // 判定中
   if (status === "checking") {
     return <div style={{ padding: 16 }}>認証を確認しています…</div>;
   }
 
-  // 未ログイン → login
   if (status === "unauthorized") {
     return (
       <Navigate
@@ -89,18 +70,17 @@ export default function RequireFarmerSession() {
     );
   }
 
-// 未登録 → registration
-// ※ registration / settings は許可（登録フロー中）
-if (
-  status === "unregistered" &&
-  location.pathname !== "/farmer/registration" &&
-  location.pathname !== "/farmer/settings"
-) {
-  return <Navigate to="/farmer/registration" replace />;
-}
+  if (
+    status === "unregistered" &&
+    location.pathname !== "/farmer/registration" &&
+    location.pathname !== "/farmer/settings"
+  ) {
+    return <Navigate to="/farmer/registration" replace />;
+  }
 
+  if (status === "authorized" && location.pathname === "/farmer/registration") {
+    return <Navigate to="/farmer/reservations" replace />;
+  }
 
-
-  // ログイン済 & 登録完了
-  return <Outlet />;
+  return <Outlet context={farmerData} />;
 }

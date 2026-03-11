@@ -1,6 +1,11 @@
+# app_v2/customer_booking/consumer_history/consumer_history_api.py
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime, timezone
 
 from app_v2.customer_booking.dtos import (
     LastConfirmedFarmResponse,
@@ -8,6 +13,16 @@ from app_v2.customer_booking.dtos import (
 from app_v2.customer_booking.consumer_history.consumer_history_repo import (
     ConsumerHistoryRepository,
 )
+
+# ── 履歴用の新しいDTO ──
+class ReservationHistoryItem(BaseModel):
+    reservation_id: int
+    farm_id: int
+    farm_name: str
+    last_name: Optional[str] = None
+    pickup_display: str
+    total_amount: int
+    status_category: str  # "upcoming" | "completed" | "canceled"
 
 # ------------------------------------------------------------
 # Router
@@ -29,33 +44,60 @@ router = APIRouter(
 def get_last_confirmed_farm(
     request: Request,
 ) -> LastConfirmedFarmResponse:
-    """
-    ログイン中 consumer が「直近に予約した farm_id」を返す。
-
-    責務:
-    - consumer 履歴の read-only 参照
-    - UI 表示補助用（Public Farms List）
-      （LISTING ページでのハイライト・並び替え用）
-
-    仕様:
-    - Session に consumer_id がある場合のみ有効
-    - 未ログイン時は farm_id=None を返す
-    - ACTIVE / 受け取り日時は考慮しない
-      （あくまで「前回予約した農家」）
-    """
-
     consumer_id = request.session.get("consumer_id")
     if not consumer_id:
-        # 未ログイン時はハイライトなし
-        return LastConfirmedFarmResponse(
-            farm_id=None,
-        )
+        return LastConfirmedFarmResponse(farm_id=None)
 
     repo = ConsumerHistoryRepository()
-    farm_id = repo.get_last_confirmed_farm_id(
-        consumer_id=int(consumer_id)
-    )
+    farm_id = repo.get_last_confirmed_farm_id(int(consumer_id))
+    return LastConfirmedFarmResponse(farm_id=farm_id)
 
-    return LastConfirmedFarmResponse(
-        farm_id=farm_id,
-    )
+
+# ------------------------------------------------------------
+# GET /api/public/reservations/history
+# ------------------------------------------------------------
+@router.get(
+    "/reservations/history",
+    response_model=List[ReservationHistoryItem],
+)
+def get_consumer_reservation_history(request: Request):
+    """
+    ログイン中のユーザーの予約履歴一覧（現在＋過去）を返す
+    """
+    consumer_id = request.session.get("consumer_id")
+    if not consumer_id:
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Not authenticated"})
+
+    repo = ConsumerHistoryRepository()
+    rows = repo.get_consumer_reservations_with_farm_info(int(consumer_id))
+
+    now_utc = datetime.now(timezone.utc)
+    results = []
+
+    for row in rows:
+        # ★ DBの値を強制的に小文字にする（CANCELED対策）
+        db_status = (row["status"] or "").lower()
+        event_end_str = row["event_end_at"]
+
+        # 状態の判定ロジック (upcoming / completed / canceled)
+        cat = "completed"
+        if db_status in ("canceled", "cancelled"):
+            cat = "canceled"
+        elif db_status == "confirmed":
+            if event_end_str:
+                # タイムゾーン付きでパースして現在時刻と比較
+                end_dt = datetime.fromisoformat(event_end_str.replace("Z", "+00:00"))
+                if now_utc < end_dt:
+                    cat = "upcoming"
+
+        results.append(ReservationHistoryItem(
+            reservation_id=row["reservation_id"],
+            farm_id=row["farm_id"],
+            farm_name=row["farm_name"] or "",
+            last_name=row["last_name"],
+            pickup_display=row["pickup_display"] or "",
+            total_amount=row["rice_subtotal"] or 0,
+            status_category=cat
+        ))
+
+    return results

@@ -2,6 +2,14 @@
 
 import FarmDetailSoftMap from "../../../components/FarmDetailSoftMap";
 
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  ink:       "#1a1108",
+  ink2:      "#4b3e2a", // 13pxの標準テキストに適用
+  ink3:      "#7a6c58",
+  border:    "#e8e2d8",
+} as const;
+
 type Props = {
   centerLat?: number;
   centerLng?: number;
@@ -16,19 +24,19 @@ export default function FarmDetailAreaMapCard({
   return (
     <div
       style={{
-        border: "1px solid #e5e7eb",
+        border: `1px solid ${C.border}`,
         borderRadius: 8,
         background: "#fff",
         padding: 16,
         marginBottom: 0,
       }}
     >
-      {/* 見出し：通常サイズ・通常ウェイト */}
+      {/* 見出し：13px, 濃い茶色 (Level 2) */}
       <div
         style={{
           fontSize: 13,
-          fontWeight: 400,
-          color: "#6b7280",
+          fontWeight: 500,
+          color: C.ink2,
           marginBottom: 8,
         }}
       >
@@ -45,15 +53,16 @@ export default function FarmDetailAreaMapCard({
         markerTitle="受け渡し予定地点"
       />
 
+      {/* 注釈：13px, 濃い茶色 (Level 2) */}
       <p
         style={{
           fontSize: 13,
-          color: "#6b7280",
-          marginTop: 8,
+          color: C.ink2,
+          marginTop: 10,
+          lineHeight: 1.5,
         }}
       >
-        予約確定後に<strong>より詳細なピンの位置と住所</strong>
-        を表示します。
+        予約確定後に<strong style={{ color: C.ink, fontWeight: 600 }}>より詳細なピンの位置と住所</strong>を表示します。
       </p>
     </div>
   );

@@ -1,6 +1,9 @@
+# app_v2/customer_booking/services/cancel_service.py
 from __future__ import annotations
 
+import os
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Tuple
@@ -16,6 +19,7 @@ from app_v2.customer_booking.services.booking_lifecycle_service import (
 )
 
 UTC = timezone.utc
+logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------------------
@@ -24,18 +28,14 @@ UTC = timezone.utc
 class CancelDomainError(Exception):
     pass
 
-
 class InvalidTokenError(CancelDomainError):
     pass
-
 
 class ReservationNotFoundError(CancelDomainError):
     pass
 
-
 class AlreadyCancelledError(CancelDomainError):
     pass
-
 
 class NotCancellableError(CancelDomainError):
     pass
@@ -62,9 +62,6 @@ class CancelService:
     def __init__(self) -> None:
         self.status_service = Booking_Lifecycle_Service()
 
-    # -------------------------------------------------
-    # items_json → qty_*（既存ロジック維持）
-    # -------------------------------------------------
     def _parse_items_json(self, items_json: str) -> Tuple[int, int, int]:
         try:
             items = json.loads(items_json) if items_json else []
@@ -88,30 +85,24 @@ class CancelService:
 
         return qty_5, qty_10, qty_25
 
-    # -------------------------------------------------
-    # pickup_display / is_cancellable（DB唯一正）
-    # -------------------------------------------------
     def _calc_pickup_info(self, reservation_row: dict) -> Tuple[str, bool]:
         pickup_display = reservation_row.get("pickup_display") or ""
 
-        event_start_raw = reservation_row.get("event_start_at")
-        if not event_start_raw:
-            raise CancelDomainError("EVENT_START_NOT_SET")
+        # ★ キャンセル期限を「受け渡し終了時刻」に変更
+        event_end_raw = reservation_row.get("event_end_at")
+        if not event_end_raw:
+            raise CancelDomainError("EVENT_END_NOT_SET")
 
-        # DB に保存されている UTC 時刻をそのまま使う
-        event_start = datetime.fromisoformat(event_start_raw)
-        if event_start.tzinfo is None:
-            event_start = event_start.replace(tzinfo=UTC)
+        event_end = datetime.fromisoformat(event_end_raw)
+        if event_end.tzinfo is None:
+            event_end = event_end.replace(tzinfo=UTC)
 
-        cancel_limit = event_start - timedelta(hours=3)
+        cancel_limit = event_end
         now_utc = datetime.now(UTC)
 
         is_cancellable = now_utc < cancel_limit
         return pickup_display, is_cancellable
 
-    # -------------------------------------------------
-    # token と reservation の照合
-    # -------------------------------------------------
     def _verify_token_user(self, payload: CancelTokenPayload, row: dict) -> None:
         db_consumer_id = row.get("consumer_id")
         if db_consumer_id is None:
@@ -120,9 +111,6 @@ class CancelService:
         if int(db_consumer_id) != int(payload.consumer_id):
             raise InvalidTokenError("CONSUMER_ID_MISMATCH")
 
-    # -------------------------------------------------
-    # GET /cancel（確認ページ）
-    # -------------------------------------------------
     def build_cancel_page_data(self, payload: CancelTokenPayload) -> CancelPageData:
         row = get_reservation_by_id(int(payload.reservation_id))
         if not row:
@@ -131,7 +119,6 @@ class CancelService:
         if row["status"] == "cancelled":
             raise AlreadyCancelledError("ALREADY_CANCELLED")
 
-        # consumer_id の正当性チェック
         self._verify_token_user(payload, row)
 
         qty_5, qty_10, qty_25 = self._parse_items_json(row.get("items_json", ""))
@@ -149,9 +136,6 @@ class CancelService:
             is_cancellable=is_cancellable,
         )
 
-    # -------------------------------------------------
-    # POST /cancel（実キャンセル）
-    # -------------------------------------------------
     def cancel_reservation(self, payload: CancelTokenPayload) -> CancelPageData:
         data = self.build_cancel_page_data(payload)
 
@@ -161,5 +145,12 @@ class CancelService:
         # 状態更新（正式・一元管理）
         self.status_service.cancel(data.reservation_id)
 
-        # 通知・REMINDER・外部副作用はここでは一切行わない
+        # 通知処理（専用Serviceへ委譲）
+        try:
+            from app_v2.customer_booking.services.reservation_notification_service import ReservationNotificationService
+            notification_svc = ReservationNotificationService()
+            notification_svc.send_booking_cancelled_notifications(data.reservation_id)
+        except Exception as e:
+            logger.error(f"Failed to trigger cancel notifications: {e}", exc_info=True)
+
         return data

@@ -1,99 +1,77 @@
 from __future__ import annotations
 
 from datetime import datetime
-
+import sqlite3
 from fastapi import HTTPException
 
 from app_v2.customer_booking.dtos import (
     ReservationFormDTO,
     ReservationResultDTO,
 )
-
 from app_v2.customer_booking.utils.pickup_time_utils import (
     JST,
     compute_next_pickup,
+    parse_slot_code,               # ★ 追加
+    format_event_display_label,    # ★ 追加
 )
-
 from app_v2.customer_booking.repository.confirm_repo import (
     create_pending_reservation,
 )
 
-
-# ============================================================
-# Service
-# ============================================================
-
 class ConfirmService:
-    """
-    ConfirmPage 用 Service（V2 / orchestration 専用）
-
-    責務:
-    - クライアント / サーバ締切の最終検証
-    - confirm_repo による pending reservation 作成
-
-    ※ 状態遷移（confirmed / cancelled）は一切行わない
-    ※ confirmed は Stripe / Booking_Lifecycle_Service の責務
-    """
-
     SERVICE_FEE = 300
     CURRENCY = "jpy"
-
-    def __init__(self) -> None:
-        pass
-
-    # --------------------------------------------------------
-    # Public API
-    # --------------------------------------------------------
 
     def create_pending_reservation(
         self,
         payload: ReservationFormDTO,
+        consumer_id: int,   
+        conn: sqlite3.Connection | None = None,  
     ) -> ReservationResultDTO:
 
         now = self._now_jst()
 
-        # --- クライアント側締切（Detail → Confirm 遷移保護） ---
+        # 1. クライアント側の期限チェック
         self._check_client_deadline(
             now=now,
             client_deadline_iso=payload.client_next_pickup_deadline_iso,
         )
 
-        # --- サーバ側締切（最終安全装置） ---
+        # 2. サーバー側の期限チェック
         self._check_server_deadline(
             now=now,
             pickup_slot_code=payload.pickup_slot_code,
         )
 
-        # ----------------------------------------------------
-        # pending reservation 作成
-        #
-        # pickup_display は
-        # 「consumer が Confirm で同意した JST 表示」を
-        # 不変データとして保存する
-        # ----------------------------------------------------
+        # =========================================================
+        # 3. 表示文字列（pickup_display）のサーバー側再生成（改ざん防止）
+        # =========================================================
+        try:
+            _, start_hour, end_hour = parse_slot_code(payload.pickup_slot_code)
+            start_dt, _ = compute_next_pickup(now, payload.pickup_slot_code)
+            end_dt = start_dt.replace(hour=end_hour)
+            
+            # サーバー側で計算した「正しい文字列」
+            safe_pickup_display = format_event_display_label(start_dt, end_dt)
+        except Exception:
+            raise HTTPException(status_code=400, detail="不正な pickup_slot_code です")
+
+        # 4. DBへの保存（上書きした safe_pickup_display を渡す）
         result = create_pending_reservation(
             farm_id=payload.farm_id,
             pickup_slot_code=payload.pickup_slot_code,
-            pickup_display=payload.pickup_display,  # ★ 追加
+            pickup_display=safe_pickup_display,  # ★ フロントの値を捨てて上書き
             items=payload.items,
             service_fee=self.SERVICE_FEE,
             currency=self.CURRENCY,
+            consumer_id=consumer_id,
+            conn=conn,
         )
-
-        # ★ ここでは状態遷移しない（pending のまま）
 
         return result
 
-    # ========================================================
-    # Internal helpers（業務ルールのみ）
-    # ========================================================
-
     def _now_jst(self) -> datetime:
         return datetime.now(JST)
-
-    # --------------------------------------------------------
-    # Deadline checks
-    # --------------------------------------------------------
 
     def _check_client_deadline(
         self,
@@ -130,18 +108,12 @@ class ConfirmService:
         pickup_slot_code: str,
     ) -> None:
         if not pickup_slot_code or not pickup_slot_code.strip():
-            raise HTTPException(
-                status_code=400,
-                detail="pickup_slot_code is required",
-            )
+            raise HTTPException(status_code=400, detail="pickup_slot_code is required")
 
-        _start_dt, deadline_dt = compute_next_pickup(
-            now,
-            pickup_slot_code.strip(),
-        )
+        _start_dt, deadline_dt = compute_next_pickup(now, pickup_slot_code)
 
         if now >= deadline_dt:
             raise HTTPException(
                 status_code=409,
-                detail="今週分の予約受付は締め切りました。",
+                detail="申し訳ありません、この受取日時の予約受付は終了しました。",
             )

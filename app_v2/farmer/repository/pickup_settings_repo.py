@@ -2,27 +2,18 @@ from __future__ import annotations
 
 from typing import Optional, Dict, Any
 import sqlite3
-from datetime import datetime
-
-from app_v2.db.core import resolve_db_path
-
 
 class PickupSettingsRepository:
     """
-    Pickup Settings（受け渡し場所・受け渡し時間）専用の DB アクセス層（sqlite3版）。
-
-    原則:
-    - DB パスは resolve_db_path() のみを使用
-    - sqlite3 / SQL / commit / rollback はここに閉じ込める
+    Pickup Settings 専用の DB アクセス層。
+    コネクションは外部から注入される前提で動作する。
     """
 
-    def __init__(self, db: Any = None) -> None:
-        # db 引数は互換性のためだけに受け取るが使わない
-        self.conn = sqlite3.connect(resolve_db_path())
-        self.conn.row_factory = sqlite3.Row
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self.conn = conn
 
     # ---------------------------------------------------------
-    # Farm（pickup 設定）の取得
+    # 取得
     # ---------------------------------------------------------
 
     def fetch_farm_pickup(self, farm_id: int) -> Optional[Dict[str, Any]]:
@@ -47,46 +38,49 @@ class PickupSettingsRepository:
         return dict(row) if row else None
 
     # ---------------------------------------------------------
-    # Pickup 情報の更新
+    # 部分更新 (PATCH対応)
     # ---------------------------------------------------------
 
-    def update_pickup_settings(
+    def update_pickup_settings_partial(
         self,
         farm_id: int,
-        *,
-        pickup_lat: float,
-        pickup_lng: float,
-        pickup_place_name: str,
-        pickup_notes: Optional[str],
-        pickup_time: str,
+        pickup_lat: Optional[float] = None,
+        pickup_lng: Optional[float] = None,
+        pickup_place_name: Optional[str] = None,
+        pickup_notes: Optional[str] = None,
+        pickup_time: Optional[str] = None,
     ) -> None:
-        self.conn.execute(
-            """
-            UPDATE farms
-            SET
-                pickup_lat = ?,
-                pickup_lng = ?,
-                pickup_place_name = ?,
-                pickup_notes = ?,
-                pickup_time = ?
-            WHERE farm_id = ?
-            """,
-            (
-                pickup_lat,
-                pickup_lng,
-                pickup_place_name,
-                pickup_notes,
-                pickup_time,
-                farm_id,
-            ),
-        )
+        """
+        渡された値(None以外)のみを更新する。
+        """
+        set_clauses = []
+        params = []
 
-    # ---------------------------------------------------------
-    # トランザクション操作
-    # ---------------------------------------------------------
+        if pickup_lat is not None:
+            set_clauses.append("pickup_lat = ?")
+            params.append(pickup_lat)
+        
+        if pickup_lng is not None:
+            set_clauses.append("pickup_lng = ?")
+            params.append(pickup_lng)
+            
+        if pickup_place_name is not None:
+            set_clauses.append("pickup_place_name = ?")
+            params.append(pickup_place_name)
+            
+        if pickup_notes is not None:
+            set_clauses.append("pickup_notes = ?")
+            params.append(pickup_notes)
+            
+        if pickup_time is not None:
+            set_clauses.append("pickup_time = ?")
+            params.append(pickup_time)
 
-    def commit(self) -> None:
-        self.conn.commit()
+        # 更新対象がなければ何もしない
+        if not set_clauses:
+            return
 
-    def rollback(self) -> None:
-        self.conn.rollback()
+        sql = f"UPDATE farms SET {', '.join(set_clauses)} WHERE farm_id = ?"
+        params.append(farm_id)
+
+        self.conn.execute(sql, params)

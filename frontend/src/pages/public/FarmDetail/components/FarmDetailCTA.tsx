@@ -1,6 +1,17 @@
+import React from "react";
+
+// ── Brand tokens ──────────────────────────────────
+const C = {
+  red:       "#A83020",
+  ink:       "#1a1108", // 最も濃い焦げ茶（ほぼ黒に見える太字部分）
+  ink2:      "#4b3e2a", // 中間の茶色
+  ink3:      "#7a6c58", // 薄めの茶色（冷たいグレーの代わりにこちらを使用）
+  border:    "#e8e2d8",
+} as const;
+
 type Props = {
   riceSubtotal: number;
-  pickupTextCTA: string; // ← 使わないが契約維持
+  pickupTextCTA: string;
   onNext: () => void;
   money: (n: number) => string;
   disabled: boolean;
@@ -9,50 +20,27 @@ type Props = {
 
 export default function FarmDetailCTA({
   riceSubtotal,
-  pickupTextCTA, // ← unused（将来用）
+  pickupTextCTA,
   onNext,
   money,
   disabled,
   isOverLimit,
 }: Props) {
-  /**
-   * 「予約内容を確認」クリック時のハンドラ
-   *
-   * 目的：
-   * - DETAIL PAGE を通過した時刻を保存する
-   * - CONFIRM PAGE 側で
-   *   「通過時は3時間前／確定時は3時間以内」
-   *   のケースだけを検出するため
-   *
-   * 注意：
-   * - 表示ロジックや締切判定は一切ここでは行わない
-   * - 既存挙動（通過可否）は変えない
-   */
-  const handleNext = () => {
-    try {
-      sessionStorage.setItem(
-        "detail_passed_at",
-        new Date().toISOString()
-      );
-    } catch {
-      // sessionStorage が使えなくても致命ではないため無視
-    }
-
-    onNext();
-  };
+  // スッキリ見せるため、「次回受け渡し」を削る
+  const shortPickupText = pickupTextCTA.replace(/^次回受け渡し\s*/, "");
 
   return (
     <div
       style={{
         position: "fixed",
+        bottom: 0,
         left: 0,
         right: 0,
-        bottom: 0,
         background: "#ffffff",
-        borderTop: "1px solid #e5e7eb",
-        boxShadow: "0 -4px 12px rgba(0,0,0,0.06)",
-        padding: "16px 22px",
+        borderTop: `1px solid ${C.border}`,
+        padding: "12px 16px calc(12px + env(safe-area-inset-bottom))",
         zIndex: 50,
+        boxShadow: "0 -4px 16px rgba(138,108,88,0.06)", // 影も少しブラウン寄りにしています
       }}
     >
       <div
@@ -60,52 +48,79 @@ export default function FarmDetailCTA({
           maxWidth: 520,
           margin: "0 auto",
           display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
-          gap: 16,
-          paddingLeft: 12,
+          gap: 12,
         }}
       >
-        {/* ===== 左：金額情報 ===== */}
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, color: "#6b7280" }}>
-            お米代合計
+        {/* ── 左側：金額とテキスト情報 ── */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* 金額 */}
+          <div
+            style={{
+              fontSize: 18,
+              fontWeight: 600,
+              color: C.ink, // 最も濃い焦げ茶
+              lineHeight: 1.2,
+              marginBottom: 4,
+              fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            ¥ {money(riceSubtotal)}
+          </div>
+          
+          {/* 日時（グレーをやめて、温かみのある薄い茶色に変更） */}
+          <div
+            style={{
+              fontSize: 12,
+              color: C.ink3, // ← ここをグレーから茶色（ink3）に変更しました
+              lineHeight: 1.3,
+            }}
+          >
+            {shortPickupText}
           </div>
 
-          <div style={{ fontSize: 22, fontWeight: 800 }}>
-            {money(riceSubtotal)}円
-          </div>
-
+          {/* エラーメッセージ */}
           {isOverLimit && (
             <div
               style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: "#b91c1c",
+                fontSize: 11,
+                color: C.red,
+                fontWeight: 600,
+                marginTop: 2,
               }}
             >
-              ※ 注文は合計50kgまでです
+              ※注文上限を超えています
             </div>
           )}
         </div>
 
-        {/* ===== 右：CTA ===== */}
+        {/* ── 右側：アクションボタン ── */}
         <button
-          onClick={handleNext}
+          type="button"
+          onClick={onNext}
           disabled={disabled}
           style={{
-            minWidth: "clamp(140px, 45vw, 184px)",
-            padding: "11px 16px",
-            background: disabled ? "#9ca3af" : "#1f7a36",
-            color: "#fff",
-            borderRadius: 9999,
+            width: "40%",
+            maxWidth: 160,
+            minWidth: 120,
+            padding: "12px 0",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            borderRadius: 9999, // ピル型（完全な角丸）
+            background: disabled ? "#d1d5db" : C.red,
             border: "none",
+            color: "#ffffff",
             fontWeight: 600,
             fontSize: 15,
             cursor: disabled ? "not-allowed" : "pointer",
-            whiteSpace: "nowrap",
+            transition: "background 0.2s ease",
           }}
         >
-          予約内容を確認
+          予約へ進む
         </button>
       </div>
     </div>

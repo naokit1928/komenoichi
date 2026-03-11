@@ -42,11 +42,6 @@ const ReservationDetailModal: React.FC<Props> = ({
                 内部ID：{row.reservation_id}
               </div>
             </div>
-
-            {/* 既存の中書き（復活済み） */}
-            <div className={styles.modalNote}>
-              ※ 単価は予約時の価格です。この単価で会計をしてください。
-            </div>
           </div>
 
           <button
@@ -58,9 +53,14 @@ const ReservationDetailModal: React.FC<Props> = ({
           </button>
         </header>
 
+        {/* ★ 新しい警告ボックス（注意書きを置き換え、目立たせる） */}
+        <div className={styles.warningBox}>
+          ⚠️ 以下の単価は「予約時の価格」です。<br />
+          必ずこの単価・金額で会計してください。
+        </div>
+
         <div className={styles.modalBody}>
           <table className={styles.modalTable}>
-            {/* ★ ラベル行を追加（ここだけ） */}
             <thead>
               <tr>
                 <th>品名</th>
@@ -90,11 +90,12 @@ const ReservationDetailModal: React.FC<Props> = ({
                 </tr>
               ))}
 
+              {/* ★ 合計金額をレシート風に強調（文字を大きく、太く） */}
               <tr className={styles.modalTotalRow}>
-                <td>合計</td>
-                <td />
-                <td />
-                <td className={styles.cellRight}>
+                <td colSpan={3} style={{ textAlign: "right", paddingRight: "16px", verticalAlign: "middle" }}>
+                  合計
+                </td>
+                <td className={`${styles.cellRight} ${styles.receiptTotalAmount}`}>
                   {formatYen(row.rice_subtotal)}
                 </td>
               </tr>

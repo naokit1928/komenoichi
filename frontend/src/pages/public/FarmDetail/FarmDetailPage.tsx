@@ -2,20 +2,15 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { API_BASE } from "@/config/api";
-
 import { useFarmDetail } from "./hooks/useFarmDetail";
 
 import FarmDetailHero from "./components/FarmDetailHero";
 import FarmDetailBody from "./components/FarmDetailBody";
 import FarmDetailCTA from "./components/FarmDetailCTA";
 
-/* ★ 共通ヘッダー */
-import { FarmsListHeader as PublicPageHeader } from "@/components/PublicPageHeader";
-
 // ★ 注文ルール
 import { calcTotalKg, isOverMaxKg } from "./rules/orderRules";
 
-// ---- LocalStorage: お気に入り ----
 const FAVORITES_KEY = "favoriteFarms";
 
 const loadFavoriteIds = (): string[] => {
@@ -52,12 +47,34 @@ async function fetchIdentity(): Promise<{
   return res.json();
 }
 
+/* ===== state API ===== */
+type ConsumerState = {
+  is_logged_in: boolean;
+  pending: {
+    exists: boolean;
+    reservation_id: number | null;
+    farm_id: number | null;
+  };
+  active: {
+    exists: boolean;
+    reservation_id: number | null;
+    farm_id: number | null;
+  };
+};
+
+async function fetchConsumerState(): Promise<ConsumerState> {
+  const res = await fetch(`${API_BASE}/api/consumer/state`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("state の取得に失敗しました");
+  return res.json();
+}
+
 export default function FarmDetailPage() {
   const { farmId } = useParams();
   const farmIdStr = String(farmId ?? "");
   const navigate = useNavigate();
 
-  // ===== identity =====
   const [consumerEmail, setConsumerEmail] =
     useState<string | undefined>(undefined);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -75,7 +92,25 @@ export default function FarmDetailPage() {
     run();
   }, []);
 
-  // ===== data =====
+  /* ===== Active 判定は state API を正とする ===== */
+  const [hasActive, setHasActive] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setHasActive(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        const state = await fetchConsumerState();
+        setHasActive(state.active.exists);
+      } catch {
+        setHasActive(false);
+      }
+    })();
+  }, [isLoggedIn]);
+
   const {
     farm,
     loading,
@@ -87,7 +122,6 @@ export default function FarmDetailPage() {
     photoUrls,
   } = useFarmDetail(farmIdStr);
 
-  // ===== お気に入り =====
   const [isFav, setIsFav] = useState(false);
   const favAnimatingRef = useRef(false);
 
@@ -109,7 +143,6 @@ export default function FarmDetailPage() {
     }
   };
 
-  // ===== share =====
   const titleText = farm?.pr_title ?? null;
 
   const doShare = async () => {
@@ -129,7 +162,6 @@ export default function FarmDetailPage() {
     } catch {}
   };
 
-  // ===== 数量・価格 =====
   const [selectedKg, setSelectedKg] = useState<Kg>(10);
   const [qtyByKg, setQtyByKg] = useState<{ 5: number; 10: number; 25: number }>({
     5: 0,
@@ -165,59 +197,74 @@ export default function FarmDetailPage() {
     setQtyByKg((p) => ({ ...p, [kg]: Math.max(0, p[kg] - 1) }));
   };
 
-  // ===== バリデーション =====
   const totalKg = calcTotalKg(qtyByKg);
   const isEmptySelection = totalKg === 0;
   const isOverLimit = isOverMaxKg(qtyByKg);
   const isNextDisabled = isEmptySelection || isOverLimit;
 
-  // ===== 次へ =====
   const pickupTextCard = farm?.next_pickup_display ?? "未設定";
   const pickupTextCTA = farm?.next_pickup_display
     ? `次回受け渡し ${farm.next_pickup_display}`
     : "受け渡し日時は未設定です";
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!farm || isNextDisabled) return;
 
-    const total = riceSubtotal + serviceFee;
-
-    const confirmState = {
-      farmId: farmIdStr,
-      riceSubtotal,
-      serviceFee,
-      total,
-      items: sizes.map((s) => ({
-        kg: s.kg,
-        unitPrice: s.price,
-        qty: qtyByKg[s.kg],
-      })),
-      pickupSlotCode: farm.pickup_slot_code ?? null,
-      nextPickupDisplay: farm.next_pickup_display ?? null,
-      clientNextPickupDeadlineIso: farm.next_pickup_deadline ?? null,
+    const form = {
+      farm_id: Number(farmIdStr),
+      pickup_slot_code: farm.pickup_slot_code,
+      pickup_display: farm.next_pickup_display,
+      items: sizes
+        .filter((s) => qtyByKg[s.kg] > 0)
+        .map((s) => ({
+          size_kg: s.kg,
+          quantity: qtyByKg[s.kg],
+        })),
+      client_next_pickup_deadline_iso: farm.next_pickup_deadline ?? null,
     };
 
+    // 未ログイン → MagicLink 経由（既存ロジックそのまま）
     if (!isLoggedIn) {
-      sessionStorage.setItem("CONFIRM_CTX", JSON.stringify(confirmState));
-      navigate("/login");
+      sessionStorage.setItem("CONFIRM_CTX", JSON.stringify(form));
+      navigate(`/login?mode=confirm&farmId=${farmIdStr}`);
       return;
     }
 
-    navigate(`/farms/${farmIdStr}/confirm`, { state: confirmState });
+    // アクティブ予約あり
+    if (hasActive) {
+      navigate(`/farms/${farmIdStr}/active`);
+      return;
+    }
+
+    // ★ ログイン済みでも ConfirmSession を作ってから...
+    const res = await fetch(`${API_BASE}/api/confirm/sessions`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    if (!res.ok) {
+      alert("予約セッションの作成に失敗しました");
+      return;
+    }
+
+    const data = await res.json();
+    const cs = data.confirm_session_id;
+    if (!cs) {
+      alert("confirm_session_id が取得できません");
+      return;
+    }
+
+    /* ▼ 修正箇所：Bridge を経由せず、直接 Confirm 画面へ遷移させる */
+    navigate(`/farms/${farmIdStr}/confirm?cs=${encodeURIComponent(cs)}`);
   };
 
-  // ===== 通常 FarmDetail =====
   const centerLat = farm?.pickup_lat ?? undefined;
   const centerLng = farm?.pickup_lng ?? undefined;
 
   return (
     <>
-      {consumerEmail && (
-        <PublicPageHeader title="" consumerEmail={consumerEmail} />
-      )}
-
-      <div style={{ height: 0 }} />
-
       <FarmDetailHero
         farmId={farmIdStr}
         photoUrls={photoUrls}

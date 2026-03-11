@@ -1,55 +1,56 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 
+// ── Brand tokens (農家向け黒統一) ──
+const C = {
+  ink:       "#111111", // メインテキスト・ボタン色（黒）
+  ink3:      "#64748b", // サブテキスト（グレー）
+  border:    "#e2e8f0", // 枠線（グレー）
+  bgPale:    "#f1f5f9", // アイコン背景（薄いグレー）
+  bgBase:    "#ffffff", // 背景色
+  red:       "#ef4444", // エラー色
+} as const;
+
 export default function AuthLoginPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as any)?.from || "/farmer/settings";
-
-  const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+  
+  // 開発用URLを保持するstate
+  const [magicLinkUrl, setMagicLinkUrl] = useState<string | null>(null);
 
-  const requestOtp = async () => {
+  const handleSendLink = async () => {
+    if (!email) {
+      setError("メールアドレスを入力してください。");
+      return;
+    }
     try {
       setError("");
       setLoading(true);
+      setMagicLinkUrl(null);
 
-      const res = await fetch(`${API_BASE}/api/auth/request-otp`, {
+      const res = await fetch(`${API_BASE}/api/auth/farmer/magic/send-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-        credentials: "include",
+        credentials: "include", 
       });
 
-      if (!res.ok) throw new Error("OTP送信に失敗しました");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 404 && data.detail === "email_not_registered") {
+          throw new Error("このメールアドレスは登録されていません。");
+        }
+        throw new Error("メールの送信に失敗しました。");
+      }
 
-      setStep("otp");
-    } catch (e: any) {
-      setError(e.message ?? "エラーが発生しました");
-    } finally {
-      setLoading(false);
-    }
-  };
+      const data = await res.json();
+      if (data.debug_magic_link_url) {
+        setMagicLinkUrl(data.debug_magic_link_url);
+      }
 
-  const verifyOtp = async () => {
-    try {
-      setError("");
-      setLoading(true);
-
-      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
-        credentials: "include",
-      });
-
-      if (!res.ok) throw new Error("認証に失敗しました");
-
-      navigate(from, { replace: true });
+      setSent(true);
     } catch (e: any) {
       setError(e.message ?? "エラーが発生しました");
     } finally {
@@ -58,15 +59,12 @@ export default function AuthLoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: C.bgBase }}>
       <section
         style={{
           maxWidth: 420,
           margin: "0 auto",
-          paddingTop: 32,
-          paddingBottom: 32,
-          paddingLeft: 16,
-          paddingRight: 16,
+          padding: "48px 16px 32px",
           boxSizing: "border-box",
         }}
       >
@@ -74,27 +72,22 @@ export default function AuthLoginPage() {
           style={{
             fontSize: 20,
             fontWeight: 700,
-            marginBottom: 16,
+            color: C.ink,
+            marginBottom: 24,
             textAlign: "center",
           }}
         >
           農家ログイン
         </h1>
 
-        <p
-          style={{
-            fontSize: 14,
-            color: "#374151",
-            marginBottom: 20,
-            lineHeight: 1.6,
-            textAlign: "center",
-          }}
-        >
-          登録済みのメールアドレスでログインしてください。
-        </p>
+        {!sent ? (
+          <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            
+            <div style={{ color: C.ink, fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
+              登録済みのメールアドレスを入力してください。<br />
+              ログイン用のリンクを送信します。
+            </div>
 
-        {step === "email" && (
-          <>
             <input
               type="email"
               placeholder="メールアドレス"
@@ -102,102 +95,101 @@ export default function AuthLoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               style={{
                 width: "100%",
-                padding: "12px 16px",
-                borderRadius: 10,
-                border: "1px solid #d1d5db",
-                fontSize: 14,
+                padding: "14px 16px",
+                borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                fontSize: 15,
+                color: C.ink,
                 marginBottom: 12,
                 boxSizing: "border-box",
+                outline: "none",
               }}
             />
 
             {error && (
-              <div
-                style={{
-                  color: "#b91c1c",
-                  fontSize: 13,
-                  marginBottom: 12,
-                }}
-              >
+              <div style={{ color: C.red, fontSize: 13, marginBottom: 16, fontWeight: 600, textAlign: "center" }}>
                 {error}
               </div>
             )}
 
             <button
-              onClick={requestOtp}
+              onClick={handleSendLink}
               disabled={loading || !email}
               style={{
                 width: "100%",
-                maxWidth: 260,
-                margin: "0 auto",
                 display: "block",
-                padding: "12px",
-                borderRadius: 10,
-                background: loading ? "#9ca3af" : "#111",
-                color: "#fff",
+                padding: "14px",
+                background: loading ? "#d1d5db" : C.ink,
+                color: "#ffffff",
+                borderRadius: 9999, // 丸ボタン
                 border: "none",
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: 15,
                 cursor: loading ? "default" : "pointer",
+                transition: "all 0.2s",
+                marginTop: 8,
               }}
             >
-              {loading ? "送信中…" : "OTPを送信"}
+              {loading ? "送信中…" : "ログインリンクを送信"}
             </button>
-          </>
-        )}
+          </div>
+        ) : (
+          <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: "32px 24px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            
+            {/* チェックアイコン */}
+            <div style={{ 
+              display: "inline-flex", alignItems: "center", justifyContent: "center", 
+              width: 48, height: 48, borderRadius: "50%", backgroundColor: C.bgPale, color: C.ink, marginBottom: 16
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            
+            <p style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginBottom: 12 }}>
+              メールを送信しました
+            </p>
+            <p style={{ fontSize: 14, color: C.ink3, lineHeight: 1.6, marginBottom: 24 }}>
+              <strong>{email}</strong> 宛にログイン用のリンクをお送りしました。<br />
+              メール内のリンクをクリックしてログインを完了してください。
+            </p>
 
-        {step === "otp" && (
-          <>
-            <input
-              type="text"
-              placeholder="6桁のコード"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              maxLength={6}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                borderRadius: 10,
-                border: "1px solid #d1d5db",
-                fontSize: 14,
-                marginBottom: 12,
-                boxSizing: "border-box",
-              }}
-            />
-
-            {error && (
-              <div
-                style={{
-                  color: "#b91c1c",
-                  fontSize: 13,
-                  marginBottom: 12,
-                }}
-              >
-                {error}
+            {/* 開発中のデバッグリンク表示 */}
+            {magicLinkUrl && (
+              <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px dashed ${C.border}`, textAlign: "left", wordBreak: "break-all" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span>⚠️</span> 【開発用】テストログインリンク
+                </div>
+                <a
+                  href={magicLinkUrl}
+                  style={{
+                    color: "#2563eb",
+                    textDecoration: "underline",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {magicLinkUrl}
+                </a>
               </div>
             )}
 
             <button
-              onClick={verifyOtp}
-              disabled={loading || code.length !== 6}
+              onClick={() => setSent(false)}
               style={{
-                width: "100%",
-                maxWidth: 260,
-                margin: "0 auto",
-                display: "block",
-                padding: "12px",
-                borderRadius: 10,
-                background: loading ? "#9ca3af" : "#111",
-                color: "#fff",
+                background: "none",
                 border: "none",
-                fontWeight: 700,
-                fontSize: 15,
-                cursor: loading ? "default" : "pointer",
+                color: "#2563eb",
+                textDecoration: "underline",
+                cursor: "pointer",
+                fontSize: 14,
+                marginTop: 24,
               }}
             >
-              {loading ? "認証中…" : "ログイン"}
+              戻る
             </button>
-          </>
+
+          </div>
         )}
       </section>
     </div>
