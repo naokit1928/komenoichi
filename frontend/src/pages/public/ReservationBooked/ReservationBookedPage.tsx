@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom"; // ★ useSearchParams を追加
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  fetchReservationBooked, // ★ 名前を fetchReservationBooked に変更
+  fetchReservationBooked,
   type ReservationBookedResponse,
 } from "../../../lib/reservationBooked";
 
@@ -12,10 +12,12 @@ import ReservationCodeCard from "./ReservationCodeCard";
 import MemoCard from "./MemoCard";
 import NoticeCard from "./NoticeCard";
 import CancelActionCard from "./CancelActionCard";
+// ★ 作成したインストール促進カードをインポート
+import { InstallAppCard } from "./InstallAppCard";
 
 const ReservationBookedPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams(); // ★ URLからパラメータを取得するためのフック
+  const [searchParams] = useSearchParams();
 
   const [data, setData] = useState<ReservationBookedResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,6 @@ const ReservationBookedPage: React.FC = () => {
 
         // ② ログイン済みであることが確定したので、予約情報を取得する
         try {
-          // ★ URLパラメータに reservation_id があれば取得し、API関数に渡す
           const resId = searchParams.get("reservation_id");
           const res = await fetchReservationBooked(resId);
           setData(res);
@@ -86,31 +87,6 @@ const ReservationBookedPage: React.FC = () => {
     return renderShell(<div style={{ textAlign: "center", padding: "32px 4px", color: "#b91c1c" }}>{error}</div>);
   }
 
-  // ★ 予約データがない場合
-  if (!data) {
-    return renderShell(
-      <div style={{ textAlign: "center", padding: "40px 4px" }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 12 }}>
-          指定された予約が見つかりません。
-        </div>
-        <button
-          onClick={() => navigate("/reservations")} // ★ 予約一覧へ戻すように変更
-          style={{
-            padding: "10px 24px",
-            borderRadius: 9999,
-            background: "#4b3e2a",
-            color: "#fff",
-            border: "none",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          予約一覧に戻る
-        </button>
-      </div>
-    );
-  }
-
   const reservationStatus =
     typeof data === "object" && data !== null
       ? (data as { reservation_status?: string }).reservation_status
@@ -122,31 +98,39 @@ const ReservationBookedPage: React.FC = () => {
           .is_expired_for_display
       : undefined;
 
-  // ★ 予約が confirmed でない場合（キャンセル済みなど）
-  if (reservationStatus && reservationStatus !== "confirmed") {
+  // ★ 予約データがない、またはキャンセル済みの場合の親切なUI
+  if (!data || (reservationStatus && reservationStatus !== "confirmed")) {
     return renderShell(
-      <div style={{ textAlign: "center", padding: "40px 4px" }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 12 }}>
-          この予約はすでにキャンセルされています。
-        </div>
+      <div style={{ padding: "40px 20px", textAlign: "center", maxWidth: 600, margin: "0 auto" }}>
+        <h2 style={{ fontSize: 20, color: "#333", marginBottom: 12 }}>
+          現在、有効な予約はありません
+        </h2>
+        <p style={{ fontSize: 15, color: "#666", lineHeight: 1.6, marginBottom: 32 }}>
+          受け取り日時が過ぎているか、キャンセルされた可能性があります。<br />
+          新しいお米を探してみませんか？
+        </p>
+        
         <button
-          onClick={() => navigate("/reservations")} // ★ 予約一覧へ戻すように変更
+          onClick={() => navigate("/farms")}
           style={{
-            padding: "10px 24px",
-            borderRadius: 9999,
+            padding: "14px 32px",
+            borderRadius: 8,
             background: "#4b3e2a",
             color: "#fff",
             border: "none",
-            fontWeight: 600,
+            fontWeight: "bold",
+            fontSize: 16,
             cursor: "pointer",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
           }}
         >
-          予約一覧に戻る
+          農家を探す
         </button>
       </div>
     );
   }
 
+  // ★ 受け渡しが完了している場合のUI
   if (isExpiredForDisplay) {
     return renderShell(
       <div style={{ textAlign: "center", padding: "40px 0" }}>
@@ -156,21 +140,21 @@ const ReservationBookedPage: React.FC = () => {
         <p style={{ fontSize: 14, color: "#7a6c58", marginBottom: 28 }}>
           また次回のご利用をお待ちしています。
         </p>
-        <a
-          href="/farms"
+        <button
+          onClick={() => navigate("/farms")}
           style={{
-            display: "inline-block",
             padding: "12px 32px",
             background: "#4b3e2a",
             color: "#ffffff",
-            textDecoration: "none",
+            border: "none",
             borderRadius: 9999,
             fontWeight: 600,
             fontSize: 15,
+            cursor: "pointer",
           }}
         >
           次の予約を探す
-        </a>
+        </button>
       </div>
     );
   }
@@ -205,9 +189,13 @@ const ReservationBookedPage: React.FC = () => {
 
   return renderShell(
     <div>
-      <p style={{ fontSize: 10, color: "#9ca3af" }}>
+      {/* ★ 画面の一番上にインストール促進カードを配置 */}
+      <InstallAppCard />
+
+      <p style={{ fontSize: 10, color: "#9ca3af", textAlign: "right", margin: "0 0 8px 0" }}>
         consumer_id: {consumerId ?? "-"} / res_id: {data.reservation_id}
       </p>
+      
       <PickupSummaryCard
         pickupDisplay={pickup_display}
         pickupPlaceName={pickup_place_name}

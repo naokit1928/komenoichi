@@ -87,7 +87,7 @@ export default function AccountSettingsPage() {
 
   // ★ 共通レイアウトのラッパー
   const renderLayout = (child: React.ReactNode) => (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: "#fdfcfa" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: "#ffffff", overflowX: "hidden" }}>
       <div style={{ flexGrow: 1, padding: "24px 16px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
         {child}
       </div>
