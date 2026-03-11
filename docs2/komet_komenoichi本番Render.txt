@@ -1,0 +1,138 @@
+Markdown
+# komenoichi 運用・保守ドキュメント
+― komet（本番リハーサル）／komenoichi（本番）二系統デプロイ手順・完全版 ―
+
+---
+
+## 1. この文書の目的
+
+本ドキュメントは、
+**「komet で合格した状態を、そのまま一切改変せず komenoichi にデプロイする」**
+ための **実証済み・再現可能な手順** をまとめた基準文書である。
+
+特に以下を保証する：
+* 本番（komenoichi）を汚さない
+* 中途半端な状態が本番に出ない
+* 複数回 push したリハーサル履歴をすべて内包した **最終合格状態のみ** を本番に反映する
+* 将来、手順を忘れてもこの文書とコマンドだけでDB更新まで完全に復元できる
+
+---
+
+## 2. 前提条件
+
+* ローカル開発フォルダは **常に1つだけ**
+  * 通常： `Desktop/komet`
+* 本番用フォルダは **デプロイ時にのみ一時的に作る**
+  * `Desktop/komenoichi`
+* 本番デプロイ完了後、`komenoichi` フォルダは **必ず削除** する
+
+---
+
+## 3. 基本思想
+
+### 3.1 Git は「フォルダ」ではなく「commit」を配る
+* push されるのは **最後の commit**
+* その commit には、それ以前の変更がすべて含まれる
+→ kometでの複数回の試行錯誤（pushA/B/C）も、最後の合格commitをpushするだけで全て本番に反映される。
+
+---
+
+## 4. 実際のデプロイ手順
+
+### Step 1：komet で開発・リハーサル
+```powershell
+cd C:\Users\ntnao\Desktop\komet
+
+# 修正を何度でも行う
+git add .
+git commit -m "fix: xxxx"
+git push origin main
+push は何回でも行ってよい。
+
+フロントエンドのパッケージ（npm install）を追加した場合は、必ずそれらもコミットに含めること。
+
+Step 2：リハーサル合格を確認
+komet の Render / Vercel で動作確認
+
+UX / Stripe / API / 時刻 / 表示がすべて OK
+👉 この時点で「合格 commit」が確定
+
+Step 3：フォルダをコピーして本番用を作成
+エクスプローラ操作：
+
+Plaintext
+Desktop/
+ ├─ komet        ← 合格状態
+ └─ komenoichi   ← コピーして作成
+Step 4：本番フォルダで送り先（remote）だけを書き換える
+PowerShell
+cd C:\Users\ntnao\Desktop\komenoichi
+
+# 送り先を本番 GitHub に変更
+git remote set-url origin [https://github.com/naokit1928/komenoichi.git](https://github.com/naokit1928/komenoichi.git)
+
+# 確認
+git remote -v
+確認結果が komenoichi.git になっていれば OK。
+
+Step 5：状態チェック（必須）
+PowerShell
+git status
+必ず nothing to commit, working tree clean であること。
+※ Untracked files:（Git管理外の新しいファイル等）が赤字で出る分には無視してそのまま進めてよい。
+※ ここで modified: が出た場合は デプロイ中止。
+
+Step 6：本番に push（add / commit 不要）
+PowerShell
+git push
+これにより、kometで合格した最終状態がそのまま本番へ送られる。
+
+Step 7：Render と Vercel のデプロイ見守り ＆ トラブルシューティング
+GitHubへのpushをトリガーに自動デプロイが走る。
+
+【⚠️ Vercelがエラーで落ちた場合】
+
+原因：Vercel（フロント）のビルドが速すぎて、Render（バックエンド）の再起動完了前にAPI仕様書を取りに行き、タイムアウトしたため。
+
+対策：Renderのステータスが「Live」になったのを確認してから、Vercelのダッシュボードで失敗したデプロイの右端の「︙」から 「Redeploy」 をクリックする。
+
+Step 8：本番DBのアップデート（スキーマ変更があった場合）
+テーブル追加やカラム変更があり、**「本番データを全消しして再構築してもよい場合」**は以下の手順を行う。
+（※ コードがデプロイされただけではDB構造は更新されないため必須）
+
+Render の komenoichi-api ダッシュボードから Shell を開く。
+
+以下のコマンドを1行ずつコピペ（または手打ち）して実行：
+
+Bash
+# ① 万が一のためのバックアップ
+cp /var/data/app.db /var/data/app.db.backup_$(date +%Y%m%d_%H%M%S)
+
+# ② 古い本番DBを削除（データ全消し）
+rm /var/data/app.db
+
+# ③ 最新の schema.sql から空のDBを再生成
+sqlite3 /var/data/app.db < src/schema.sql
+エラーが出なければ成功。Render画面右上の「Manual Deploy」→ 「Restart Service」 をクリックしてアプリを再起動する。
+
+Step 9：本番フォルダを削除（最重要）
+PowerShell
+# エクスプローラで
+Desktop/komenoichi を削除（ゴミ箱へ）
+目的：誤って本番用フォルダで開発やcommit / pushをしてしまう事故を物理的に防ぐため。
+
+5. 絶対ルール
+❌ komenoichi フォルダで add / commit しない
+
+❌ remote を切り替えたまま komet を使い続けない
+
+❌ DB構造が変わったのに、Render ShellでのDB再構築（Step 8）を忘れない
+
+✅ commit は 常に komet のみ
+
+✅ 本番は「合格 commit を配るだけ」
+
+6. 最終結論
+この手順はすでに実運用で複数回成功しており、
+komenoichi の本番デプロイ方法として正式採用する。
+
