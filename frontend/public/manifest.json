@@ -7,10 +7,10 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "/apple-touch-icon.png",
-      "sizes": "192x192 512x512",
+      "src": "/komenoichi_logo_profile.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
