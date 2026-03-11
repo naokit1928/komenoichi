@@ -5,13 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-
     "prebuild": "npm run gen:public-farms",
     "build": "vite build",
-
     "lint": "eslint .",
     "preview": "vite preview",
-
     "gen:public-farms": "cross-env-shell \"openapi-typescript $VITE_OPENAPI_URL -o src/api/generated/public-farms.ts\"",
     "gen:public-farms:dev": "cross-env-shell \"openapi-typescript $VITE_OPENAPI_URL -o src/api/generated/public-farms.ts || exit 0\""
   },
@@ -22,6 +19,7 @@
     "@react-google-maps/api": "^2.20.7",
     "@uppy/core": "^5.1.1",
     "@uppy/xhr-upload": "^5.0.2",
+    "browser-image-compression": "^2.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-easy-crop": "^5.5.3",
