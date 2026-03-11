@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+// ★ 追加: PublicBottomBar をインポート（※インポートパスは実際のフォルダ構成に合わせて調整してください 例: "../../components/PublicBottomBar" など）
+import { PublicBottomBar } from "../../../components/PublicBottomBar";
 
 // ── Brand tokens ──────────────────────────────────
 const C = {
@@ -9,6 +11,7 @@ const C = {
   border:    "#e8e2d8",
   bgBase:    "#fdfcfa",
   red:       "#A83020",
+  bgPale:    "#f5f0e6", // ★ エラー回避のため追記（元のコードで送信完了画面のアイコン背景に使われていた色です）
 } as const;
 
 const LoginOnlyPage: React.FC = () => {
@@ -43,7 +46,7 @@ const LoginOnlyPage: React.FC = () => {
       setSending(true);
       setError(null);
 
-      // ★ 修正: リダイレクト先をバックエンドに伝えるためにパラメータを追加
+      // リダイレクト先をバックエンドに伝えるためにパラメータを追加
       const targetUrl = `${apiBase}/api/auth/consumer/magic/send-login?redirect=${encodeURIComponent(redirectTo)}`;
       
       const res = await fetch(targetUrl, {
@@ -75,7 +78,8 @@ const LoginOnlyPage: React.FC = () => {
   }, [email, apiBase, redirectTo]);
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: C.bgBase }}>
+    // ★ 修正: 下部に paddingBottom: "120px" を追加して、ボトムバーとコンテンツが重ならないようにしました
+    <div style={{ minHeight: "100vh", backgroundColor: C.bgBase, paddingBottom: "120px" }}>
       <section
         style={{
           maxWidth: 420,
@@ -214,6 +218,9 @@ const LoginOnlyPage: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* ★ 追加: ボトムナビゲーションバーを表示 */}
+      <PublicBottomBar />
     </div>
   );
 };
