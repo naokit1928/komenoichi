@@ -2,43 +2,69 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>アプリアイコン特化 生成ツール</title>
+  <title>ロゴ生成ツール</title>
 </head>
-<body style="background: #f4f1ed; text-align: center; padding: 40px; font-family: sans-serif;">
-  
-  <h2 style="color: #4b3e2a;">アプリアイコン特化（icon-512.png）</h2>
-  <p style="font-size:12px; color:#666;">※ホーム画面のアイコンとして最も大きく、美しく見えるサイズに調整しました</p>
-  <canvas id="canvasIcon" width="512" height="512" style="max-width:200px; border-radius:20%; box-shadow:0 4px 10px rgba(0,0,0,0.1);"></canvas>
+<body style="background:#f4f1ed; text-align:center; padding:60px; font-family:sans-serif;">
 
-  <script>
-    // viewBoxを「-5 -5 110 110」に設定。
-    // 余白を最小限にし、ホーム画面でとんぼが最大限大きく表示されるようにしています。
-    const iconSvg = `<svg width="512" height="512" viewBox="-5 -5 110 110" xmlns="http://www.w3.org/2000/svg">
-      <rect x="-50" y="-50" width="200" height="200" fill="#ffffff"/>
-      <path d="M50 46 C44 40,30 34,16 38 C8 41,7 50,16 52 C26 54,44 49,50 48Z" fill="#8B3A2A" opacity="0.9"/>
-      <path d="M50 46 C56 40,70 34,84 38 C92 41,93 50,84 52 C74 54,56 49,50 48Z" fill="#8B3A2A" opacity="0.9"/>
-      <path d="M50 50 C44 48,28 48,16 55 C10 59,12 66,20 66 C30 66,44 58,50 53Z" fill="#8B3A2A" opacity="0.65"/>
-      <path d="M50 50 C56 48,72 48,84 55 C90 59,88 66,80 66 C70 66,56 58,50 53Z" fill="#8B3A2A" opacity="0.65"/>
-      <path d="M50 26 C49 32,49 64,50 76" stroke="#8B3A2A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
-      <circle cx="50" cy="22" r="7" fill="#8B3A2A"/>
-    </svg>`;
+<h2 style="color:#4b3e2a;">こめのいち ロゴ生成</h2>
+<p style="color:#7a6c58;">2つのボタンでそれぞれダウンロードしてください</p>
 
-    const img = new Image();
-    const svgBlob = new Blob([iconSvg], {type: "image/svg+xml;charset=utf-8"});
-    const url = URL.createObjectURL(svgBlob);
-    
-    img.onload = () => {
-      const canvas = document.getElementById('canvasIcon');
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      try {
-        const a = document.createElement("a");
-        a.download = 'icon-512.png';
-        a.href = canvas.toDataURL("image/png");
-        a.click();
-      } catch(e) {}
-    };
-    img.src = url;
-  </script>
+<canvas id="canvas" width="512" height="512" style="max-width:200px; margin:20px; border:1px solid #ddd;"></canvas>
+<br>
+
+<button onclick="downloadTransparent()" style="background:#CC2200; color:white; border:none; padding:14px 28px; border-radius:10px; font-size:15px; cursor:pointer; margin:8px;">
+  ① splash-logo-512.png（透明背景）
+</button>
+<button onclick="downloadWhite()" style="background:#333; color:white; border:none; padding:14px 28px; border-radius:10px; font-size:15px; cursor:pointer; margin:8px;">
+  ② komenoichi_logo_profile.png（白背景）
+</button>
+
+<script>
+const svgBody = `
+  <path d="M50 40 C44 33,28 26,14 30 C6 33,5 43,15 45 C26 47,44 43,50 41Z" fill="#CC2200" opacity="0.9"/>
+  <path d="M50 40 C56 33,72 26,86 30 C94 33,95 43,85 45 C74 47,56 43,50 41Z" fill="#CC2200" opacity="0.9"/>
+  <path d="M50 44 C43 42,27 42,14 49 C7 54,10 62,19 61 C30 60,44 52,50 47Z" fill="#CC2200" opacity="0.55"/>
+  <path d="M50 44 C57 42,73 42,86 49 C93 54,90 62,81 61 C70 60,56 52,50 47Z" fill="#CC2200" opacity="0.55"/>
+  <path d="M50 26 C49 36,49 72,50 88" stroke="#CC2200" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="50" cy="21" r="6.5" fill="#CC2200"/>
+`;
+
+function makeSVG(bg) {
+  return `<svg width="512" height="512" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    ${bg ? `<rect width="100" height="100" fill="white"/>` : ''}
+    ${svgBody}
+  </svg>`;
+}
+
+function renderAndDownload(filename, withWhiteBg) {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 512, 512);
+
+  const svg = makeSVG(withWhiteBg);
+  const blob = new Blob([svg], {type: 'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.download = filename;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  };
+  img.src = url;
+}
+
+function downloadTransparent() {
+  renderAndDownload('splash-logo-512.png', false);
+}
+function downloadWhite() {
+  renderAndDownload('komenoichi_logo_profile.png', true);
+}
+
+// プレビュー表示
+window.onload = () => renderAndDownload('preview', false);
+</script>
 </body>
 </html>
