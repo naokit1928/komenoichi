@@ -7,12 +7,6 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "/splash-icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
       "src": "/komenoichi_logo_profile.png",
       "sizes": "512x512",
       "type": "image/png",
