@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     
     <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
-    <link rel="apple-touch-icon" href="/app-icon.png" />
-    <link rel="icon" sizes="192x192" href="/app-icon.png" />
+    <link rel="apple-touch-icon" href="/icon-512.png" />
+    <link rel="icon" sizes="192x192" href="/icon-512.png" />
     
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.json?v=7" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
@@ -19,7 +19,7 @@
     <meta property="og:description" content="近所の農家から直接お米を予約・購入できるプラットフォーム「こめのいち」。" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://komenoichi.jp/" />
-    <meta property="og:image" content="https://komenoichi.jp/app-icon.png" />
+    <meta property="og:image" content="https://komenoichi.jp/icon-512.png" />
     <meta property="og:site_name" content="こめのいち" />
     <meta name="twitter:card" content="summary_large_image" />
     
@@ -40,9 +40,60 @@
         overflow-x: hidden;
         width: 100%;
       }
+
+      /* スプラッシュスクリーン */
+      #splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-bottom: 12vh;
+        z-index: 9999;
+        animation: fadeOutSplash 0.4s ease-in-out 1.2s forwards;
+      }
+
+      /* ★修正：アニメーションのロゴも少し小さく（80px）しました */
+      #splash-screen img {
+        width: 80px;
+        height: auto;
+        animation: popInLogo 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      }
+
+      @keyframes fadeOutSplash {
+        to {
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+        }
+      }
+
+      @keyframes popInLogo {
+        0% { transform: scale(0.85); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+      }
     </style>
   </head>
   <body>
+    <div id="splash-screen">
+      <img src="/logo-mark.svg" alt="こめのいち" />
+    </div>
+
+    <script>
+      (function() {
+        const splash = document.getElementById('splash-screen');
+        if (sessionStorage.getItem('splashShown')) {
+          splash.style.display = 'none';
+          splash.style.animation = 'none';
+        } else {
+          sessionStorage.setItem('splashShown', 'true');
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

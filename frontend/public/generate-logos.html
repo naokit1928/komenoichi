@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>完璧なロゴ生成ツール</title>
+</head>
+<body style="background: #f4f1ed; text-align: center; padding: 40px; font-family: sans-serif;">
+  
+  <h2 style="color: #4b3e2a;">1. アプリアイコン用（icon-512.png）</h2>
+  <p style="font-size:12px; color:#666;">※Androidのセーフゾーンに完璧に収まるよう、とんぼを少し小さく配置</p>
+  <canvas id="canvasIcon" width="512" height="512" style="max-width:200px; border-radius:20%; box-shadow:0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px;"></canvas>
+
+  <h2 style="color: #4b3e2a;">2. スプラッシュ用（splash-512.png）</h2>
+  <p style="font-size:12px; color:#666;">※OSが拡大しても美しく見えるよう、周囲にたっぷりの透明な余白を確保</p>
+  <canvas id="canvasSplash" width="512" height="512" style="max-width:200px; border:1px dashed #ccc;"></canvas>
+
+  <script>
+    function downloadSVG(svgStr, filename, canvasId) {
+      const img = new Image();
+      const svgBlob = new Blob([svgStr], {type: "image/svg+xml;charset=utf-8"});
+      const url = URL.createObjectURL(svgBlob);
+      img.onload = () => {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, 512, 512);
+        ctx.drawImage(img, 0, 0);
+        try {
+          const a = document.createElement("a");
+          a.download = filename;
+          a.href = canvas.toDataURL("image/png");
+          a.click();
+        } catch(e) {}
+      };
+      img.src = url;
+    }
+
+    // アイコン用（viewBoxを広げて赤い背景をはみ出させ、とんぼを中央に配置）
+    const iconSvg = `<svg width="512" height="512" viewBox="-20 -20 140 140" xmlns="http://www.w3.org/2000/svg">
+      <rect x="-50" y="-50" width="200" height="200" fill="#8B3A2A"/>
+      <path d="M50 46 C44 40,30 34,16 38 C8 41,7 50,16 52 C26 54,44 49,50 48Z" fill="white" opacity="0.9"/>
+      <path d="M50 46 C56 40,70 34,84 38 C92 41,93 50,84 52 C74 54,56 49,50 48Z" fill="white" opacity="0.9"/>
+      <path d="M50 50 C44 48,28 48,16 55 C10 59,12 66,20 66 C30 66,44 58,50 53Z" fill="white" opacity="0.65"/>
+      <path d="M50 50 C56 48,72 48,84 55 C90 59,88 66,80 66 C70 66,56 58,50 53Z" fill="white" opacity="0.65"/>
+      <path d="M50 26 C49 32,49 64,50 76" stroke="white" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <circle cx="50" cy="22" r="7" fill="white"/>
+    </svg>`;
+
+    // スプラッシュ用（viewBoxをさらに大きく広げ、とんぼを全体の33%サイズまで縮小）
+    const splashSvg = `<svg width="512" height="512" viewBox="-80 -80 260 260" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 46 C44 40,30 34,16 38 C8 41,7 50,16 52 C26 54,44 49,50 48Z" fill="#8B3A2A" opacity="0.9"/>
+      <path d="M50 46 C56 40,70 34,84 38 C92 41,93 50,84 52 C74 54,56 49,50 48Z" fill="#8B3A2A" opacity="0.9"/>
+      <path d="M50 50 C44 48,28 48,16 55 C10 59,12 66,20 66 C30 66,44 58,50 53Z" fill="#8B3A2A" opacity="0.65"/>
+      <path d="M50 50 C56 48,72 48,84 55 C90 59,88 66,80 66 C70 66,56 58,50 53Z" fill="#8B3A2A" opacity="0.65"/>
+      <path d="M50 26 C49 32,49 64,50 76" stroke="#8B3A2A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <circle cx="50" cy="22" r="7" fill="#8B3A2A"/>
+    </svg>`;
+
+    setTimeout(() => downloadSVG(iconSvg, 'icon-512.png', 'canvasIcon'), 500);
+    setTimeout(() => downloadSVG(splashSvg, 'splash-512.png', 'canvasSplash'), 1000);
+  </script>
+</body>
+</html>
