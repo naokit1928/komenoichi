@@ -40,60 +40,9 @@
         overflow-x: hidden;
         width: 100%;
       }
-
-      /* スプラッシュスクリーン */
-      #splash-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: #ffffff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding-bottom: 12vh;
-        z-index: 9999;
-        animation: fadeOutSplash 0.4s ease-in-out 1.2s forwards;
-      }
-
-      /* 透明とんぼのアニメーション */
-      #splash-screen img {
-        width: 110px;
-        height: auto;
-        animation: popInLogo 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-      }
-
-      @keyframes fadeOutSplash {
-        to {
-          opacity: 0;
-          visibility: hidden;
-          pointer-events: none;
-        }
-      }
-
-      @keyframes popInLogo {
-        0% { transform: scale(0.85); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
-      }
     </style>
   </head>
   <body>
-    <div id="splash-screen">
-      <img src="/logo-mark.svg" alt="こめのいち" />
-    </div>
-
-    <script>
-      (function() {
-        const splash = document.getElementById('splash-screen');
-        if (sessionStorage.getItem('splashShown')) {
-          splash.style.display = 'none';
-          splash.style.animation = 'none';
-        } else {
-          sessionStorage.setItem('splashShown', 'true');
-        }
-      })();
-    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
