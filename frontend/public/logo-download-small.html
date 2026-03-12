@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>こめのいち 小さいロゴ生成ツール</title>
+</head>
+<body style="background: #f4f1ed; text-align: center; padding: 60px; font-family: sans-serif;">
+  
+  <h2 style="color: #4b3e2a;">こめのいち 小さいロゴ（スプラッシュ用）</h2>
+  <p style="color: #7a6c58; margin-bottom: 30px;">
+    512x512の白背景に、中央に200x200の赤背景とんぼを配置したPNG画像<br>
+    ※自動でダウンロードされない場合は、下の画像を右クリックして保存
+  </p>
+
+  <canvas id="canvas" width="512" height="512" style="border: 1px solid #ccc; max-width: 256px;"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // 1. 白背景を塗る
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, 512, 512);
+
+    // 2. 中央に赤背景の正方形（200x200）
+    const logoSize = 200;
+    const offsetX = (512 - logoSize) / 2;
+    const offsetY = (512 - logoSize) / 2;
+
+    ctx.fillStyle = "#8B3A2A";
+    ctx.fillRect(offsetX, offsetY, logoSize, logoSize);
+
+    // 3. その上に白いとんぼSVGを描画
+    const svgString = `<svg width="${logoSize}" height="${logoSize}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 46 C44 40,30 34,16 38 C8 41,7 50,16 52 C26 54,44 49,50 48Z" fill="white" opacity="0.9"/>
+      <path d="M50 46 C56 40,70 34,84 38 C92 41,93 50,84 52 C74 54,56 49,50 48Z" fill="white" opacity="0.9"/>
+      <path d="M50 50 C44 48,28 48,16 55 C10 59,12 66,20 66 C30 66,44 58,50 53Z" fill="white" opacity="0.65"/>
+      <path d="M50 50 C56 48,72 48,84 55 C90 59,88 66,80 66 C70 66,56 58,50 53Z" fill="white" opacity="0.65"/>
+      <path d="M50 26 C49 32,49 64,50 76" stroke="white" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <circle cx="50" cy="22" r="7" fill="white"/>
+    </svg>`;
+
+    const img = new Image();
+    const svgBlob = new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      ctx.drawImage(img, offsetX, offsetY, logoSize, logoSize);
+
+      // PNG として自動ダウンロード
+      try {
+        const pngUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.download = "komenoichi_logo_profile_small.png";
+        a.href = pngUrl;
+        a.click();
+      } catch(e) {
+        console.error("ダウンロード失敗", e);
+      }
+    };
+    img.src = url;
+  </script>
+</body>
+</html>
