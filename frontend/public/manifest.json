@@ -3,8 +3,8 @@
   "short_name": "こめのいち",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#C62828",
+  "theme_color": "#C62828",
   "icons": [
     {
       "src": "/icon.png",
@@ -13,7 +13,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icon.png",
+      "src": "/icon-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
