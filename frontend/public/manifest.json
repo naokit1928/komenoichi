@@ -13,7 +13,7 @@
       "purpose": "any"
     },
     {
-      "src": "/komenoichi_logo_profile.png",
+      "src": "/splash-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
