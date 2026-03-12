@@ -158,7 +158,7 @@ Aルート（email + session 前提）で統一
 
 従来は Confirm ページ側に
 
-未ログイン時の Login 分岐
+未ログイン時の Login 分岐 .
 
 MagicLink 復帰
 
@@ -191,7 +191,7 @@ Farm Detail
    |           → MagicLink
    |                 → ログイン完了
    |                       → PENDING予約生成
-   |                               → Confirm
+   |                               → Confirm  
    |                                     → Payment
    |                                            → Booked
    |
