@@ -13,7 +13,7 @@
       "purpose": "any"
     },
     {
-      "src": "/komenoichi_logo_email.png",
+      "src": "/app-icon.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
@@ -22,7 +22,7 @@
       "src": "/splash-icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ]
 }
