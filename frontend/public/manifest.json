@@ -7,7 +7,7 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "/splash-logo-512.png",
+      "src": "/splash-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
