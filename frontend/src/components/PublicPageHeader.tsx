@@ -30,7 +30,7 @@ export function PublicPageHeader({ title }: Props) {
           textDecoration: "none",
           color: "inherit",
           // ロゴ画像分だけ左にオフセットして視覚的中央に
-          transform: "translateX(-14px)",
+          transform: "translateX(-6px)",
         }}
       >
         <img

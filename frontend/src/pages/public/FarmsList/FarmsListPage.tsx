@@ -330,7 +330,8 @@ export default function FarmsListPage() {
             style={{
               position: "fixed",
               left: "50%",
-              top: isMapOpen ? "83vh" : "auto",
+              // ★ 83vh から変更：画面の真の高さから110pxと安全領域を引く
+              top: isMapOpen ? "calc(100dvh - 110px - env(safe-area-inset-bottom))" : "auto",
               bottom: isMapOpen
                 ? "auto"
                 : "calc(72px + env(safe-area-inset-bottom))",
