@@ -152,8 +152,8 @@ export default function MapLayerPortal({
     left: 0,
     top: 0,
     width: "100%",
-    // ★ 83vh から変更：画面の真の高さから110pxと安全領域を引く
-    height: "calc(100dvh - 110px - env(safe-area-inset-bottom))",
+    // ★ 83vh から変更：画面の真の高さから140pxと安全領域を引く
+    height: "calc(100dvh - 140px - env(safe-area-inset-bottom))",
     background: "#fff",
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
