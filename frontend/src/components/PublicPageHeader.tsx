@@ -3,11 +3,6 @@ import { Link } from "react-router-dom";
 
 type Props = { title?: string };
 
-/**
- * PublicPageHeader — FarmsListPage 専用
- * sticky + すりガラス + インライン SVG とんぼ（モックアップ完全再現）
- * 他ページ（FarmDetail / Confirm 等）では SimplePageHeader を使うこと
- */
 export function PublicPageHeader({ title }: Props) {
   return (
     <header
@@ -31,25 +26,26 @@ export function PublicPageHeader({ title }: Props) {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: 4,
           textDecoration: "none",
           color: "inherit",
+          // ロゴ画像分だけ左にオフセットして視覚的中央に
+          transform: "translateX(-14px)",
         }}
       >
-        {/* SVGの直書きをやめて、画像タグで呼び出す */}
         <img
           src="/logo-mark.svg"
           alt="こめのいちロゴ"
-          width="46"
-          height="46"
+          width="44"
+          height="44"
           style={{ flexShrink: 0 }}
         />
 
-        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, alignItems: "flex-start" }}>
           <span style={{ fontSize: 17, fontWeight: 400, letterSpacing: "0.12em", color: "#1a1108" }}>
             こめのいち
           </span>
-          <span style={{ fontSize: 9, letterSpacing: "0.12em", color: "#7a6c58", fontWeight: 300, marginTop: 2 }}>
+          <span style={{ fontSize: 9, letterSpacing: "0.12em", color: "#7a6c58", fontWeight: 300, marginTop: 3 }}>
             KOME NO ICHI
           </span>
         </div>
