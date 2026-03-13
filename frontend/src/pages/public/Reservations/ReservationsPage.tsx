@@ -126,14 +126,23 @@ export default function ReservationsPage() {
                         {formatFarmName(upcomingItem)}
                       </div>
                       
-                      {/* ★変更点: fontWeight: 700 を追加して少し太字に */}
                       <div style={{ fontSize: 14, color: C.ink, marginBottom: 4, fontWeight: 700 }}>
                         予約日時: {upcomingItem.pickup_display}
                       </div>
                       
                       <div style={{ fontSize: 14, color: C.ink }}>お米代合計: {upcomingItem.total_amount.toLocaleString()}円（現金）</div>
                       
-                      <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}`, color: C.ink2, fontSize: 13, fontWeight: 600, textAlign: "center" }}>
+                      {/* ★変更点: 「予約詳細を見る」をボタン風のデザインに */}
+                      <div style={{ 
+                        marginTop: 16, 
+                        padding: "12px 0", 
+                        backgroundColor: C.bgPale, 
+                        borderRadius: 8, 
+                        color: C.ink2, 
+                        fontSize: 13, 
+                        fontWeight: 700, 
+                        textAlign: "center" 
+                      }}>
                         予約詳細を見る ＞
                       </div>
                     </div>
@@ -167,7 +176,6 @@ export default function ReservationsPage() {
                             {formatFarmName(res)}
                           </div>
                           
-                          {/* ★変更点: fontWeight: 600 を追加して少し太字に */}
                           <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600 }}>
                             {res.pickup_display}
                           </div>

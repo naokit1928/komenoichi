@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "@/config/api";
-import { PublicBottomBar } from "@/components/PublicBottomBar"; // ★ ボトムバーを追加
+import { PublicBottomBar } from "@/components/PublicBottomBar";
+
+// ── Brand tokens (COLOR_STRATEGY.md準拠) ──
+const C = {
+  red:       "#C62828",
+  ink:       "#1a1108",
+  ink2:      "#4b3e2a",
+  ink3:      "#7a6c58",
+  border:    "#e8e2d8",
+  bgPale:    "#f4f1ed",
+  bgBase:    "#fdfcfa",
+} as const;
 
 type ConsumerIdentity = {
   is_logged_in: boolean;
@@ -87,32 +98,51 @@ export default function AccountSettingsPage() {
 
   // ★ 共通レイアウトのラッパー
   const renderLayout = (child: React.ReactNode) => (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: "#ffffff", overflowX: "hidden" }}>
-      <div style={{ flexGrow: 1, padding: "24px 16px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: C.bgBase, overflowX: "hidden" }}>
+      <div style={{ flexGrow: 1, padding: "24px 16px 80px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.ink, marginBottom: 24, textAlign: "center" }}>
+          アカウント
+        </h1>
         {child}
       </div>
-      {/* ボトムナビゲーションバーを常に表示 */}
       <PublicBottomBar consumerEmail={identity?.email ?? null} />
     </div>
   );
 
-  if (loading) return renderLayout(<div style={{ textAlign: "center", padding: "40px 0" }}>読み込み中…</div>);
+  if (loading) return renderLayout(<div style={{ textAlign: "center", padding: "40px 0", color: C.ink3, fontWeight: 600 }}>読み込み中…</div>);
 
-  // ★ 未ログイン時の表示
+  // ==========================================
+  // 未ログイン時の表示
+  // ==========================================
   if (!identity || !identity.is_logged_in) {
     return renderLayout(
       <>
-        <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>アカウント設定</h1>
-        <div style={{ backgroundColor: "#F9FAFB", borderRadius: 12, padding: 16, color: "#374151", fontSize: 14 }}>
-          現在ログインされていません。
+        {/* 未ログイン案内カード */}
+        <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontSize: 15, color: C.ink, fontWeight: 700, marginBottom: 8 }}>
+            現在ログインされていません
+          </div>
+          <div style={{ fontSize: 13, color: C.ink3, lineHeight: 1.6 }}>
+            お米の予約へ進む際に、メールアドレスによる<br />ログイン（認証）が行われます。
+          </div>
         </div>
 
-        {/* 未ログイン時でも法務ページへのリンクは表示する */}
-        <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px 24px", fontSize: 13 }}>
-            <a href="/law" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>特定商取引法に基づく表記</a>
-            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>利用規約</a>
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>プライバシーポリシー</a>
+        {/* 規約・サポートメニュー（未ログイン時） */}
+        <div>
+          <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600, marginBottom: 8, paddingLeft: 8 }}>規約・サポート</div>
+          <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+            <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+              <span style={{ fontSize: 14, fontWeight: 500 }}>特定商取引法に基づく表記</span>
+              <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
+            </a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+              <span style={{ fontSize: 14, fontWeight: 500 }}>利用規約</span>
+              <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
+            </a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
+              <span style={{ fontSize: 14, fontWeight: 500 }}>プライバシーポリシー</span>
+              <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
+            </a>
           </div>
         </div>
       </>
@@ -121,36 +151,61 @@ export default function AccountSettingsPage() {
 
   const canDelete = check1 && check2 && confirmText === "退会する";
 
-  // ★ ログイン時の表示
+  // ==========================================
+  // ログイン時の表示
+  // ==========================================
   return renderLayout(
     <>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>アカウント設定</h1>
-
-      <div style={{ backgroundColor: "#F9FAFB", borderRadius: 12, padding: 16, marginBottom: 24 }}>
-        <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 4 }}>ログイン中</div>
-        <div style={{ fontSize: 15, fontWeight: 500, color: "#111827", wordBreak: "break-all" }}>
+      {/* ログイン中のアカウント ＆ ログアウト */}
+      <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 32 }}>
+        <div style={{ fontSize: 12, color: C.ink3, marginBottom: 6, fontWeight: 600 }}>ログイン中のアカウント</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, wordBreak: "break-all", marginBottom: 20 }}>
           {identity.email}
+        </div>
+        
+        {/* ログアウトボタン（一般的で目立ちすぎないアウトラインスタイル） */}
+        <button
+          onClick={() => setShowLogoutModal(true)}
+          style={{ 
+            width: "100%", padding: "12px 0", borderRadius: 8, 
+            border: `1px solid ${C.border}`, backgroundColor: "#fff", 
+            color: C.ink2, fontSize: 14, fontWeight: 600, cursor: "pointer",
+            transition: "background-color 0.2s"
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = C.bgPale}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#fff"}
+        >
+          ログアウト
+        </button>
+      </div>
+
+      {/* 規約・サポートメニュー */}
+      <div>
+        <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600, marginBottom: 8, paddingLeft: 8 }}>規約・サポート</div>
+        <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>特定商取引法に基づく表記</span>
+            <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
+          </a>
+          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>利用規約</span>
+            <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
+          </a>
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>プライバシーポリシー</span>
+            <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
+          </a>
         </div>
       </div>
 
-      <button
-        onClick={() => setShowLogoutModal(true)}
-        style={{ width: "100%", padding: "14px 0", fontSize: 16, backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, cursor: "pointer" }}
-      >
-        ログアウト
-      </button>
-
-      {/* 法務ページへのリンク集 ＆ 退会への導線 */}
-      <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px 24px", fontSize: 13 }}>
-          <a href="/law" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>特定商取引法に基づく表記</a>
-          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>利用規約</a>
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>プライバシーポリシー</a>
-        </div>
-
+      {/* 退会リンク（隔離） */}
+      <div style={{ marginTop: 48, textAlign: "center" }}>
         <button
           onClick={() => setShowDeleteModal(true)}
-          style={{ background: "none", border: "none", color: "#9CA3AF", fontSize: 13, textDecoration: "underline", cursor: "pointer" }}
+          style={{ 
+            background: "none", border: "none", color: "#9ca3af", fontSize: 13, 
+            textDecoration: "underline", cursor: "pointer", padding: "8px 16px"
+          }}
         >
           退会（アカウント削除）をご希望の方はこちら
         </button>
@@ -158,13 +213,15 @@ export default function AccountSettingsPage() {
 
       {/* ログアウトモーダル */}
       {showLogoutModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, width: "90%", maxWidth: 360 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>本当にログアウトしますか？</div>
-            <div style={{ fontSize: 14, color: "#6B7280", marginBottom: 20 }}>購入の際に再度ログインが必要になります。</div>
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
+          <div style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 360, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginBottom: 12, textAlign: "center" }}>ログアウトしますか？</div>
+            <div style={{ fontSize: 13, color: C.ink3, marginBottom: 24, textAlign: "center", lineHeight: 1.6 }}>
+              次回ご予約の際に、再度メールアドレスの入力と認証が必要になります。
+            </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setShowLogoutModal(false)} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", cursor: "pointer" }}>キャンセル</button>
-              <button onClick={handleLogout} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", backgroundColor: "#111827", color: "#FFFFFF", cursor: "pointer" }}>ログアウトする</button>
+              <button onClick={() => setShowLogoutModal(false)} style={{ flex: 1, padding: "12px 0", borderRadius: 9999, border: `1px solid ${C.border}`, backgroundColor: "#fff", color: C.ink, fontWeight: 600, cursor: "pointer" }}>キャンセル</button>
+              <button onClick={handleLogout} style={{ flex: 1, padding: "12px 0", borderRadius: 9999, border: "none", backgroundColor: C.ink2, color: "#fff", fontWeight: 600, cursor: "pointer" }}>ログアウト</button>
             </div>
           </div>
         </div>
@@ -172,45 +229,45 @@ export default function AccountSettingsPage() {
 
       {/* 退会確認モーダル */}
       {showDeleteModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 440 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#DC2626", marginBottom: 12 }}>
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
+          <div style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 440, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.red, marginBottom: 12 }}>
               アカウントの削除（取り消し不可）
             </div>
 
-            <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 20 }}>
-              <span style={{ fontWeight: 600, color: "#B91C1C", display: "block", marginBottom: 12 }}>
+            <div style={{ fontSize: 14, color: C.ink, lineHeight: 1.6, marginBottom: 20 }}>
+              <span style={{ fontWeight: 700, color: C.red, display: "block", marginBottom: 12 }}>
                 ※受け取り待ちの予約がある場合は退会できません。
               </span>
               アカウントを削除するためには、以下の項目に同意してください。
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
-                <input type="checkbox" checked={check1} onChange={(e) => setCheck1(e.target.checked)} style={{ marginTop: 4 }} />
-                <span style={{ fontSize: 13, color: "#4B5563" }}>これまでの予約履歴や情報がすべて消去されることを理解しました。</span>
+                <input type="checkbox" checked={check1} onChange={(e) => setCheck1(e.target.checked)} style={{ marginTop: 4, accentColor: C.red }} />
+                <span style={{ fontSize: 13, color: C.ink2 }}>これまでの予約履歴や情報がすべて消去されることを理解しました。</span>
               </label>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
-                <input type="checkbox" checked={check2} onChange={(e) => setCheck2(e.target.checked)} style={{ marginTop: 4 }} />
-                <span style={{ fontSize: 13, color: "#4B5563" }}>この操作は絶対に取り消すことができず、データを元に戻せないことを理解しました。</span>
+                <input type="checkbox" checked={check2} onChange={(e) => setCheck2(e.target.checked)} style={{ marginTop: 4, accentColor: C.red }} />
+                <span style={{ fontSize: 13, color: C.ink2 }}>この操作は絶対に取り消すことができず、データを元に戻せないことを理解しました。</span>
               </label>
             </div>
 
             <div style={{ marginBottom: 24 }}>
-              <label style={{ fontSize: 13, color: "#374151", fontWeight: 600, display: "block", marginBottom: 8 }}>
-                確認のため「<span style={{ color: "#DC2626" }}>退会する</span>」と入力してください
+              <label style={{ fontSize: 13, color: C.ink, fontWeight: 700, display: "block", marginBottom: 8 }}>
+                確認のため「<span style={{ color: C.red }}>退会する</span>」と入力してください
               </label>
               <input
                 type="text"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 placeholder="退会する"
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14, outline: "none" }}
+                style={{ width: "100%", padding: "12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, outline: "none", backgroundColor: C.bgBase }}
               />
             </div>
 
             {deleteError && (
-              <div style={{ backgroundColor: "#FEF2F2", color: "#B91C1C", padding: "10px", borderRadius: "8px", fontSize: 13, marginBottom: 20 }}>
+              <div style={{ backgroundColor: "#FEF2F2", color: C.red, padding: "12px", borderRadius: 8, fontSize: 13, marginBottom: 24, fontWeight: 600 }}>
                 {deleteError}
               </div>
             )}
@@ -219,7 +276,7 @@ export default function AccountSettingsPage() {
               <button
                 onClick={resetDeleteModal}
                 disabled={isDeleting}
-                style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", cursor: isDeleting ? "not-allowed" : "pointer" }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 9999, border: `1px solid ${C.border}`, backgroundColor: "#FFFFFF", color: C.ink, fontWeight: 600, cursor: isDeleting ? "not-allowed" : "pointer" }}
               >
                 キャンセル
               </button>
@@ -228,9 +285,9 @@ export default function AccountSettingsPage() {
                 onClick={handleDeleteAccount}
                 disabled={!canDelete || isDeleting}
                 style={{
-                  flex: 1, padding: "12px 0", borderRadius: 10, border: "none",
-                  backgroundColor: canDelete ? "#DC2626" : "#FCA5A5",
-                  color: "#FFFFFF", fontWeight: 600,
+                  flex: 1, padding: "12px 0", borderRadius: 9999, border: "none",
+                  backgroundColor: canDelete ? C.red : "#fca5a5",
+                  color: "#FFFFFF", fontWeight: 700,
                   cursor: canDelete && !isDeleting ? "pointer" : "not-allowed",
                   transition: "background-color 0.2s"
                 }}
