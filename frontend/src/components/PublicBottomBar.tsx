@@ -9,7 +9,7 @@ export function PublicBottomBar({ consumerEmail, hideMenu = false }: Props) {
   const location = useLocation();
   const p = location.pathname;
 
-  const RED = "#A83020";
+  const RED = "#C62828";
   const MUTED = "#7a6c58";
 
   type Tab = { label: string; path: string | null; active: boolean; icon: React.ReactNode };

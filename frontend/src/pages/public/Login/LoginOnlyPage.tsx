@@ -10,7 +10,7 @@ const C = {
   ink3:      "#7a6c58",
   border:    "#e8e2d8",
   bgBase:    "#fdfcfa",
-  red:       "#A83020",
+  red:       "#C62828",
   bgPale:    "#f5f0e6", // ★ エラー回避のため追記（元のコードで送信完了画面のアイコン背景に使われていた色です）
 } as const;
 

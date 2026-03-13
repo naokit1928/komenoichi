@@ -11,7 +11,7 @@ import { calcTotalKg, isOverMaxKg } from "../FarmDetail/rules/orderRules";
 
 // ── Brand tokens ──────────────────────────────────
 const C = {
-  red:       "#A83020",
+  red:       "#C62828",
   ink:       "#1a1108",
   ink3:      "#7a6c58", // エラー画面などのサブテキスト用
   border:    "#e8e2d8",

@@ -2,7 +2,7 @@ import React from "react";
 
 // ── Brand tokens ──────────────────────────────────
 const C = {
-  red:       "#A83020",
+  red:       "#C62828",
   redLight:  "rgba(168,48,32,0.07)",
   redBorder: "rgba(168,48,32,0.16)",
   gold:      "#C49A1A",

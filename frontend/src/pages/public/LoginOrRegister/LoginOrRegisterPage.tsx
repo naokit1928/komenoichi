@@ -10,7 +10,7 @@ const C = {
   border:    "#e8e2d8",
   bgPale:    "#f4f1ed",
   bgBase:    "#fdfcfa",
-  red:       "#A83020",
+  red:       "#C62828",
 } as const;
 
 type MagicLinkResponse = {

@@ -11,7 +11,7 @@ import { API_BASE } from "@/config/api";
 
 // ── Brand tokens ──────────────────────────────────
 const C = {
-  red:       "#A83020",
+  red:       "#C62828",
   ink2:      "#4b3e2a", // 濃い茶色（ラベルテキスト用）
   ink3:      "#7a6c58", // 薄い茶色（区切り線用）
   border:    "#e8e2d8", // 枠線用
