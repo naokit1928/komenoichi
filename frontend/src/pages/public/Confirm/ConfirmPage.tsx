@@ -102,6 +102,9 @@ export default function ConfirmPage() {
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
 
+  // ★ 追加: 初期データの読み込み中かどうかを管理するステート
+  const [isInitializing, setIsInitializing] = useState(true);
+
   /* ===== Confirm Context 取得 ===== */
   useEffect(() => {
     async function run() {
@@ -120,6 +123,9 @@ export default function ConfirmPage() {
         setCtx(context);
       } catch (e: any) {
         setErr(String(e.message || e));
+      } finally {
+        // ★ 追加: 取得が完了したら（成功でもエラーでも）ローディング状態を解除する
+        setIsInitializing(false);
       }
     }
     run();
@@ -163,6 +169,15 @@ export default function ConfirmPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // ★ 追加: データを取得している間はエラー画面を出さずに待機させる
+  if (isInitializing) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", marginTop: "50px", color: C.ink3 }}>
+        読み込み中...
+      </div>
+    );
   }
 
   /* データがない場合（エラー時）の表示 */
@@ -259,7 +274,7 @@ export default function ConfirmPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: loading ? "#d1d5db" : "#4b3e2a", // ← 赤から濃い茶色へ
+          background: loading ? "#d1d5db" : "#C62828", // ← 赤から濃い茶色へ
           color: "#fff",
           borderRadius: 9999,
           border: "none",
@@ -268,7 +283,7 @@ export default function ConfirmPage() {
           marginTop: 32,
           cursor: loading ? "not-allowed" : "pointer",
           transition: "all 0.2s ease",
-          boxShadow: loading ? "none" : "0 4px 12px rgba(75, 62, 42, 0.25)", // 影も茶色へ
+          boxShadow: loading ? "none" : "0 4px 12px rgba(198, 40, 40, 0.3)", // 影も茶色へ
         }}
       >
         {loading ? "処理中…" : "予約確定に進む"}

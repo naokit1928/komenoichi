@@ -34,8 +34,8 @@ function HeartIcon({ filled }: { filled: boolean }) {
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      fill={filled ? "#dc2626" : "none"}
-      stroke={filled ? "#dc2626" : C.ink}
+      fill={filled ? "#C62828" : "none"}
+      stroke={filled ? "#C62828" : C.ink}
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"

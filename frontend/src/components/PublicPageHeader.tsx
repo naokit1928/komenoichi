@@ -26,10 +26,9 @@ export function PublicPageHeader({ title }: Props) {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 4,
+          gap: 6,
           textDecoration: "none",
           color: "inherit",
-          // ロゴ画像分だけ左にオフセットして視覚的中央に
           transform: "translateX(-6px)",
         }}
       >
@@ -41,11 +40,27 @@ export function PublicPageHeader({ title }: Props) {
           style={{ flexShrink: 0 }}
         />
 
-        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, alignItems: "flex-start" }}>
-          <span style={{ fontSize: 17, fontWeight: 400, letterSpacing: "0.12em", color: "#1a1108" }}>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          lineHeight: 1,
+          alignItems: "center", // ← flex-start から center に変更
+        }}>
+          <span style={{
+            fontSize: 17,
+            fontWeight: 400,
+            letterSpacing: "0.18em", // ← 少し広めに
+            color: "#1a1108",
+          }}>
             こめのいち
           </span>
-          <span style={{ fontSize: 9, letterSpacing: "0.12em", color: "#7a6c58", fontWeight: 300, marginTop: 3 }}>
+          <span style={{
+            fontSize: 10, // ← 9 → 10 に少し大きく
+            letterSpacing: "0.18em", // ← こめのいちと揃える
+            color: "#7a6c58",
+            fontWeight: 400, // ← 300（細すぎ）→ 400 に
+            marginTop: 4,
+          }}>
             KOME NO ICHI
           </span>
         </div>

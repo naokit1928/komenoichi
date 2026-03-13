@@ -3,7 +3,7 @@ import React from "react";
 export default function FarmerTermsPage() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px", color: "#374151", lineHeight: 1.8 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 32, color: "#111827" }}>
+      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 32, color: "#111827" }}>
         農家向け利用規約
       </h1>
       
@@ -14,7 +14,7 @@ export default function FarmerTermsPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
         
         <section>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
             第1条（予約の受付とキャンセル）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -24,7 +24,7 @@ export default function FarmerTermsPage() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
             第2条（無断キャンセルと免責）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -35,7 +35,7 @@ export default function FarmerTermsPage() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
             第3条（商品の事前準備に関する推奨および非推奨）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -45,7 +45,7 @@ export default function FarmerTermsPage() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
             第4条（品質トラブルおよび当事者間解決の原則）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -56,7 +56,7 @@ export default function FarmerTermsPage() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
             第5条（規約の変更）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -65,7 +65,7 @@ export default function FarmerTermsPage() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
             第6条（準拠法・裁判管轄）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>

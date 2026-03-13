@@ -78,7 +78,7 @@ export default function MapBottomSheet({
             style={{
               fontSize: 17,
               fontWeight: 500,
-              color: "#111827",
+              color: "#1a1108",
               lineHeight: 1,
             }}
           >
@@ -133,7 +133,7 @@ export default function MapBottomSheet({
               style={{
                 fontSize: 14,
                 fontWeight: 500,
-                color: "#111827",
+                color: "#1a1108",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -146,7 +146,7 @@ export default function MapBottomSheet({
             <div
               style={{
                 fontSize: 11,
-                color: "#374151",
+                color: "#4b3e2a",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
@@ -161,7 +161,7 @@ export default function MapBottomSheet({
               style={{
                 fontSize: 14,
                 fontWeight: 500,
-                color: "#111827",
+                color: "#1a1108",
               }}
             >
               ¥{selected.price_10kg.toLocaleString()}（10kg）
@@ -171,7 +171,7 @@ export default function MapBottomSheet({
             <div
               style={{
                 fontSize: 12,
-                color: "#6b7280",
+                color: "#7a6c58",
                 lineHeight: 1.4,
               }}
             >

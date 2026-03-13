@@ -3,7 +3,7 @@ import React from "react";
 export default function TermsPage() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px", color: "#374151", lineHeight: 1.8 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 32, color: "#111827" }}>利用規約</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 32, color: "#111827" }}>利用規約</h1>
       
       <p style={{ marginBottom: 24 }}>
         この利用規約（以下、「本規約」といいます。）は、「こめのいち」（以下、「本サービス」といいます。）の利用条件を定めるものです。

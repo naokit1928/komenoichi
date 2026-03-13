@@ -3,7 +3,7 @@ import React from "react";
 export default function PrivacyPage() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px", color: "#374151", lineHeight: 1.8 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 32, color: "#111827" }}>プライバシーポリシー</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 32, color: "#111827" }}>プライバシーポリシー</h1>
       
       <p style={{ marginBottom: 24 }}>
         「こめのいち」（以下、「本サービス」といいます。）は、ユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下、「本ポリシー」といいます。）を定めます。
