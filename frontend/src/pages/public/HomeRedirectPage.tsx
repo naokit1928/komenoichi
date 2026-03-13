@@ -17,7 +17,7 @@ export default function HomeRedirectPage() {
         // ログイン済み かつ 有効な予約（active）が存在する場合
         if (data.is_logged_in && data.active?.exists) {
           // 予約確認画面へ直接飛ばす
-          navigate("/reservations/booked", { replace: true });
+          navigate("/reservation/booked", { replace: true });
         } else {
           // 未ログイン、または有効な予約がない場合は農家一覧へ
           navigate("/farms", { replace: true });
