@@ -9,13 +9,11 @@ type PublicFarmListResponse = components["schemas"]["PublicFarmListResponse"];
 
 // ===== API =====
 const LIST_URL = `${API_BASE}/api/public/farms`;
-// ★ URLを正しいエンドポイントに修正
 const LAST_CONFIRMED_URL = `${API_BASE}/api/public/reservations/latest`; 
 
 // ===== Geo =====
 const TOKUSHIMA_CENTER = { lat: 34.0703, lng: 134.5548 };
 
-// ===== Hook =====
 export function useFarmsListPage() {
   const [farms, setFarms] = useState<FarmCardData[] | null>(null);
   const [publicFarms, setPublicFarms] = useState<PublicFarmCardDTO[]>([]);
@@ -29,7 +27,8 @@ export function useFarmsListPage() {
   const [hasNext, setHasNext] = useState(false);
   const [lastConfirmedFarmId, setLastConfirmedFarmId] = useState<number | null>(null);
 
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null | "pending">("pending");
+  // ★ 1. "pending" を廃止し、初期値を null に。これで即座にフェッチが走るようになる
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const observerTarget = useRef<HTMLDivElement | null>(null);
 
   // ---- 1. 前回予約した農家の取得 ----
@@ -39,31 +38,25 @@ export function useFarmsListPage() {
         const res = await fetch(LAST_CONFIRMED_URL, { credentials: "include" });
         if (!res.ok) return;
         const data = await res.json();
-        // ★ data.farm_id を確実に受け取る
         if (data && typeof data.farm_id === "number") {
           setLastConfirmedFarmId(data.farm_id);
         }
-      } catch {
-        /* ignore */
-      }
+      } catch { /* ignore */ }
     };
     fetchLastConfirmed();
   }, []);
 
 
-  // ---- 2. 位置情報の取得 ----
+  // ---- 2. 位置情報の取得（バックグラウンドで実行） ----
   useEffect(() => {
-    if (!("geolocation" in navigator)) {
-      setUserLocation(null);
-      return;
-    }
+    if (!("geolocation" in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
-        setUserLocation(null); // 拒否やタイムアウト時はnull（フォールバック）
+        // 失敗しても userLocation は null のままなので、fallback（徳島中心など）が使われる
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
     );
@@ -72,10 +65,17 @@ export function useFarmsListPage() {
   // ---- 3. APIフェッチ関数 ----
   const fetchPage = useCallback(
     async (page: number, append: boolean, lat: number | null, lng: number | null) => {
-      append ? setLoadingMore(true) : setLoading(true);
+      // 2回目以降のフェッチ（GPS確定後の再取得など）で、
+      // 既にデータがある場合は「loading（全画面）」ではなく「loadingMore（下部）」で処理する工夫
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        // すでに farms がある状態（GPS取得後の再読み込み）なら、
+        // 全画面 loading にせず裏でこっそり更新するとUXが良い
+        if (!farms) setLoading(true);
+      }
 
       try {
-        // ★ 変更点3: APIのURLに緯度経度を付与
         const url = new URL(LIST_URL);
         url.searchParams.set("page", String(page));
         if (lat !== null && lng !== null) {
@@ -100,7 +100,6 @@ export function useFarmsListPage() {
           lng: typeof f.pickup_lng === "number" ? f.pickup_lng : null,
         }));
 
-        // ★ 変更点4: バックエンドでソート済みのため、そのままセット
         setFarms((prev) => (append && prev ? [...prev, ...mapped] : mapped));
         setPublicFarms((prev) => (append ? [...prev, ...data.farms] : data.farms));
 
@@ -110,26 +109,29 @@ export function useFarmsListPage() {
       } catch {
         setErrorMsg("現在はバックエンドに接続できません。");
       } finally {
-        append ? setLoadingMore(false) : setLoading(false);
+        setLoadingMore(false);
+        setLoading(false);
       }
     },
-    []
+    [farms]
   );
 
-  // ---- 4. 初回フェッチ（位置情報が確定したら実行） ----
+  // ---- 4. 初回 & 位置情報確定時のフェッチ ----
   useEffect(() => {
-    if (userLocation === "pending") return;
+    // userLocation が null（未確定）でも一回目を叩く。
+    // その後 GPS が取れて userLocation が更新されたら、もう一度叩いて「近い順」に更新する。
     const lat = userLocation?.lat ?? null;
     const lng = userLocation?.lng ?? null;
     fetchPage(1, false, lat, lng);
-  }, [userLocation, fetchPage]);
+  }, [userLocation]); // userLocation を監視
 
-  // ---- 5. 無限スクロール（IntersectionObserver） ----
+
+  // ---- 5. 無限スクロール ----
   useEffect(() => {
     const el = observerTarget.current;
-    if (!el || loading || loadingMore || !hasNext || userLocation === "pending") return;
+    // ★ "pending" チェックを削除
+    if (!el || loading || loadingMore || !hasNext) return;
 
-    // 要素が画面に入ったかを検知するブラウザ標準API
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -138,7 +140,6 @@ export function useFarmsListPage() {
           fetchPage(currentPage + 1, true, lat, lng);
         }
       },
-      // 画面下部300pxまで近づいたら事前に読み込みを開始する
       { rootMargin: "300px" } 
     );
 
@@ -154,7 +155,8 @@ export function useFarmsListPage() {
     loadingMore,
     errorMsg,
     lastConfirmedFarmId,
-    effectiveMapCenter: userLocation && userLocation !== "pending" ? userLocation : TOKUSHIMA_CENTER,
-    observerTarget, // UI連携用
+    // ★ userLocation が null ならデフォルトを表示
+    effectiveMapCenter: userLocation ?? TOKUSHIMA_CENTER,
+    observerTarget,
   };
 }

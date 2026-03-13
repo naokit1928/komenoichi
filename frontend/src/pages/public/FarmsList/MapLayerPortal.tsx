@@ -3,12 +3,16 @@ import { createPortal } from "react-dom";
 import MapCanvas from "./MapCanvas";
 import MapBottomSheet from "./MapBottomSheet";
 
+/* ======================================================
+   generated DTO を唯一の正として参照
+   ====================================================== */
 import type {
   components as PublicFarmsComponents,
 } from "@/api/generated/public-farms";
 
 type PublicFarmCardDTO =
   PublicFarmsComponents["schemas"]["PublicFarmCardDTO"];
+/* ====================================================== */
 
 type Props = {
   open: boolean;
@@ -17,8 +21,10 @@ type Props = {
 };
 
 const DEFAULT_CENTER = { lat: 34.0703, lng: 134.5548 };
-const HANDLE_HEIGHT = 20;
-const CLOSE_THRESHOLD = 40;
+
+// 境界ドラッグ設定
+const HANDLE_HEIGHT = 20;      // 境界ゾーンの高さ
+const CLOSE_THRESHOLD = 40;    // 上方向にこれ以上ドラッグしたら閉じる
 
 export default function MapLayerPortal({
   open,
@@ -27,7 +33,9 @@ export default function MapLayerPortal({
 }: Props) {
   const center = mapCenter ?? DEFAULT_CENTER;
 
+  // =========================================================
   // Portal mount
+  // =========================================================
   const rootRef = useRef<HTMLDivElement | null>(null);
   if (!rootRef.current) {
     const el = document.createElement("div");
@@ -44,7 +52,9 @@ export default function MapLayerPortal({
     };
   }, []);
 
-  // URL sel 管理
+  // =========================================================
+  // URL sel 管理（既存仕様）
+  // =========================================================
   const parseSelFromURL = (): number | null => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get("sel");
@@ -89,7 +99,9 @@ export default function MapLayerPortal({
     setSelectedId(null);
   };
 
-  // Map データ
+  // =========================================================
+  // Map → Portal データ
+  // =========================================================
   const [mapFarms, setMapFarms] = useState<PublicFarmCardDTO[]>([]);
 
   const selected = useMemo(
@@ -99,18 +111,33 @@ export default function MapLayerPortal({
 
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
-  // 境界ドラッグ処理
+  // =========================================================
+  // 境界ドラッグ処理（PC + Android 両対応）
+  // =========================================================
   const dragStartY = useRef<number | null>(null);
-  const startDrag = (y: number) => { dragStartY.current = y; };
+
+  const startDrag = (y: number) => {
+    dragStartY.current = y;
+  };
+
   const moveDrag = (y: number) => {
     if (dragStartY.current == null) return;
-    if (y - dragStartY.current < -CLOSE_THRESHOLD) {
+    const dy = y - dragStartY.current;
+
+    // 下 → 上のみ
+    if (dy < -CLOSE_THRESHOLD) {
       dragStartY.current = null;
       onRequestClose();
     }
   };
-  const endDrag = () => { dragStartY.current = null; };
 
+  const endDrag = () => {
+    dragStartY.current = null;
+  };
+
+  // =========================================================
+  // styles
+  // =========================================================
   const backdropStyle: React.CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -125,6 +152,7 @@ export default function MapLayerPortal({
     left: 0,
     top: 0,
     width: "100%",
+    // ★ 83vh から変更：画面の真の高さから140pxと安全領域を引く
     height: "calc(100dvh - 140px - env(safe-area-inset-bottom))",
     background: "#fff",
     borderBottomLeftRadius: 16,
@@ -136,28 +164,27 @@ export default function MapLayerPortal({
     pointerEvents: open ? "auto" : "none",
   };
 
+  // =========================================================
+  // Render
+  // =========================================================
   return createPortal(
     <>
       <div style={backdropStyle} onClick={onRequestClose} />
 
       <section role="dialog" aria-modal={open} style={panelStyle}>
+        <MapCanvas
+          center={center}
+          selectedId={selectedId}
+          hoveredId={hoveredId}
+          onHoverChange={setHoveredId}
+          onSelectFarm={selectFarm}
+          onMapClick={() => {
+            if (selectedId !== null) clearSelection();
+          }}
+          onFarmsChange={setMapFarms}
+        />
 
-        {/* ★ openのときだけMapCanvasをマウント → Google Maps APIの読み込みを遅延させページ初期ロードを高速化 */}
-        {open && (
-          <MapCanvas
-            center={center}
-            selectedId={selectedId}
-            hoveredId={hoveredId}
-            onHoverChange={setHoveredId}
-            onSelectFarm={selectFarm}
-            onMapClick={() => {
-              if (selectedId !== null) clearSelection();
-            }}
-            onFarmsChange={setMapFarms}
-          />
-        )}
-
-        {/* 境界ドラッグハンドル */}
+        {/* ===== 境界ドラッグハンドル（ここだけが閉じる判定） ===== */}
         <div
           style={{
             position: "absolute",
@@ -167,12 +194,14 @@ export default function MapLayerPortal({
             height: HANDLE_HEIGHT,
             zIndex: 40,
             cursor: "ns-resize",
-            touchAction: "none",
+            touchAction: "none", // ★ Android 対策：必須
           }}
+          // PC
           onPointerDown={(e) => startDrag(e.clientY)}
           onPointerMove={(e) => moveDrag(e.clientY)}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
+          // Mobile
           onTouchStart={(e) => startDrag(e.touches[0].clientY)}
           onTouchMove={(e) => moveDrag(e.touches[0].clientY)}
           onTouchEnd={endDrag}
