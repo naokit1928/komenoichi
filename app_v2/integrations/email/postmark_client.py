@@ -26,6 +26,16 @@ def _send_with_template(to_email: str, template_alias: str, template_model: dict
         logger.error("POSTMARK_SERVER_TOKEN is not set")
         return None
 
+    # =========================================================
+    # ★ 追加: すべてのメールに自動で frontend_url を追加する魔法
+    # =========================================================
+    if "frontend_url" not in template_model:
+        # 環境変数 FRONTEND_URL を取得。末尾のスラッシュはエラー防止のため削除する。
+        # 万が一設定されていない場合は、本番サイトをデフォルトにする。
+        frontend_url = os.getenv("FRONTEND_URL", "https://komenoichi.jp").rstrip("/")
+        template_model["frontend_url"] = frontend_url
+    # =========================================================
+
     sender_signature = _get_sender_signature()
 
     payload = {
