@@ -31,11 +31,12 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
         border: "1px solid #e5e7eb",
         borderRadius: 12,
         background: "#ffffff",
-        padding: 14,
+        padding: 16, // 少し内側の余白も広げてスッキリさせました
         marginBottom: 4,
+        marginTop: 38, // ★ 変更: 上の「ご利用上の注意」との間にしっかりとした余白を追加
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
         キャンセル手続き
       </div>
 
@@ -46,7 +47,8 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
         </div>
       ) : (
         <>
-          <div style={{ fontSize: 13, marginBottom: 12, color: "#374151" }}>
+          <div style={{ fontSize: 13, marginBottom: 24, color: "#374151", lineHeight: 1.6 }}>
+            {/* ★ 変更: marginBottomを12pxから24pxに広げ、ボタンとの間にスペースを確保 */}
             急用などで受け渡しに行けなくなった場合は、農家さんをお待たせしないよう、
             <strong style={{ color: "#111827" }}>受け渡し開始時刻までに</strong>
             下のボタンから手続きをお願いします。
@@ -67,6 +69,7 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
               fontSize: 14,
               fontWeight: 700,
               cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(185, 28, 28, 0.2)", // 少しだけ影をつけて押しやすく
             }}
           >
             予約をキャンセルする

@@ -177,8 +177,6 @@ const ReservationBookedPage: React.FC = () => {
 
   return renderShell(
     <div>
-      <InstallAppCard />
-
       <p style={{ fontSize: 10, color: "#9ca3af", textAlign: "right", margin: "0 0 8px 0" }}>
         consumer_id: {consumerId ?? "-"} / res_id: {data.reservation_id}
       </p>
@@ -194,6 +192,14 @@ const ReservationBookedPage: React.FC = () => {
       <MemoCard memo={pickup_detail_memo} />
       <NoticeCard />
       <CancelActionCard cancelActionUri={cancelActionUri} />
+
+      {/* ★最適解：すべてが終わった「一番最後」に、独立した提案として配置する */}
+      <div style={{ marginTop: 64 }}>
+        <div style={{ textAlign: "center", fontSize: 12, color: "#7a6c58", marginBottom: 12, fontWeight: 600 }}>
+          ＼ 最後に、おすすめの便利機能 ／
+        </div>
+        <InstallAppCard />
+      </div>
     </div>
   );
 };
