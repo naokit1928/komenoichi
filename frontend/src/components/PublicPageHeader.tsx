@@ -40,8 +40,8 @@ export function PublicPageHeader({ title }: Props) {
         <img
           src="/logo-mark.svg"
           alt="こめのいちロゴ"
-          width="32"
-          height="32"
+          width="46"
+          height="46"
           style={{ flexShrink: 0 }}
         />
 
