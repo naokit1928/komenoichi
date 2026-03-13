@@ -12,7 +12,6 @@ import ReservationCodeCard from "./ReservationCodeCard";
 import MemoCard from "./MemoCard";
 import NoticeCard from "./NoticeCard";
 import CancelActionCard from "./CancelActionCard";
-import { InstallAppCard } from "./InstallAppCard";
 import { PublicBottomBar } from "@/components/PublicBottomBar";
 
 const ReservationBookedPage: React.FC = () => {
@@ -192,14 +191,6 @@ const ReservationBookedPage: React.FC = () => {
       <MemoCard memo={pickup_detail_memo} />
       <NoticeCard />
       <CancelActionCard cancelActionUri={cancelActionUri} />
-
-      {/* ★最適解：すべてが終わった「一番最後」に、独立した提案として配置する */}
-      <div style={{ marginTop: 64 }}>
-        <div style={{ textAlign: "center", fontSize: 12, color: "#7a6c58", marginBottom: 12, fontWeight: 600 }}>
-          ＼ 最後に、おすすめの便利機能 ／
-        </div>
-        <InstallAppCard />
-      </div>
     </div>
   );
 };

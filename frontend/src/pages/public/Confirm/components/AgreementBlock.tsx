@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import LawPage from "../../Legal/LawPage";
 import TermsPage from "../../Legal/TermsPage";
 
+// ── Brand tokens (COLOR_STRATEGY.md準拠) ──
+const C = {
+  ink:       "#1a1108",
+  ink2:      "#4b3e2a",
+  ink3:      "#7a6c58",
+  border:    "#e8e2d8",
+  bgPale:    "#f4f1ed",
+  bgBase:    "#fdfcfa",
+} as const;
+
 type Props = {
   agreed: boolean;
   onChange: (val: boolean) => void;
@@ -24,44 +34,34 @@ export function AgreementBlock({ agreed, onChange }: Props) {
   const isMobile = window.innerWidth < 480;
 
   return (
-    <div style={{ borderTop: "1px solid #e8e2d8", paddingTop: 20, marginTop: 8 }}>
+    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>
 
-      {/* 注意事項：左アクセントバー付き */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <div style={{
-          flexShrink: 0,
-          width: 3,
-          background: "#C62828",
-          borderRadius: 2,
-          margin: "2px 0",
-        }} />
-        <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "#1a1108", margin: "0 0 8px" }}>
-            ご予約前のご確認
-          </p>
-          <ul style={{
-            margin: 0,
-            paddingLeft: 16,
-            fontSize: 13,
-            color: "#4b3e2a",
-            lineHeight: 1.7,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-          }}>
-            <li>お米代は受け渡し時に<strong style={{ color: "#1a1108", fontWeight: 600 }}>農家へ直接「現金」</strong>でお支払いください。</li>
-            <li>システム利用料（300円）は<strong style={{ color: "#1a1108", fontWeight: 600 }}>キャンセル時も返金不可</strong>です。</li>
-            <li>品質不良や返品のご相談は、<strong style={{ color: "#1a1108", fontWeight: 600 }}>受け渡し当日その場で</strong>農家さんへ直接お伝えください。</li>
-          </ul>
-        </div>
+      {/* ★ 変更点: marginBottom を 20 から 32 に広げ、下のチェックボックスとの間隔を空けました */}
+      <div style={{ marginBottom: 32, padding: "0 4px" }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: C.ink, margin: "0 0 8px" }}>
+          ご予約前のご確認
+        </p>
+        <ul style={{
+          margin: 0,
+          paddingLeft: 20,
+          fontSize: 12,
+          color: C.ink3,
+          lineHeight: 1.6,
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}>
+          <li>システム利用料（300円）はキャンセル時も返金不可となります。</li>
+          <li>品質不良や返品のご相談は、受け渡し当日その場で農家さんへ直接お伝えください。</li>
+        </ul>
       </div>
 
       {/* チェックボックス：カード型 */}
       <div
         onClick={() => onChange(!agreed)}
         style={{
-          background: "#f9f8f6",
-          border: `1.5px solid ${agreed ? "#4b3e2a" : "#e8e2d8"}`,
+          background: "#ffffff",
+          border: `1.5px solid ${agreed ? C.ink2 : C.border}`,
           borderRadius: 12,
           padding: "14px 16px",
           display: "flex",
@@ -75,8 +75,8 @@ export function AgreementBlock({ agreed, onChange }: Props) {
           width: 20,
           height: 20,
           borderRadius: 4,
-          border: `1.5px solid #4b3e2a`,
-          background: agreed ? "#4b3e2a" : "#fff",
+          border: `1.5px solid ${C.ink2}`,
+          background: agreed ? C.ink2 : "#fff",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -97,16 +97,16 @@ export function AgreementBlock({ agreed, onChange }: Props) {
         </div>
 
         <div>
-          <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#1a1108", userSelect: "none" }}>
-            上記の内容に同意する
+          <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: C.ink, userSelect: "none" }}>
+            規約に同意する
           </p>
-          <p style={{ fontSize: 11, color: "#4b3e2a", margin: 0, lineHeight: 1.6, userSelect: "none" }}>
+          <p style={{ fontSize: 11, color: C.ink2, margin: 0, lineHeight: 1.6, userSelect: "none" }}>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setOpenModal("law"); }}
               style={{
                 background: "none", border: "none", padding: 0,
-                color: "#1a73e8", textDecoration: "underline",
+                color: C.ink2, textDecoration: "underline",
                 cursor: "pointer", fontSize: 11, fontFamily: "inherit",
               }}
             >
@@ -118,7 +118,7 @@ export function AgreementBlock({ agreed, onChange }: Props) {
               onClick={(e) => { e.stopPropagation(); setOpenModal("terms"); }}
               style={{
                 background: "none", border: "none", padding: 0,
-                color: "#1a73e8", textDecoration: "underline",
+                color: C.ink2, textDecoration: "underline",
                 cursor: "pointer", fontSize: 11, fontFamily: "inherit",
               }}
             >
@@ -129,7 +129,7 @@ export function AgreementBlock({ agreed, onChange }: Props) {
         </div>
       </div>
 
-      {/* モーダル */}
+      {/* モーダルオーバーレイ */}
       {openModal && (
         <div
           style={{
@@ -153,21 +153,23 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* ヘッダー */}
             <div style={{
               display: "flex",
               justifyContent: "flex-end",
               padding: "8px 12px",
-              borderBottom: "1px solid #e8e2d8",
+              borderBottom: `1px solid ${C.border}`,
               position: "sticky", top: 0, backgroundColor: "#fff", zIndex: 10,
             }}>
               <button
                 onClick={() => setOpenModal(null)}
                 style={{
-                  background: "#f3f4f6", border: "none", width: 36, height: 36,
-                  borderRadius: "50%", fontSize: 24, cursor: "pointer", color: "#4b3e2a",
+                  background: C.bgPale, border: "none", width: 36, height: 36,
+                  borderRadius: "50%", fontSize: 24, cursor: "pointer", color: C.ink2,
                 }}
               >×</button>
             </div>
+            {/* コンテンツ */}
             <div style={{ overflowY: "auto", flex: 1, padding: 0, WebkitOverflowScrolling: "touch" }}>
               {openModal === "law" && <LawPage />}
               {openModal === "terms" && <TermsPage />}
