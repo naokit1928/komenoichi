@@ -62,7 +62,6 @@ export default function ReservationsPage() {
     return `${item.farm_name}さんのお米`;
   };
 
-  // ★ find (1件) ではなく filter (複数件) に変更
   const upcomingItems = items.filter((i) => i.status_category === "upcoming");
   const pastItems = items.filter((i) => i.status_category !== "upcoming");
 
@@ -112,11 +111,10 @@ export default function ReservationsPage() {
             <div>
               {upcomingItems.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  {/* ★ 複数予約がある場合に備えて map で展開 */}
                   {upcomingItems.map((upcomingItem) => (
                     <div
                       key={upcomingItem.reservation_id}
-                      onClick={() => navigate(`/reservation/booked?reservation_id=${upcomingItem.reservation_id}`)} // ★ IDを指定して遷移
+                      onClick={() => navigate(`/reservation/booked?reservation_id=${upcomingItem.reservation_id}`)}
                       style={{
                         backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
                       }}
@@ -127,7 +125,12 @@ export default function ReservationsPage() {
                       <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginBottom: 8 }}>
                         {formatFarmName(upcomingItem)}
                       </div>
-                      <div style={{ fontSize: 14, color: C.ink, marginBottom: 4 }}>予定日時: {upcomingItem.pickup_display}</div>
+                      
+                      {/* ★変更点: fontWeight: 700 を追加して少し太字に */}
+                      <div style={{ fontSize: 14, color: C.ink, marginBottom: 4, fontWeight: 700 }}>
+                        予約日時: {upcomingItem.pickup_display}
+                      </div>
+                      
                       <div style={{ fontSize: 14, color: C.ink }}>お米代合計: {upcomingItem.total_amount.toLocaleString()}円（現金）</div>
                       
                       <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}`, color: C.ink2, fontSize: 13, fontWeight: 600, textAlign: "center" }}>
@@ -163,7 +166,12 @@ export default function ReservationsPage() {
                           <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 4 }}>
                             {formatFarmName(res)}
                           </div>
-                          <div style={{ fontSize: 13, color: C.ink3 }}>{res.pickup_display}</div>
+                          
+                          {/* ★変更点: fontWeight: 600 を追加して少し太字に */}
+                          <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600 }}>
+                            {res.pickup_display}
+                          </div>
+                          
                           <div style={{ fontSize: 13, color: C.ink3, marginTop: 2 }}>お米代合計: {res.total_amount.toLocaleString()}円</div>
                         </div>
                         <div style={{

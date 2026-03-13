@@ -12,8 +12,10 @@ export default function HomeRedirectPage() {
         return res.json();
       })
       .then((data) => {
+        // ログイン済み かつ 有効な予約（active）が存在する場合
         if (data.is_logged_in && data.active?.exists) {
-          navigate("/reservation/booked", { replace: true });
+          // ★ 修正: 直接予約詳細に飛ばすのではなく、予約一覧（/reservations）へ飛ばす
+          navigate("/reservations", { replace: true });
         } else {
           navigate("/farms", { replace: true });
         }
