@@ -171,8 +171,9 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             </div>
             {/* コンテンツ */}
             <div style={{ overflowY: "auto", flex: 1, padding: 0, WebkitOverflowScrolling: "touch" }}>
-              {openModal === "law" && <LawPage />}
-              {openModal === "terms" && <TermsPage />}
+              {/* ★ isModal={true} を渡してボトムバーを非表示にする */}
+              {openModal === "law" && <LawPage isModal={true} />}
+              {openModal === "terms" && <TermsPage isModal={true} />}
             </div>
           </div>
         </div>

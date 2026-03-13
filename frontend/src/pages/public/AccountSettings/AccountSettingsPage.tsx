@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ★ Link を追加
 import { API_BASE } from "@/config/api";
 import { PublicBottomBar } from "@/components/PublicBottomBar";
 
@@ -131,18 +131,19 @@ export default function AccountSettingsPage() {
         <div>
           <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600, marginBottom: 8, paddingLeft: 8 }}>規約・サポート</div>
           <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-            <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+            {/* ★ target="_blank" を削除し Link に変更 */}
+            <Link to="/law" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
               <span style={{ fontSize: 14, fontWeight: 500 }}>特定商取引法に基づく表記</span>
               <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-            </a>
-            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+            </Link>
+            <Link to="/terms" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
               <span style={{ fontSize: 14, fontWeight: 500 }}>利用規約</span>
               <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-            </a>
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
+            </Link>
+            <Link to="/privacy" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
               <span style={{ fontSize: 14, fontWeight: 500 }}>プライバシーポリシー</span>
               <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-            </a>
+            </Link>
           </div>
         </div>
       </>
@@ -183,18 +184,19 @@ export default function AccountSettingsPage() {
       <div>
         <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600, marginBottom: 8, paddingLeft: 8 }}>規約・サポート</div>
         <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-          <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+          {/* ★ target="_blank" を削除し Link に変更 */}
+          <Link to="/law" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>特定商取引法に基づく表記</span>
             <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-          </a>
-          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+          </Link>
+          <Link to="/terms" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>利用規約</span>
             <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-          </a>
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
+          </Link>
+          <Link to="/privacy" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>プライバシーポリシー</span>
             <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-          </a>
+          </Link>
         </div>
       </div>
 

@@ -1,7 +1,14 @@
 import React from "react";
+import { useSearchParams } from "react-router-dom";
+import Footer from "@/components/Footer";
+import { PublicBottomBar } from "@/components/PublicBottomBar";
+import { FarmerBottomBar } from "@/components/FarmerBottomBar";
 
-export default function FarmerTermsPage() {
-  return (
+export default function FarmerTermsPage({ isModal = false }: { isModal?: boolean }) {
+  const [searchParams] = useSearchParams();
+  const isFarmerMode = searchParams.get("from") === "farmer";
+
+  const content = (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px", color: "#374151", lineHeight: 1.8 }}>
       <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 32, color: "#111827" }}>
         農家向け利用規約
@@ -74,6 +81,21 @@ export default function FarmerTermsPage() {
         </section>
 
       </div>
+    </div>
+  );
+
+  if (isModal) return content;
+
+  return (
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      minHeight: "100vh", 
+      backgroundColor: isFarmerMode ? "#F7F7F7" : "#fdfcfa" 
+    }}>
+      <div style={{ flexGrow: 1, paddingBottom: 80 }}>{content}</div>
+      <Footer />
+      {isFarmerMode ? <FarmerBottomBar /> : <PublicBottomBar />}
     </div>
   );
 }

@@ -1,7 +1,14 @@
 import React from "react";
+import { useSearchParams } from "react-router-dom";
+import Footer from "@/components/Footer";
+import { PublicBottomBar } from "@/components/PublicBottomBar";
+import { FarmerBottomBar } from "@/components/FarmerBottomBar";
 
-export default function TermsPage() {
-  return (
+export default function TermsPage({ isModal = false }: { isModal?: boolean }) {
+  const [searchParams] = useSearchParams();
+  const isFarmerMode = searchParams.get("from") === "farmer";
+
+  const content = (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px", fontSize: 15, color: "#374151", lineHeight: 1.8 }}>
       <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 32, color: "#111827" }}>利用規約</h1>
       
@@ -21,11 +28,10 @@ export default function TermsPage() {
         3. システム利用料の決済処理はStripe社を通じて行われ、本サービスはユーザーのクレジットカード情報を一切保持しません。
       </p>
 
-      {/* ★ ここを正しい仕様（返金不可・直前までキャンセル可）に修正しました ★ */}
       <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>第3条（キャンセルと受け取り義務）</h2>
       <p style={{ marginBottom: 16 }}>
         1. ユーザーは、設定された受け渡し開始時刻までであれば、システム上から予約をキャンセルすることができます。ただし、予約完了後（事前決済後）は、いかなる理由によるキャンセルの場合であっても、事前決済されたシステム利用料の返金は一切行われません。<br />
-        2. ユーザーは、指定された日時・場所に赴き、商品を受け取り代金を支払う義務を負います。現地でお支払いいただく農作物の代金についてはキャンセル料は発生いたしませんが、無断キャンセル等を行った場合、今後の本サービスの利用が制限されることがあります。
+        2. ユーザーは, 指定された日時・場所に赴き、商品を受け取り代金を支払う義務を負います。現地でお支払いいただく農作物の代金についてはキャンセル料は発生いたしませんが、無断キャンセル等を行った場合、今後の本サービスの利用が制限されることがあります。
       </p>
 
       <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>第4条（免責事項）</h2>
@@ -36,6 +42,21 @@ export default function TermsPage() {
       <p style={{ marginTop: 40, fontSize: 14, color: "#6B7280" }}>
         制定日：2026年3月10日
       </p>
+    </div>
+  );
+
+  if (isModal) return content;
+
+  return (
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      minHeight: "100vh", 
+      backgroundColor: isFarmerMode ? "#F7F7F7" : "#fdfcfa" 
+    }}>
+      <div style={{ flexGrow: 1, paddingBottom: 80 }}>{content}</div>
+      <Footer />
+      {isFarmerMode ? <FarmerBottomBar /> : <PublicBottomBar />}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext, Link } from "react-router-dom"; 
 import { API_BASE } from "@/config/api";
 
 function maskEmail(email: string) {
@@ -34,9 +34,9 @@ export default function FarmerMenu() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE}/api/auth/farmer/magic/logout`, { method: "POST", credentials: "include" });
+      await fetch(`${API_BASE}/api/auth/farmer/logout`, { method: "POST", credentials: "include" });
     } finally {
-      navigate("/auth/login", { replace: true });
+      navigate("/", { replace: true });
     }
   };
 
@@ -53,7 +53,7 @@ export default function FarmerMenu() {
         setIsDeleting(false);
         return;
       }
-      navigate("/auth/login", { replace: true });
+      navigate("/", { replace: true });
     } catch (e) {
       setDeleteError("通信エラーが発生しました。");
       setIsDeleting(false);
@@ -81,17 +81,22 @@ export default function FarmerMenu() {
 
       <button
         onClick={() => setShowLogoutModal(true)}
-        style={{ width: "100%", padding: "14px 0", fontSize: 16, backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, cursor: "pointer" }}
+        style={{ 
+          width: "100%", padding: "14px 0", fontSize: 16, 
+          backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", 
+          borderRadius: 12, cursor: "pointer", fontWeight: 500, color: "#111827"
+        }}
       >
         ログアウト
       </button>
 
-      {/* ★ 法務ページへのリンク集 ＆ 退会への導線 */}
+      {/* ★ 法務ページへのリンク集（from=farmer パラメータを付与） */}
       <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px 24px", fontSize: 13 }}>
-          <a href="/law" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>特定商取引法に基づく表記</a>
-          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>利用規約</a>
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "underline" }}>プライバシーポリシー</a>
+          <Link to="/terms/farmer?from=farmer" style={{ color: "#111827", fontWeight: 600, textDecoration: "underline" }}>農家向け利用規約</Link>
+          <Link to="/law?from=farmer" style={{ color: "#6B7280", textDecoration: "underline" }}>特定商取引法に基づく表記</Link>
+          <Link to="/terms?from=farmer" style={{ color: "#6B7280", textDecoration: "underline" }}>利用規約（一般）</Link>
+          <Link to="/privacy?from=farmer" style={{ color: "#6B7280", textDecoration: "underline" }}>プライバシーポリシー</Link>
         </div>
 
         <button
@@ -120,12 +125,12 @@ export default function FarmerMenu() {
       {showDeleteModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
           <div style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 440 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#DC2626", marginBottom: 12 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 12 }}>
               アカウントの削除（取り消し不可）
             </div>
 
             <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 20 }}>
-              <span style={{ fontWeight: 600, color: "#B91C1C", display: "block", marginBottom: 12 }}>
+              <span style={{ fontWeight: 600, color: "#111827", display: "block", marginBottom: 12 }}>
                 ※今後の予約が残っている場合は退会できません。
               </span>
               アカウントを削除するためには、以下の項目に同意してください。
@@ -133,18 +138,18 @@ export default function FarmerMenu() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
-                <input type="checkbox" checked={check1} onChange={(e) => setCheck1(e.target.checked)} style={{ marginTop: 4 }} />
+                <input type="checkbox" checked={check1} onChange={(e) => setCheck1(e.target.checked)} style={{ marginTop: 4, accentColor: "#111827" }} />
                 <span style={{ fontSize: 13, color: "#4B5563" }}>農家情報が非公開となり、今後一切のログインができなくなることを理解しました。</span>
               </label>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
-                <input type="checkbox" checked={check2} onChange={(e) => setCheck2(e.target.checked)} style={{ marginTop: 4 }} />
+                <input type="checkbox" checked={check2} onChange={(e) => setCheck2(e.target.checked)} style={{ marginTop: 4, accentColor: "#111827" }} />
                 <span style={{ fontSize: 13, color: "#4B5563" }}>この操作は絶対に取り消すことができず、データを元に戻せないことを理解しました。</span>
               </label>
             </div>
 
             <div style={{ marginBottom: 24 }}>
               <label style={{ fontSize: 13, color: "#374151", fontWeight: 600, display: "block", marginBottom: 8 }}>
-                確認のため「<span style={{ color: "#DC2626" }}>退会する</span>」と入力してください
+                確認のため「退会する」と入力してください
               </label>
               <input
                 type="text"
@@ -156,7 +161,7 @@ export default function FarmerMenu() {
             </div>
 
             {deleteError && (
-              <div style={{ backgroundColor: "#FEF2F2", color: "#B91C1C", padding: "10px", borderRadius: "8px", fontSize: 13, marginBottom: 20 }}>
+              <div style={{ backgroundColor: "#F3F4F6", color: "#111827", padding: "10px", borderRadius: "8px", fontSize: 13, marginBottom: 20, border: "1px solid #D1D5DB" }}>
                 {deleteError}
               </div>
             )}
@@ -175,7 +180,7 @@ export default function FarmerMenu() {
                 disabled={!canDelete || isDeleting}
                 style={{
                   flex: 1, padding: "12px 0", borderRadius: 10, border: "none",
-                  backgroundColor: canDelete ? "#DC2626" : "#FCA5A5",
+                  backgroundColor: canDelete ? "#111827" : "#E5E7EB",
                   color: "#FFFFFF", fontWeight: 600,
                   cursor: canDelete && !isDeleting ? "pointer" : "not-allowed",
                   transition: "background-color 0.2s"

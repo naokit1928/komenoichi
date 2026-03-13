@@ -1,46 +1,9 @@
 import React from "react";
-import { Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
-
-type Tab = {
-  key: string;
-  label: string;
-  path: string;
-};
-
-const TABS: Tab[] = [
-  {
-    key: "reservations",
-    label: "予約確認",
-    path: "/farmer/reservations",
-  },
-  {
-    key: "settings",
-    label: "リスティング設定",
-    path: "/farmer/settings",
-  },
-  {
-    key: "pickup",
-    label: "受け渡し設定",
-    path: "/farmer/pickup-settings",
-  },
-  {
-    key: "menu",
-    label: "アカウント",
-    path: "/farmer/menu",
-  },
-];
-
-const BOTTOM_TAB_HEIGHT = 72;
+import { Outlet, useOutletContext } from "react-router-dom";
+import { FarmerBottomBar, BOTTOM_TAB_HEIGHT } from "@/components/FarmerBottomBar";
 
 export default function FarmerLayout() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // ★ 修正1: RequireFarmerSession から流れてきたデータを受け取る
   const context = useOutletContext();
-
-  const isActive = (path: string) =>
-    location.pathname.startsWith(path);
 
   return (
     <div
@@ -50,45 +13,8 @@ export default function FarmerLayout() {
         paddingBottom: BOTTOM_TAB_HEIGHT,
       }}
     >
-      {/* ★ 修正2: 受け取ったデータをさらに子画面（Menuなど）へ流す */}
       <Outlet context={context} />
-
-      {/* ===== Bottom Tab ===== */}
-      <nav
-        style={{
-          position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: BOTTOM_TAB_HEIGHT,
-          backgroundColor: "#FFFFFF",
-          borderTop: "1px solid #E5E7EB",
-          display: "flex",
-          zIndex: 1000,
-        }}
-      >
-        {TABS.map((tab) => {
-          const active = isActive(tab.path);
-
-          return (
-            <button
-              key={tab.key}
-              onClick={() => navigate(tab.path)}
-              style={{
-                flex: 1,
-                border: "none",
-                background: "none",
-                fontSize: 12,
-                fontWeight: active ? 600 : 500,
-                color: active ? "#000000" : "#6B7280",
-                cursor: "pointer",
-              }}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </nav>
+      <FarmerBottomBar /> {/* コンポーネント化 */}
     </div>
   );
 }
