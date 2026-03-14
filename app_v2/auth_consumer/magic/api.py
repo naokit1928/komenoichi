@@ -18,6 +18,9 @@ from app_v2.integrations.payments.stripe.reservation_payment_repo import (
 )
 from app_v2.customer_booking.repository.consumer_repo import ConsumerRepository
 
+# ★ 追加: 農家としての登録があるか確認するためにインポート
+from app_v2.auth import farm_magic_repo
+
 router = APIRouter(prefix="/auth/consumer/magic", tags=["auth-consumer-magic"])
 _service = MagicLinkService()
 
@@ -37,7 +40,7 @@ def send_magic_link_login(
     request: Request,
     payload: MagicLinkLoginSendRequest,
 ):
-    email = payload.email.strip()
+    email = payload.email.strip().lower()
     redirect = payload.redirect
 
     consumer_repo = ConsumerRepository()
@@ -62,6 +65,8 @@ def consume_login_only(request: Request, token: str, redirect: Optional[str] = N
         raise HTTPException(status_code=400, detail=str(e))
 
     consumer_id = result.get("consumer_id")
+    email = result.get("email")
+
     if not consumer_id:
         raise HTTPException(status_code=400, detail="consumer_id missing in token")
 
@@ -69,17 +74,21 @@ def consume_login_only(request: Request, token: str, redirect: Optional[str] = N
     request.session["consumer_id"] = int(consumer_id)
     request.session["magic_token"] = token
 
+    # ★ 追加（逆デュアルセッション）: 
+    # 購入者ログインであっても、農家アカウントを持っていれば farm_id をセットする
+    if email:
+        try:
+            farm_row = farm_magic_repo.get_farm_by_email(email)
+            if farm_row:
+                request.session["farm_id"] = farm_row["farm_id"]
+        except Exception:
+            pass # 万が一DBエラーが起きても、購入者としてのログインは止めないための安全策
+
     frontend_origin = os.getenv("FRONTEND_BASE_URL")
     if not frontend_origin:
         raise HTTPException(status_code=500, detail="FRONTEND_BASE_URL is not set")
 
     if redirect and redirect.startswith("/"):
-        return RedirectResponse(
-            url=f"{frontend_origin}{redirect}",
-            status_code=status.HTTP_302_FOUND,
-        )
+        return RedirectResponse(url=f"{frontend_origin}{redirect}", status_code=302)
 
-    return RedirectResponse(
-        url=f"{frontend_origin}/",
-        status_code=status.HTTP_302_FOUND,
-    )
+    return RedirectResponse(url=f"{frontend_origin}/farms", status_code=302)

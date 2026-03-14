@@ -17,8 +17,8 @@ const C = {
 type ConsumerIdentity = {
   is_logged_in: boolean;
   email: string | null;
-  is_farmer?: boolean;       // ★ 追加
-  own_farm_id?: number | null; // ★ 追加
+  is_farmer?: boolean;
+  own_farm_id?: number | null;
 };
 
 export default function AccountSettingsPage() {
@@ -101,7 +101,8 @@ export default function AccountSettingsPage() {
   // ★ 共通レイアウトのラッパー
   const renderLayout = (child: React.ReactNode) => (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: C.bgBase, overflowX: "hidden" }}>
-      <div style={{ flexGrow: 1, padding: "24px 16px 80px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
+      {/* ★ 変更: 下部の余白(paddingBottom)を 80px -> 120px に広げ、フローティングボタンと被らないように調整 */}
+      <div style={{ flexGrow: 1, padding: "24px 16px 120px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: C.ink, marginBottom: 24, textAlign: "center" }}>
           アカウント
         </h1>
@@ -181,23 +182,6 @@ export default function AccountSettingsPage() {
         </button>
       </div>
 
-      {/* ★ 隠しドア: 承認済み農家の場合のみ出現 ★ */}
-      {identity.is_farmer && (
-        <div style={{ marginBottom: 32 }}>
-          <button
-            onClick={() => navigate("/farmer")}
-            style={{ 
-              width: "100%", padding: "14px 0", borderRadius: 8, border: "none", 
-              backgroundColor: "#111827", color: "#fff", fontSize: 15, fontWeight: 700, 
-              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
-            }}
-          >
-            <span style={{ fontSize: 18 }}>🌾</span> 農家管理画面へ
-          </button>
-        </div>
-      )}
-
       {/* 規約・サポートメニュー */}
       <div>
         <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600, marginBottom: 8, paddingLeft: 8 }}>規約・サポート</div>
@@ -229,6 +213,47 @@ export default function AccountSettingsPage() {
           退会（アカウント削除）をご希望の方はこちら
         </button>
       </div>
+
+      {/* ★ 変更: Airbnbスタイルのフローティングボタン (Floating Action Button) */}
+      {identity.is_farmer && (
+        <button
+          onClick={() => navigate("/farmer")}
+          style={{
+            position: "fixed",
+            bottom: "calc(64px + env(safe-area-inset-bottom) + 20px)", // コンシューマーボトムバーのすぐ上
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 800,
+            backgroundColor: "#222222", // Airbnb特有のオフブラック
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 9999, // 完全な角丸（ピル型）
+            padding: "14px 24px",
+            fontSize: 14,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+            boxShadow: "0 6px 16px rgba(0,0,0,0.2), 0 0 2px rgba(0,0,0,0.1)", // 浮き上がる影
+            whiteSpace: "nowrap",
+            transition: "transform 0.2s ease, box-shadow 0.2s ease",
+          }}
+          onMouseDown={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(0.96)"}
+          onMouseUp={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(1)"}
+          onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(1)"}
+          onTouchStart={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(0.96)"}
+          onTouchEnd={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(1)"}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 10v12" />
+            <path d="M11 18l-4 4-4-4" />
+            <path d="M17 14V2" />
+            <path d="M21 6l-4-4-4 4" />
+          </svg>
+          農家モードへ
+        </button>
+      )}
 
       {/* ログアウトモーダル */}
       {showLogoutModal && (
