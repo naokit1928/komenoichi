@@ -17,7 +17,8 @@ class MagicLinkLoginSendRequest(BaseModel):
     email: str = Field(
         ...,
         description="ログイン用メールアドレス",
-        min_length=1,
+        min_length=5,
+        pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     )
     redirect: Optional[str] = Field(
         default=None,

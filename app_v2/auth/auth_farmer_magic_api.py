@@ -1,7 +1,7 @@
 import os
 from fastapi import APIRouter, HTTPException, Request, status, BackgroundTasks
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field # ★ Field を追加
 
 from app_v2.auth import farm_magic_service, farm_magic_repo
 from app_v2.customer_booking.repository.consumer_repo import ConsumerRepository
@@ -12,7 +12,12 @@ router = APIRouter(
 )
 
 class FarmerMagicSendRequest(BaseModel):
-    email: str
+    # ★ 変更: 正規表現によるメールアドレス形式のバリデーションを追加
+    email: str = Field(
+        ..., 
+        min_length=5, 
+        pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    )
 
 @router.post("/send-login")
 def send_login(req: FarmerMagicSendRequest, background_tasks: BackgroundTasks):

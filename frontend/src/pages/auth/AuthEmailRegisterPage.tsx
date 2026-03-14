@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { API_BASE } from "@/config/api";
 import { Link } from "react-router-dom";
 
@@ -19,11 +19,26 @@ export default function AuthEmailRegisterPage() {
   const [sent, setSent] = useState(false);
   const [magicLinkUrl, setMagicLinkUrl] = useState<string | null>(null);
 
+  // ★ 追加: クールダウン用のState
+  const [cooldown, setCooldown] = useState(0);
+
+  // ★ 追加: クールダウンのカウントダウン処理
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const handleSendLink = async () => {
     if (!email) {
       setError("メールアドレスを入力してください。");
       return;
     }
+    // ★ 追加: クールダウン中は送信させない
+    if (cooldown > 0) return;
+
     try {
       setError("");
       setLoading(true);
@@ -52,6 +67,8 @@ export default function AuthEmailRegisterPage() {
       }
 
       setSent(true);
+      // ★ 追加: 送信成功時に60秒のクールダウンを開始
+      setCooldown(60);
     } catch (e: any) {
       setError(e.message ?? "エラーが発生しました");
     } finally {
@@ -122,26 +139,26 @@ export default function AuthEmailRegisterPage() {
 
             <button
               onClick={handleSendLink}
-              disabled={loading || !email}
+              disabled={loading || !email || cooldown > 0} // ★ クールダウン中も非活性に
               style={{
                 width: "100%",
                 display: "block",
                 padding: "14px",
-                background: loading ? "#d1d5db" : C.ink,
+                background: (loading || cooldown > 0) ? "#d1d5db" : C.ink, // ★ 非活性時はグレーに
                 color: "#ffffff",
                 borderRadius: 9999,
                 border: "none",
                 fontWeight: 600,
                 fontSize: 15,
-                cursor: loading ? "default" : "pointer",
+                cursor: (loading || cooldown > 0) ? "not-allowed" : "pointer",
                 transition: "all 0.2s",
                 marginTop: 8,
               }}
             >
-              {loading ? "送信中…" : "登録リンクを送信"}
+              {/* ★ テキストを動的に切り替え */}
+              {loading ? "送信中…" : cooldown > 0 ? `再送信可能まで ${cooldown}秒` : "登録リンクを送信"}
             </button>
             
-            {/* ★追加: クリックラップ契約の文言 */}
             <div style={{ marginTop: 16, fontSize: 12, color: C.ink3, textAlign: "center", lineHeight: 1.6 }}>
               登録リンクを送信することで、<br />
               <a href="/terms/farmer" target="_blank" rel="noopener noreferrer" style={{ color: C.ink, textDecoration: "underline" }}>農家向け利用規約</a> および <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.ink, textDecoration: "underline" }}>プライバシーポリシー</a> に同意したものとみなされます。
