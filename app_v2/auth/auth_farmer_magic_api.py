@@ -3,8 +3,8 @@ from fastapi import APIRouter, HTTPException, Request, status, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-# ★ 修正: farm_magic_repo もインポートする
 from app_v2.auth import farm_magic_service, farm_magic_repo
+from app_v2.customer_booking.repository.consumer_repo import ConsumerRepository
 
 router = APIRouter(
     prefix="/auth/farmer/magic",
@@ -19,7 +19,7 @@ def send_login(req: FarmerMagicSendRequest, background_tasks: BackgroundTasks):
     try:
         url = farm_magic_service.send_login_magic_link(req.email)
         
-        # ★ 追加: バックグラウンドで古いトークンのクリーンアップを実行
+        # バックグラウンドで古いトークンのクリーンアップを実行
         background_tasks.add_task(farm_magic_repo.cleanup_expired_tokens, 7)
         
         response = {"ok": True}
@@ -39,7 +39,7 @@ def send_register(req: FarmerMagicSendRequest, background_tasks: BackgroundTasks
     try:
         url = farm_magic_service.send_register_magic_link(req.email)
         
-        # ★ 追加: バックグラウンドで古いトークンのクリーンアップを実行
+        # バックグラウンドで古いトークンのクリーンアップを実行
         background_tasks.add_task(farm_magic_repo.cleanup_expired_tokens, 7)
         
         response = {"ok": True}
@@ -65,15 +65,22 @@ def consume_login(token: str, request: Request, redirect: str | None = None):
 
         farm_id = result["farm_id"]
         is_registered = result["is_registered"]
+        email = result["email"] # サービスからemailを受け取る
 
-        # セッション確立
+        # 1. セッションをクリア
         request.session.clear()
+        
+        # 2. 農家としてのセッションをセット
         request.session["farm_id"] = farm_id
+
+        # 3. ★ デュアルセッション: 消費者としてのセッションもセット
+        consumer_repo = ConsumerRepository()
+        consumer_id = consumer_repo.get_or_create_consumer_id_by_email(email=email)
+        request.session["consumer_id"] = consumer_id
 
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 
         # リダイレクト先の決定
-        # ★ 修正: オープンリダイレクト対策の厳密化（アプリ内の意図したパスのみ許可）
         if redirect and redirect.startswith("/farmer/"):
             target = f"{frontend_url}{redirect}"
             return RedirectResponse(target, status_code=302)

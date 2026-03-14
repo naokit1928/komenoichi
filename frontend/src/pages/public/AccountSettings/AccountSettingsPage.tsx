@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // ★ Link を追加
+import { useNavigate } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 import { PublicBottomBar } from "@/components/PublicBottomBar";
 
@@ -17,6 +17,8 @@ const C = {
 type ConsumerIdentity = {
   is_logged_in: boolean;
   email: string | null;
+  is_farmer?: boolean;       // ★ 追加
+  own_farm_id?: number | null; // ★ 追加
 };
 
 export default function AccountSettingsPage() {
@@ -131,19 +133,18 @@ export default function AccountSettingsPage() {
         <div>
           <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600, marginBottom: 8, paddingLeft: 8 }}>規約・サポート</div>
           <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-            {/* ★ target="_blank" を削除し Link に変更 */}
-            <Link to="/law" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+            <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
               <span style={{ fontSize: 14, fontWeight: 500 }}>特定商取引法に基づく表記</span>
               <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-            </Link>
-            <Link to="/terms" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+            </a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
               <span style={{ fontSize: 14, fontWeight: 500 }}>利用規約</span>
               <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-            </Link>
-            <Link to="/privacy" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
+            </a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
               <span style={{ fontSize: 14, fontWeight: 500 }}>プライバシーポリシー</span>
               <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-            </Link>
+            </a>
           </div>
         </div>
       </>
@@ -164,7 +165,7 @@ export default function AccountSettingsPage() {
           {identity.email}
         </div>
         
-        {/* ログアウトボタン（一般的で目立ちすぎないアウトラインスタイル） */}
+        {/* ログアウトボタン */}
         <button
           onClick={() => setShowLogoutModal(true)}
           style={{ 
@@ -180,23 +181,39 @@ export default function AccountSettingsPage() {
         </button>
       </div>
 
+      {/* ★ 隠しドア: 承認済み農家の場合のみ出現 ★ */}
+      {identity.is_farmer && (
+        <div style={{ marginBottom: 32 }}>
+          <button
+            onClick={() => navigate("/farmer")}
+            style={{ 
+              width: "100%", padding: "14px 0", borderRadius: 8, border: "none", 
+              backgroundColor: "#111827", color: "#fff", fontSize: 15, fontWeight: 700, 
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+            }}
+          >
+            <span style={{ fontSize: 18 }}>🌾</span> 農家管理画面へ
+          </button>
+        </div>
+      )}
+
       {/* 規約・サポートメニュー */}
       <div>
         <div style={{ fontSize: 13, color: C.ink3, fontWeight: 600, marginBottom: 8, paddingLeft: 8 }}>規約・サポート</div>
         <div style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-          {/* ★ target="_blank" を削除し Link に変更 */}
-          <Link to="/law" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+          <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>特定商取引法に基づく表記</span>
             <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-          </Link>
-          <Link to="/terms" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
+          </a>
+          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>利用規約</span>
             <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-          </Link>
-          <Link to="/privacy" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
+          </a>
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", textDecoration: "none", color: C.ink }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>プライバシーポリシー</span>
             <span style={{ color: C.ink3, fontSize: 12 }}>＞</span>
-          </Link>
+          </a>
         </div>
       </div>
 

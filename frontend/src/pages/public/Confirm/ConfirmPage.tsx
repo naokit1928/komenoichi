@@ -32,6 +32,7 @@ type ConfirmCtx = {
 async function fetchIdentity(): Promise<{
   is_logged_in: boolean;
   email: string | null;
+  own_farm_id?: number | null;
 } | null> {
   const res = await fetch(`${API_BASE}/api/consumers/identity`, {
     credentials: "include",
@@ -102,7 +103,6 @@ export default function ConfirmPage() {
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
 
-  // ★ 追加: 初期データの読み込み中かどうかを管理するステート
   const [isInitializing, setIsInitializing] = useState(true);
 
   /* ===== Confirm Context 取得 ===== */
@@ -110,7 +110,13 @@ export default function ConfirmPage() {
     async function run() {
       try {
         if (!cs) {
-          throw new Error("confirm_session_id がありません");
+          throw new Error("セッションが見つかりません。");
+        }
+
+        // 自己予約ガード
+        const idData = await fetchIdentity();
+        if (idData?.own_farm_id && String(idData.own_farm_id) === farmId) {
+          throw new Error("ご自身の農場には予約できません。");
         }
 
         const hasActive = await fetchActiveReservation();
@@ -120,11 +126,13 @@ export default function ConfirmPage() {
         }
 
         const context = await fetchConfirmContext(cs);
+        if (!context) {
+          throw new Error("予約情報の読み込みに失敗しました。");
+        }
         setCtx(context);
       } catch (e: any) {
         setErr(String(e.message || e));
       } finally {
-        // ★ 追加: 取得が完了したら（成功でもエラーでも）ローディング状態を解除する
         setIsInitializing(false);
       }
     }
@@ -171,7 +179,6 @@ export default function ConfirmPage() {
     }
   }
 
-  // ★ 追加: データを取得している間はエラー画面を出さずに待機させる
   if (isInitializing) {
     return (
       <div style={{ display: "flex", justifyContent: "center", marginTop: "50px", color: C.ink3 }}>
@@ -191,12 +198,18 @@ export default function ConfirmPage() {
           textAlign: "center",
         }}
       >
+        {/* ★ 「予約情報が見つかりません」を消し、エラー理由そのものをタイトルにする */}
         <div style={{ fontSize: 18, fontWeight: 600, color: C.ink }}>
-          予約情報が見つかりませんでした
+          {err || "エラーが発生しました"}
         </div>
-        <div style={{ color: C.ink3, fontSize: 14, marginTop: 12 }}>
-          農家詳細ページに戻って、もう一度予約を開始してください。
-        </div>
+        
+        {/* 自己予約エラー以外のときだけ、やり直しの案内を出す */}
+        {err !== "ご自身の農場には予約できません。" && (
+          <div style={{ color: C.ink3, fontSize: 14, marginTop: 12 }}>
+            農家詳細ページに戻って、もう一度予約を開始してください。
+          </div>
+        )}
+        
         <button
           onClick={() => navigate(`/farms/${farmId}`)}
           style={{
@@ -219,12 +232,11 @@ export default function ConfirmPage() {
   return (
     <div
       style={{
-        padding: "24px 16px 64px", // 上の余白を少し調整
+        padding: "24px 16px 64px",
         maxWidth: 520,
         margin: "0 auto",
       }}
     >
-      {/* 改善1: ページタイトルを配置し、何をする画面か明確にする */}
       <h1
         style={{
           fontSize: 18,
@@ -264,7 +276,6 @@ export default function ConfirmPage() {
         </div>
       )}
 
-      {/* (前略... 219行目付近のボタン部分を以下に差し替え) */}
       <button
         onClick={handleMainAction}
         disabled={loading}
@@ -274,7 +285,7 @@ export default function ConfirmPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: loading ? "#d1d5db" : "#C62828", // ← 赤から濃い茶色へ
+          background: loading ? "#d1d5db" : "#C62828",
           color: "#fff",
           borderRadius: 9999,
           border: "none",
@@ -283,7 +294,7 @@ export default function ConfirmPage() {
           marginTop: 32,
           cursor: loading ? "not-allowed" : "pointer",
           transition: "all 0.2s ease",
-          boxShadow: loading ? "none" : "0 4px 12px rgba(198, 40, 40, 0.3)", // 影も茶色へ
+          boxShadow: loading ? "none" : "0 4px 12px rgba(198, 40, 40, 0.3)",
         }}
       >
         {loading ? "処理中…" : "予約確定に進む"}

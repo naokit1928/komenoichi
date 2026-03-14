@@ -23,12 +23,15 @@ def get_consumer_identity(request: Request):
     """
 
     consumer_id = request.session.get("consumer_id")
+    farm_id = request.session.get("farm_id") # ★ 農家セッションも取得
 
     # session が無い → 未ログイン
     if not consumer_id:
         return {
             "is_logged_in": False,
             "email": None,
+            "is_farmer": False,
+            "own_farm_id": None,
         }
 
     try:
@@ -38,6 +41,8 @@ def get_consumer_identity(request: Request):
         return {
             "is_logged_in": False,
             "email": None,
+            "is_farmer": False,
+            "own_farm_id": None,
         }
 
     db_path = resolve_db_path()
@@ -64,10 +69,15 @@ def get_consumer_identity(request: Request):
         return {
             "is_logged_in": False,
             "email": None,
+            "is_farmer": False,
+            "own_farm_id": None,
         }
 
     # ここに来たときだけ「ログイン済み」
+    # ★ is_farmer と own_farm_id を追加して返す
     return {
         "is_logged_in": True,
         "email": email,
+        "is_farmer": farm_id is not None,
+        "own_farm_id": farm_id,
     }

@@ -90,7 +90,21 @@ export default function FarmerMenu() {
         ログアウト
       </button>
 
-      {/* ★ 法務ページへのリンク集（from=farmer パラメータを付与） */}
+      {/* ★ 追加: 購入者ページへの戻りドア */}
+      <div style={{ marginTop: 24 }}>
+        <button
+          onClick={() => navigate("/farms")}
+          style={{ 
+            width: "100%", padding: "14px 0", borderRadius: 12, border: "2px solid #111827", 
+            backgroundColor: "#FFFFFF", color: "#111827", fontSize: 15, fontWeight: 700, 
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+          }}
+        >
+          <span style={{ fontSize: 18 }}>🛒</span> お米を買う（購入者ページへ）
+        </button>
+      </div>
+
+      {/* 法務ページへのリンク集（from=farmer パラメータを付与） */}
       <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px 24px", fontSize: 13 }}>
           <Link to="/terms/farmer?from=farmer" style={{ color: "#111827", fontWeight: 600, textDecoration: "underline" }}>農家向け利用規約</Link>
