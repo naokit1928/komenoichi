@@ -223,7 +223,7 @@ export default function FarmDetailPage() {
       client_next_pickup_deadline_iso: farm.next_pickup_deadline ?? null,
     };
 
-    // 未ログイン → MagicLink 経由（既存ロジックそのまま）
+    // 未ログイン → MagicLink 経由
     if (!isLoggedIn) {
       sessionStorage.setItem("CONFIRM_CTX", JSON.stringify(form));
       navigate(`/login?mode=confirm&farmId=${farmIdStr}`);
@@ -236,7 +236,6 @@ export default function FarmDetailPage() {
       return;
     }
 
-    // ★ ログイン済みでも ConfirmSession を作ってから...
     const res = await fetch(`${API_BASE}/api/confirm/sessions`, {
       method: "POST",
       credentials: "include",
@@ -256,7 +255,6 @@ export default function FarmDetailPage() {
       return;
     }
 
-    /* ▼ 修正箇所：Bridge を経由せず、直接 Confirm 画面へ遷移させる */
     navigate(`/farms/${farmIdStr}/confirm?cs=${encodeURIComponent(cs)}`);
   };
 
@@ -272,6 +270,7 @@ export default function FarmDetailPage() {
         isFav={isFav}
         onToggleFav={toggleFavorite}
         onShare={doShare}
+        onBack={() => navigate("/farms")} // ★ 一律で /farms へ戻す
       />
 
       <section

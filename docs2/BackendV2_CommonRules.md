@@ -13,13 +13,18 @@ git commit -m "メッセージ"
 git push origin main
 
 
-test+24@example.com
+test+1@example.com
 
 http://localhost:10000/api/consumers/secret-logout?key=5f3a9c7e-0e6b-4c4e-b3d3-9c8a7e6d5c56
 
 RENDER用
 SECRET_LOGOUT_KEY
 5f3a9c7e-0e6b-4c4e-b3d3-9c8a7e6d5c56
+
+テストログインについて。
+ローカルは.env、本番はEnvironmental variables内に
+ENV=development があるときだけテストリンクが付与される。
+本番でテストログインリンクを消したければENV=developmentをenvironmental variableから消す。
 
 
 Backend V2 共通ルール（保存版）

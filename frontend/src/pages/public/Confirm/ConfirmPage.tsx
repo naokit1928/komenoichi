@@ -198,7 +198,7 @@ export default function ConfirmPage() {
           textAlign: "center",
         }}
       >
-        {/* ★ 「予約情報が見つかりません」を消し、エラー理由そのものをタイトルにする */}
+        {/* エラー理由そのものをタイトルにする */}
         <div style={{ fontSize: 18, fontWeight: 600, color: C.ink }}>
           {err || "エラーが発生しました"}
         </div>
@@ -237,18 +237,54 @@ export default function ConfirmPage() {
         margin: "0 auto",
       }}
     >
-      <h1
+      {/* ===== ヘッダー部（左に戻るボタン） ===== */}
+      <div
         style={{
-          fontSize: 18,
-          fontWeight: 600,
-          color: C.ink,
-          textAlign: "center",
-          margin: "0 0 24px 0",
-          fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
+          display: "flex",
+          alignItems: "center",
+          position: "relative",
+          marginBottom: 24,
         }}
       >
-        予約内容の確認
-      </h1>
+        <button
+          onClick={() => navigate(`/farms/${farmId}`)}
+          disabled={loading}
+          style={{
+            position: "absolute",
+            left: 0,
+            background: "none",
+            border: "none",
+            padding: "8px",
+            margin: "-8px", // ヒットエリア拡大のためのネガティブマージン
+            cursor: loading ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: C.ink,
+            transition: "opacity 0.2s",
+            opacity: loading ? 0.5 : 1,
+          }}
+          aria-label="農家詳細に戻る"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+
+        <h1
+          style={{
+            flex: 1,
+            fontSize: 18,
+            fontWeight: 600,
+            color: C.ink,
+            textAlign: "center",
+            margin: 0,
+            fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
+          }}
+        >
+          予約内容の確認
+        </h1>
+      </div>
 
       <RiceBreakdown
         riceSubtotal={ctx.riceSubtotal}
@@ -276,6 +312,7 @@ export default function ConfirmPage() {
         </div>
       )}
 
+      {/* 「予約確定に進む」ボタン */}
       <button
         onClick={handleMainAction}
         disabled={loading}

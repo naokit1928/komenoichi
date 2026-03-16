@@ -100,10 +100,14 @@ app.add_middleware(
 # ============================
 # Session Middleware
 # ============================
+# ★ Render環境（本番・リハ）のときだけ、サブドメイン間でCookieを共有する設定
+cookie_domain = ".komenoichi.jp" if IS_RENDER else None
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET", "dev-secret-key"),
-    same_site="none" if IS_RENDER else "lax",
+    domain=cookie_domain,       # ★ 追加: これがiPadで弾かれないための魔法です（先頭のドットが超重要）
+    same_site="lax",            # ★ 変更: "none" から "lax" に変更（ファーストパーティの仲間になったため）
     https_only=True if IS_RENDER else False,
     max_age=60 * 60 * 24 * 30,  # 30日
 )
