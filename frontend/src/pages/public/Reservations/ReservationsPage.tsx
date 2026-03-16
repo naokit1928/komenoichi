@@ -77,7 +77,7 @@ export default function ReservationsPage() {
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: C.bgBase }}>
       <div style={{ flexGrow: 1, padding: "24px 16px 80px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: C.ink, marginBottom: 20, textAlign: "center" }}>
-          予約・履歴
+          受け取り予定
         </h1>
         {child}
       </div>
@@ -99,10 +99,10 @@ export default function ReservationsPage() {
       <>
         <div style={{ textAlign: "center", padding: "48px 0" }}>
           <div style={{ fontSize: 18, color: C.ink, fontWeight: 700, marginBottom: 12 }}>
-            ログインして、予約・履歴を確認
+            ログインして、受け取り予定を確認
           </div>
           <div style={{ fontSize: 14, color: C.ink3, marginBottom: 32, lineHeight: 1.6 }}>
-            これまでの予約履歴や、今後の受け取り予定を<br />ここで確認できます。
+            受け取りの際に必要な情報を<br />ここで確認できます。
           </div>
           <button
             onClick={() => setShowAuthModal(true)}

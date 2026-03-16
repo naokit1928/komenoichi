@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ロゴマーク生成</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0; /* プレビューを分かりやすくするための背景色。生成される画像には影響しません。 */
+  }
+  #logo-container {
+    width: 200px;
+    height: 200px;
+    position: relative;
+    /* 修正箇所: 背景色を白から透明 (#0000) に変更 */
+    background-color: #0000;
+  }
+  .line {
+    position: absolute;
+    background-color: #4B3E2A; /* こめのいち・暗茶色 */
+  }
+  .center-line {
+    width: 10px;
+    height: 180px;
+    top: 10px;
+    left: 95px;
+  }
+  .cross-bar {
+    width: 60px;
+    height: 10px;
+    top: 50px;
+    left: 70px;
+  }
+  .dot {
+    width: 15px;
+    height: 15px;
+    background-color: #4B3E2A;
+    border-radius: 50%;
+    position: absolute;
+    top: 110px;
+    left: 115px;
+  }
+  .char {
+    position: absolute;
+    color: #4B3E2A;
+    font-weight: bold;
+    font-size: 32px;
+  }
+  .kome {
+    top: 80px;
+    left: 45px;
+  }
+  .no {
+    top: 120px;
+    left: 80px;
+    font-size: 28px;
+  }
+  .ichi {
+    top: 80px;
+    left: 140px;
+  }
+  .chi {
+    top: 120px;
+    left: 155px;
+    font-size: 28px;
+  }
+  #download-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+  #download-btn:hover {
+    background-color: #45a049;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+<div id="logo-container">
+  <div class="line center-line"></div>
+  <div class="line cross-bar"></div>
+  <div class="dot"></div>
+  <div class="char kome">こめ</div>
+  <div class="char no">の</div>
+  <div class="char ichi">一</div>
+  <div class="char chi">ち</div>
+</div>
+
+<button id="download-btn">画像をダウンロード (背景透明)</button>
+
+<script>
+  document.getElementById('download-btn').addEventListener('click', function() {
+    html2canvas(document.getElementById('logo-container'), {
+      /* 修正箇所: html2canvas に透過背景を明示的に指定 */
+      backgroundColor: null,
+      scale: 2 // 高解像度にする
+    }).then(function(canvas) {
+      // 変換したキャンバスを画像データとして取得
+      const imageData = canvas.toDataURL('image/png');
+      
+      // ダウンロード用のリンクを作成
+      const link = document.createElement('a');
+      link.href = imageData;
+      link.download = 'email-logo-transparent.png'; // ファイル名を変更
+      
+      // リンクをクリックしてダウンロードを開始
+      link.click();
+    });
+  });
+</script>
+
+</body>
+</html>

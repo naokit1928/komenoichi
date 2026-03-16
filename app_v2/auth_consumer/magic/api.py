@@ -52,7 +52,8 @@ def send_magic_link_login(
         redirect_path=redirect,
     )
 
-    return MagicLinkLoginSendResponse(ok=True, debug_magic_link_url=magic_link_url)
+    debug_url = magic_link_url if os.getenv("ENV") == "development" else None
+    return MagicLinkLoginSendResponse(ok=True, debug_magic_link_url=debug_url)
 
 # ============================================================
 # Magic Link 消費（ログイン完了処理）
