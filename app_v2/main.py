@@ -100,8 +100,8 @@ app.add_middleware(
 # ============================
 # Session Middleware
 # ============================
-# ★ Render環境（本番・リハ）のときだけ、サブドメイン間でCookieを共有する設定
-cookie_domain = ".komenoichi.jp" if IS_RENDER else None
+
+cookie_domain = os.getenv("COOKIE_DOMAIN", None)
 
 app.add_middleware(
     SessionMiddleware,
