@@ -13,7 +13,7 @@ def _get_conn():
     return conn
 
 # ---------------------------------------------------------
-# Read (Queries)
+# Read
 # ---------------------------------------------------------
 
 def find_token(token: str) -> Optional[sqlite3.Row]:
@@ -27,10 +27,6 @@ def find_token(token: str) -> Optional[sqlite3.Row]:
         conn.close()
 
 def get_farm_by_email(email: str) -> Optional[sqlite3.Row]:
-    """
-    Service層で直接SQLを書いていた部分を移動。
-    emailからfarm_idとowner_farmer_id(登録状態判定用)を取得。
-    """
     conn = _get_conn()
     try:
         return conn.execute(
@@ -41,7 +37,6 @@ def get_farm_by_email(email: str) -> Optional[sqlite3.Row]:
         conn.close()
 
 def get_farm_owner_id(farm_id: int) -> Optional[int]:
-    """farm_id から owner_farmer_id (登録済みか) を確認する"""
     conn = _get_conn()
     try:
         row = conn.execute(
@@ -55,13 +50,13 @@ def get_farm_owner_id(farm_id: int) -> Optional[int]:
         conn.close()
 
 # ---------------------------------------------------------
-# Write (Commands)
+# Write
 # ---------------------------------------------------------
 
 def insert_token(
     email: str,
     token: str,
-    farm_id: int,
+    farm_id: Optional[int],
     expires_at: datetime,
     created_at: datetime,
 ):
@@ -76,10 +71,22 @@ def insert_token(
             (
                 email,
                 token,
-                farm_id,
+                farm_id,  # ★ None の場合は NULL で入る
                 expires_at.isoformat(),
                 created_at.isoformat(),
             ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def update_token_farm_id(token_id: int, farm_id: int):
+    """★ 新規登録 consume 時に farm_id を後から書き込む"""
+    conn = _get_conn()
+    try:
+        conn.execute(
+            "UPDATE farm_magic_link_tokens SET farm_id = ? WHERE id = ?",
+            (farm_id, token_id),
         )
         conn.commit()
     finally:
@@ -117,20 +124,13 @@ def create_placeholder_farm(email: str) -> int:
         conn.close()
 
 # ---------------------------------------------------------
-# Maintenance (Cleanup)
+# Maintenance
 # ---------------------------------------------------------
 
 def cleanup_expired_tokens(retention_days: int = 7) -> int:
-    """
-    期限切れ、または古いトークンを物理削除する。
-    消費者モジュールの cleanup.py と同様のアプローチ。
-    """
     conn = _get_conn()
     deleted_count = 0
     try:
-        # expires_at が retention_days 以上前のものを削除
-        # ※もし「使用済みか期限切れなら即消していい」なら条件はもっと厳しくできますが、
-        #   トラブル調査用に7日程度残すのが安全です。
         sql = f"""
             DELETE FROM farm_magic_link_tokens
             WHERE expires_at < datetime('now', '-{retention_days} days')
@@ -138,12 +138,10 @@ def cleanup_expired_tokens(retention_days: int = 7) -> int:
         cur = conn.execute(sql)
         deleted_count = cur.rowcount
         conn.commit()
-        
         if deleted_count > 0:
             logger.info(f"🧹 [FarmAuth GC] Cleaned up {deleted_count} expired tokens.")
     except Exception as e:
         logger.error(f"⚠️ [FarmAuth GC] Failed to cleanup tokens: {e}")
     finally:
         conn.close()
-    
     return deleted_count

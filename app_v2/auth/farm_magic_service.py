@@ -2,7 +2,6 @@ import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
-from typing import Optional
 
 from app_v2.auth_consumer.mailer import send_magic_link_email
 from app_v2.auth import farm_magic_repo
@@ -15,7 +14,7 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 # ==================================================
-# send (Farm Login / Register)
+# send
 # ==================================================
 
 def send_login_magic_link(email: str) -> str:
@@ -27,20 +26,23 @@ def send_login_magic_link(email: str) -> str:
     if not row:
         raise ValueError("email_not_registered")
 
-    return _issue_and_send(email, row["farm_id"])
+    return _issue_and_send(email, farm_id=row["farm_id"])
+
 
 def send_register_magic_link(email: str) -> str:
-    """新規農家の登録用"""
+    """新規農家の登録用
+    ★ 修正: メール送信時点では farms レコードを作らない。
+             farm_id=None でトークンだけ発行する。
+    """
     row = farm_magic_repo.get_farm_by_email(email)
     if row:
         raise ValueError("email_already_registered")
 
-    farm_id = farm_magic_repo.create_placeholder_farm(email)
-    return _issue_and_send(email, farm_id)
+    # ★ farm_id を作らずトークンだけ発行
+    return _issue_and_send(email, farm_id=None)
 
-def _issue_and_send(email: str, farm_id: int, redirect_path: str | None = None) -> str:
-    # ★ 修正: 同期的に呼んでいたクリーンアップ処理を削除 (API層でBackgroundTasksに任せる)
 
+def _issue_and_send(email: str, farm_id: int | None, redirect_path: str | None = None) -> str:
     api_base_url = os.getenv("API_BASE_URL")
     if not api_base_url:
         raise RuntimeError("API_BASE_URL is not set")
@@ -49,6 +51,7 @@ def _issue_and_send(email: str, farm_id: int, redirect_path: str | None = None) 
     expires_at = now + timedelta(minutes=EXPIRE_MINUTES)
     token = _generate_token()
 
+    # ★ farm_id が None の場合（新規登録）もそのまま渡す
     farm_magic_repo.insert_token(
         token=token,
         email=email,
@@ -67,14 +70,12 @@ def _issue_and_send(email: str, farm_id: int, redirect_path: str | None = None) 
     send_magic_link_email(email, magic_link_url)
     return magic_link_url
 
+
 # ==================================================
 # consume
 # ==================================================
 
 def consume_magic_link(token: str) -> dict:
-    """
-    トークンを検証・消費し、ログインに必要な情報(farm_id, is_registered)をまとめて返す。
-    """
     if not token:
         raise ValueError("Token is required")
 
@@ -107,26 +108,30 @@ def consume_magic_link(token: str) -> dict:
                 if used_at.tzinfo is None:
                     used_at = used_at.replace(tzinfo=timezone.utc)
                 if now - used_at < timedelta(seconds=REUSE_GRACE_SECONDS):
-                    # 猶予期間内ならOKとして通す (ただし更新はしない)
                     return _build_success_response(farm_id, email)
             except ValueError:
                 pass
         raise ValueError("Token already used")
 
-    # 未使用なら使用済みに更新
+    # ★ farm_id が None = 新規登録トークン → ここで初めて farms レコードを作る
+    if farm_id is None:
+        farm_id = farm_magic_repo.create_placeholder_farm(email)
+        farm_magic_repo.update_token_farm_id(record["id"], farm_id)
+
     farm_magic_repo.mark_used(token_id=record["id"], used_at=now)
-    
+
     return _build_success_response(farm_id, email)
+
 
 def _build_success_response(farm_id: int, email: str) -> dict:
     owner_id = farm_magic_repo.get_farm_owner_id(farm_id)
     is_registered = (owner_id is not None)
-
     return {
         "email": email,
         "farm_id": farm_id,
         "is_registered": is_registered,
     }
+
 
 def _generate_token() -> str:
     return secrets.token_urlsafe(TOKEN_BYTES)
