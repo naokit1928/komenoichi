@@ -152,3 +152,23 @@ class OkResponse(BaseModel):
 class DataResponse(BaseModel):
     ok: bool = True
     data: dict = Field(default_factory=dict)
+
+# ============================================================
+# Farmer Sales DTOs（売上・予約履歴）
+# ============================================================
+
+class DailySalesDTO(BaseModel):
+    date: str              # 例: "2026-03-04"
+    display_date: str      # 例: "3月4日(水)"
+    sales: int             # その日の合計売上
+    kg: int                # その日の合計販売量
+    reservation_count: int # 予約件数
+
+
+class MonthlySalesResponseDTO(BaseModel):
+    ok: bool = True
+    year: int
+    month: int
+    total_sales: int
+    total_kg: int
+    daily_sales: List[DailySalesDTO] = Field(default_factory=list)

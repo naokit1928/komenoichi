@@ -8,17 +8,11 @@ import ReservationHeader from "./ReservationHeader";
 
 const NOTICE_STORAGE_KEY = "farmer_reservation_notice_ack";
 
-// -------------------------
-// Props
-// -------------------------
 type Props = {
   reservationId?: number;
   mode?: "farmer" | "admin";
 };
 
-// -------------------------
-// 型定義
-// -------------------------
 type EventMeta = {
   pickup_slot_code: string;
   pickup_display: string;
@@ -39,9 +33,6 @@ type ReservationRow = {
   items: ReservationItem[];
 };
 
-// -------------------------
-// 表示用ユーティリティ
-// -------------------------
 function formatEventLabel(meta: EventMeta | null): string {
   return meta?.pickup_display ?? "";
 }
@@ -49,43 +40,27 @@ function formatEventLabel(meta: EventMeta | null): string {
 const FarmerReservationTable: React.FC<Props> = ({
   mode = "farmer",
 }) => {
-  // ★ 週の切り替え用ステート
+  // ★ offset は 0(今週) か 1(来週) のみを取る
   const [offset, setOffset] = useState(0);
 
-  // ★ フックに offset を渡す
   const { data, loading, error, hasRows, totalBySize, totalAmount, formatYen } = useFarmerReservations(offset);
 
   const [showNoticeModal, setShowNoticeModal] = useState(false);
-  const [dontShowNoticeAgain, setDontShowNoticeAgain] = useState(false);
   const [selectedRow, setSelectedRow] = useState<ReservationRow | null>(null);
 
   useEffect(() => {
     const ack = localStorage.getItem(NOTICE_STORAGE_KEY);
-    if (ack === "true") {
-      setDontShowNoticeAgain(true);
-    } else {
-      if (mode === "farmer") {
-        setShowNoticeModal(true);
-      }
+    if (!ack && mode === "farmer") {
+      setShowNoticeModal(true);
     }
   }, [mode]);
 
-  const handleCloseNoticeModal = () => setShowNoticeModal(false);
-  
-  const handlePrimaryCloseNoticeModal = () => {
-    if (dontShowNoticeAgain) {
-      localStorage.setItem(NOTICE_STORAGE_KEY, "true");
-    } else {
-      localStorage.removeItem(NOTICE_STORAGE_KEY);
-    }
+  const handleCloseNoticeModal = () => {
+    localStorage.setItem(NOTICE_STORAGE_KEY, "true");
     setShowNoticeModal(false);
   };
 
   const handleOpenNoticeModal = () => setShowNoticeModal(true);
-  
-  const handleBack = () => {
-    window.history.back();
-  };
   
   const handlePrint = () => {
     window.print();
@@ -104,54 +79,48 @@ const FarmerReservationTable: React.FC<Props> = ({
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        {/* ---------- Header ---------- */}
         {mode === "farmer" && (
           <ReservationHeader
-            title="予約一覧"
             subtitle={formatEventLabel(data?.event_meta ?? null)}
-            onBack={handleBack}
             onPrint={handlePrint}
             onOpenNotice={handleOpenNoticeModal}
           />
         )}
 
-        {/* ---------- 週切り替えナビゲーション ---------- */}
+        {/* ---------- 週切り替えナビゲーション（セグメントコントロール） ---------- */}
         {mode === "farmer" && (
-          <div className={styles.weekNav}>
-            <button 
-              onClick={() => setOffset((o) => o - 1)} 
-              className={styles.weekNavBtn}
+          <div className={styles.segmentControl}>
+            {/* ★ アニメーション用のアクティブスライダー */}
+            <div 
+              className={styles.segmentSlider} 
+              style={{ transform: `translateX(${offset * 100}%)` }} 
+            />
+            
+            <button
+              onClick={() => setOffset(0)}
+              className={`${styles.segmentTab} ${offset === 0 ? styles.active : ""}`}
               disabled={loading}
+              aria-pressed={offset === 0}
             >
-              ＜ 先週
+              今週
             </button>
-            <span className={styles.weekNavLabel}>
-              {offset === 0 ? "今週" : offset < 0 ? `${Math.abs(offset)}週間前` : `${offset}週間後`}
-            </span>
-            <button 
-              onClick={() => setOffset((o) => o + 1)} 
-              className={styles.weekNavBtn}
+            <button
+              onClick={() => setOffset(1)}
+              className={`${styles.segmentTab} ${offset === 1 ? styles.active : ""}`}
               disabled={loading}
+              aria-pressed={offset === 1}
             >
-              来週 ＞
+              来週
             </button>
           </div>
         )}
 
-        {/* ---------- Summary Table ---------- */}
         {mode === "farmer" && (
           <section className={styles.tableSection}>
             {loading ? (
               <div className={styles.infoText}>読み込み中...</div>
             ) : error ? (
               <div className={styles.errorText}>{error}</div>
-            ) : !hasRows ? (
-              <div className={styles.emptyState}>
-                <p className={styles.emptyText}>
-                  まだ予約はありません。<br />
-                  新しい予約が入るとここに表示されます。
-                </p>
-              </div>
             ) : (
               <ReservationSummaryTable
                 loading={loading}
@@ -162,24 +131,20 @@ const FarmerReservationTable: React.FC<Props> = ({
                 totalAmount={totalAmount}
                 formatYen={formatYen}
                 onRowClick={handleRowClick}
+                offset={offset}
               />
             )}
           </section>
         )}
       </div>
 
-      {/* ---------- Notice Modal ---------- */}
       {mode === "farmer" && (
         <FarmerReservationNoticeModal
           isOpen={showNoticeModal}
-          dontShowAgain={dontShowNoticeAgain}
-          onChangeDontShowAgain={setDontShowNoticeAgain}
           onClose={handleCloseNoticeModal}
-          onPrimaryClose={handlePrimaryCloseNoticeModal}
         />
       )}
 
-      {/* ---------- Detail Modal ---------- */}
       {selectedRow && (
         <ReservationDetailModal
           row={selectedRow}

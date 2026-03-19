@@ -26,6 +26,10 @@ const FarmerMenu = React.lazy(
 const FarmerRegistrationPage = React.lazy(
   () => import("./pages/farmer/FarmerRegistration/FarmerRegistrationPage")
 );
+// ★ 新しく追加：売上・予約履歴ページ
+const FarmerSalesPage = React.lazy(
+  () => import("./pages/farmer/FarmerSalesPage")
+);
 
 const FarmsListPage = React.lazy(
   () => import("./pages/public/FarmsList/FarmsListPage")
@@ -175,6 +179,8 @@ export default function AppRoutes() {
               <Route path="settings" element={<FarmerSettingsPage />} />
               <Route path="pickup-settings" element={<FarmerPickupSettingsPage />} />
               <Route path="menu" element={<FarmerMenu />} />
+              {/* ★ 新しく追加 */}
+              <Route path="sales" element={<FarmerSalesPage />} />
             </Route>
           </Route>
 

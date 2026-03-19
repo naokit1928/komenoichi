@@ -53,9 +53,9 @@ const ReservationDetailModal: React.FC<Props> = ({
           </button>
         </header>
 
-        {/* ★ 新しい警告ボックス（注意書きを置き換え、目立たせる） */}
+        {/* ★ 色を赤系に統一し、絵文字を排除 */}
         <div className={styles.warningBox}>
-          ⚠️ 以下の単価は「予約時の価格」です。<br />
+          【注意】以下の単価は「予約時の価格」です。<br />
           必ずこの単価・金額で会計してください。
         </div>
 

@@ -80,22 +80,62 @@ export default function FarmerMenu() {
   return (
     <div style={{ padding: "24px 16px 120px", maxWidth: 640, margin: "0 auto" }}>
 
-      {/* ── アバター＋メール ── */}
-      <h1 style={{ fontSize: 24, fontWeight: 600, color: C.ink, marginBottom: 24, marginTop: 16 }}>
-        アカウント
+      {/* ── タイトルとアバター ── */}
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: C.ink, marginBottom: 24, marginTop: 8 }}>
+        メニュー
       </h1>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 40 }}>
+      
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
         <div style={{
-          width: 64, height: 64, borderRadius: "50%",
+          width: 56, height: 56, borderRadius: "50%",
           backgroundColor: C.ink, color: "#fff",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 24, fontWeight: 600, flexShrink: 0,
+          fontSize: 22, fontWeight: 600, flexShrink: 0,
         }}>
           {email ? email.charAt(0).toUpperCase() : "F"}
         </div>
         <div style={{ fontSize: 16, fontWeight: 600, color: C.ink, wordBreak: "break-all" }}>
           {email ?? "（メール未取得）"}
         </div>
+      </div>
+
+      {/* ── ★追加：Airbnb風の売上・履歴カード ── */}
+      <div style={{ marginBottom: 40 }}>
+        <Link
+          to="/farmer/sales" // ※後で作るページのパス
+          style={{
+            display: "block",
+            backgroundColor: "#ffffff",
+            borderRadius: 16,
+            padding: "24px 20px",
+            textDecoration: "none",
+            color: C.ink,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)", // ふわっとした影
+            border: `1px solid ${C.border}`,
+            transition: "transform 0.1s ease-out, box-shadow 0.1s ease-out",
+          }}
+          // クリック時の押し込みアニメーション
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = "scale(0.98)";
+            e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.04)";
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.06)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.06)";
+          }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>売上・予約履歴</span>
+            <span style={{ color: C.ink3, fontSize: 20 }}>›</span>
+          </div>
+          <div style={{ fontSize: 13, color: C.ink3, lineHeight: 1.5 }}>
+            過去の販売データや帳簿付けのための<br />売上履歴はこちらから確認できます。
+          </div>
+        </Link>
       </div>
 
       {/* ── メニューリスト ── */}

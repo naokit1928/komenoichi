@@ -25,7 +25,7 @@
   justify-content: space-between;
   padding: 12px 16px 8px;
   border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap; /* ★ 数量などを縦に割らせない */
+  white-space: nowrap; /* 数量などを縦に割らせない */
 }
 
 .titleBlock {
@@ -36,16 +36,29 @@
   flex: 1;
 }
 
-.title {
-  font-size: 14px;
-  font-weight: 550;
+.mainTitle {
+  font-size: 16px;
+  font-weight: 600;
   color: #111827;
 }
 
-.subtitle {
-  font-size: 14px;
-  font-weight: 550;
+.headerRuleButton {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.headerRuleButton:hover {
+  background-color: #f3f4f6;
   color: #111827;
+  border-color: #9ca3af;
 }
 
 .iconButton {
@@ -57,50 +70,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #111827;
 }
 
 .iconButton:hover {
   background: #f3f4f6;
-}
-
-.iconArrow {
-  width: 0;
-  height: 0;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-  border-right: 8px solid #111827;
-}
-
-.iconPrint {
-  position: relative;
-  width: 18px;
-  height: 18px;
-  box-sizing: border-box;
-  border-radius: 3px;
-  border: 2px solid #111827;
-}
-
-.iconPrint::before,
-.iconPrint::after {
-  content: "";
-  position: absolute;
-}
-
-.iconPrint::before {
-  left: 3px;
-  right: 3px;
-  top: 3px;
-  height: 4px;
-  border-bottom: 2px solid #111827;
-}
-
-.iconPrint::after {
-  left: 3px;
-  right: 3px;
-  bottom: -6px;
-  height: 6px;
-  border-radius: 2px;
-  border: 2px solid #111827;
 }
 
 .tableSection {
@@ -123,6 +97,15 @@
 
 .tableWrapper {
   overflow-x: auto;
+  /* 横スクロール可能なことを示す右側のシャドウヒント */
+  background:
+    linear-gradient(to right, white 30%, rgba(255,255,255,0)),
+    linear-gradient(to right, rgba(255,255,255,0), white 70%) 100% 0,
+    radial-gradient(farthest-side at 0 50%, rgba(0,0,0,0.05), rgba(0,0,0,0)),
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.15), rgba(0,0,0,0)) 100% 0;
+  background-repeat: no-repeat;
+  background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+  background-attachment: local, local, scroll, scroll;
 }
 
 .table {
@@ -131,10 +114,12 @@
   font-size: 14px;
 }
 
+/* スマホ等で押しやすいように行の高さを確保 */
 .table th,
 .table td {
-  padding: 8px 10px;
+  padding: 12px 10px;
   border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
 }
 
 .table thead th {
@@ -158,26 +143,18 @@
   text-align: right;
 }
 
-.colPin {
-  width: 22%;
-}
-
-.colKg {
-  width: 14%;
-  text-align: center;
-}
-
-.colAmount {
-  width: 26%;
-  text-align: right;
-}
-
 .dataRow {
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .dataRow:hover {
   background: #f9fafb;
+}
+
+.dataRow:hover .chevronCell {
+  transform: translateX(4px);
+  color: #4b5563;
 }
 
 .totalRow {
@@ -192,7 +169,113 @@
 
 .cellRight {
   text-align: right;
-  font-variant-numeric: tabular-nums; /* ★ 数字を縦に揃える */
+  font-variant-numeric: tabular-nums; /* 数字を縦に揃える */
+}
+
+/* 「0」を薄くして視覚的ノイズを減らす */
+.zeroText {
+  color: #d1d5db;
+}
+
+/* 矢印アフォーダンス */
+.chevronCell {
+  color: #9ca3af;
+  text-align: right;
+  width: 24px;
+  padding-right: 12px;
+  transition: transform 0.2s ease;
+  font-size: 18px;
+  font-weight: 300;
+}
+
+/* 予約 / コード を2行表示するため */
+.thTop {
+  display: block;
+}
+
+.thBottom {
+  display: block;
+  white-space: nowrap;
+}
+
+/* ===== Empty State（予約ゼロ時） ===== */
+.emptyState,
+.emptyStateBox {
+  padding: 80px 24px;
+  text-align: center;
+  background-color: #fafafa;
+  border-radius: 0 0 12px 12px;
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 14px;
+  color: #9ca3af;
+  line-height: 1.8;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+.emptyStateIcon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  filter: grayscale(100%); /* モノトーンに合わせる */
+  opacity: 0.5;
+}
+
+
+/* ===== 週切り替えナビゲーション（セグメントコントロール・縮小版） ===== */
+.segmentControl {
+  display: flex;
+  position: relative;
+  background-color: #f3f4f6;
+  border-radius: 999px;
+  padding: 2px;
+  /* ★ 余白を詰める */
+  margin: 12px auto 16px;
+  width: 100%;
+  /* ★ 横幅を小さくする */
+  max-width: 240px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.segmentTab {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  background: none;
+  border: none;
+  /* ★ 上下左右のパディングを減らして高さを抑える */
+  padding: 6px 12px;
+  /* ★ 文字サイズを少し小さく */
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.segmentTab.active {
+  color: #ffffff;
+}
+
+.segmentTab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.segmentSlider {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  background-color: #111827;
+  border-radius: 999px;
+  transition: transform 0.3s ease;
 }
 
 
@@ -205,10 +288,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 4px; /* ← 左右を極小に */
+  padding: 24px 4px; /* 左右を極小に */
   z-index: 40;
 }
-
 
 .modalCard {
   width: min(640px, 100%);
@@ -276,12 +358,6 @@
   flex-direction: column;
 }
 
-.modalNote {
-  font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 8px;
-}
-
 .modalTable {
   width: 100%;
   border-collapse: collapse;
@@ -290,173 +366,59 @@
 
 .modalTable th,
 .modalTable td {
-  padding: 8px 6px; /* ← 横だけ詰める */
+  padding: 8px 6px; /* 横だけ詰める */
   border-bottom: 1px solid #e5e7eb;
 }
 
+/* === モーダル内テーブル：配置の統一 === */
+.modalTable thead th:nth-child(1),
+.modalTable tbody td:nth-child(1) {
+  text-align: left;
+}
 
-/* === モーダル内テーブル：単価は右寄せで統一 === */
+.modalTable thead th:nth-child(2) {
+  white-space: nowrap;
+}
+
 .modalTable thead th:nth-child(3),
 .modalTable tbody td:nth-child(3) {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-
-/* === モーダル内テーブル：数量を1行固定 === */
-.modalTable thead th:nth-child(2) {
-  white-space: nowrap;
-}
-
-/* === モーダル内テーブル：品名は左寄せ === */
-.modalTable thead th:nth-child(1),
-.modalTable tbody td:nth-child(1) {
-  text-align: left;
-}
-
 .modalTotalRow {
   font-weight: 600;
 }
 
-/* === 説明モーダル専用 === */
-
-.noticeLead {
-  font-size: 12px;
-  color: #6b7280;
-  margin: 0;
-  padding: 0;
+/* レシート風の二重線 */
+.modalTotalRow td {
+  border-top: 3px double #d1d5db !important;
+  border-bottom: none !important;
+  padding-top: 14px;
 }
 
-.noticeScrollArea {
-  margin-bottom: 0px !important;
-  font-size: 14px;
-  color: #374151;
-  line-height: 1.7;
-  margin-top: 4px;
-  max-height: 50vh;
-  overflow-y: auto;
-  padding-right: 4px;
+.receiptTotalAmount {
+  font-size: 20px !important;
+  font-weight: 700;
+  color: #111827;
 }
 
-.noticeFooterRow {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.modalCloseButtonReservation {
-  margin-top: -45px;
-}
-
-.noticeFooterRowLeft {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.noticeCloseButton {
-  padding: 6px 0;
-  width: 72px;
-  border-radius: 9999px;
-  border: none;
-  background-color: #111827;
-  color: #ffffff;
+/* 警告ボックス（赤・グレー系に統一） */
+.warningBox {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  padding: 10px 12px;
+  border-radius: 6px;
   font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-weight: 600;
+  margin: 12px 12px 8px;
+  text-align: center;
+  line-height: 1.5;
 }
 
 
-.noticeCloseButton:hover {
-  opacity: 0.9;
-}
-
-/* ===== 追加：予約 / コード を2行表示するためだけの最小変更 ===== */
-
-.thTop {
-  display: block;
-}
-
-.thBottom {
-  display: block;
-  white-space: nowrap; /* ← これだけ */
-}
-
-/* ===========================
-   印刷用スタイル (@media print)
-   =========================== */
-
-/* ===========================
-   印刷用スタイル (@media print)
-   =========================== */
-
-@media print {
-  /* ★ 1. ブラウザのURLや日付（ヘッダー・フッター）を完全に消す */
-  @page {
-    margin: 0mm;
-  }
-
-  /* ★ 2. 2枚目の白紙を防ぐため、html/body/root の高さや余白を完全リセット */
-  html, body, #root {
-    height: auto !important;
-    min-height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #ffffff !important;
-  }
-
-  /* ★ 3. Layoutコンポーネント等が持つ「見えない100vh」を強制解除 */
-  #root > div,
-  #root > div > div {
-    height: auto !important;
-    min-height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  /* ★ 4. 印刷内容のエリア。ここでだけ「見切れないための安全な余白」を取る */
-  .page {
-    height: auto !important;
-    min-height: auto !important;
-    padding: 10mm 15mm !important; /* 用紙の端が見切れないように1cmの余白 */
-    margin: 0 !important;
-    background: #ffffff !important;
-    box-sizing: border-box !important;
-  }
-
-  .card {
-    margin: 0 !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    /* page-break を avoid にすると逆にバグることがあるので auto に */
-    page-break-after: auto !important;
-    page-break-inside: auto !important;
-  }
-
-  .tableSection, .table {
-    padding: 0 !important;
-    margin-bottom: 0 !important; /* 表の下の余白もゼロに */
-  }
-
-  /* ★ 5. 不要なUI要素の非表示 */
-  .iconButton,
-  .noticeCloseButton,
-  .modalOverlay {
-    display: none !important;
-  }
-
-  /* 画面下部のナビゲーション等を消す */
-  nav, footer, .bottomNav, [role="navigation"] {
-    display: none !important;
-  }
-}
-
-/* ===== ルール説明モーダル用 追加スタイル ===== */
+/* ===== 説明モーダル専用 ===== */
 
 .noticeLeadBox {
   background-color: #fef2f2;
@@ -468,6 +430,17 @@
   text-align: center;
   margin-bottom: 16px;
   border: 1px solid #fca5a5;
+}
+
+.noticeScrollArea {
+  margin-bottom: 0px !important;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.7;
+  margin-top: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .ruleList {
@@ -508,126 +481,102 @@
   padding-left: 22px;
 }
 
-/* ===== UX改善用 追加スタイル ===== */
-
-/* 1. サマリー表のアフォーダンス（右矢印） */
-.chevronCell {
-  color: #9ca3af;
-  text-align: right;
-  width: 24px;
-  padding-right: 12px;
-  transition: transform 0.2s ease;
-  font-size: 18px;
-  font-weight: 300;
-}
-
-.dataRow {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.dataRow:hover {
-  background: #f9fafb;
-}
-
-.dataRow:hover .chevronCell {
-  transform: translateX(4px);
-  color: #4b5563;
-}
-
-/* 2. レシート風詳細モーダル用 */
-.warningBox {
-  background-color: #fffbeb;
-  color: #b45309;
-  border: 1px solid #fde68a;
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  margin: 12px 12px 8px; /* 左右に少し余白 */
-  text-align: center;
-  line-height: 1.5;
-}
-
-.receiptTotalAmount {
-  font-size: 20px !important;
-  font-weight: 700;
-  color: #111827;
-}
-
-/* 3. Empty State（予約ゼロ時）用 */
-.emptyState {
-  padding: 80px 24px;
-  text-align: center;
-  background-color: #fafafa;
-  border-radius: 0 0 12px 12px;
-}
-
-.emptyText {
-  margin: 0;
-  font-size: 14px;
-  color: #9ca3af;
-  line-height: 1.8;
-  font-weight: 400;
-  letter-spacing: 0.05em;
-}
-
-/* 「0」を薄くして視覚的ノイズを減らす */
-.zeroText {
-  color: #d1d5db;
-}
-
-/* スマホ等で押しやすいように、行の高さを少しだけ広げる（既存の .table th, .table td を上書き） */
-.table th,
-.table td {
-  padding: 12px 10px; /* 8px から 12px へ変更 */
-  border-bottom: 1px solid #e5e7eb;
-  vertical-align: middle;
-}
-
-/* ===== 週切り替えナビゲーション ===== */
-.weekNav {
+.noticeFooterRow {
+  margin-top: 12px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 24px;
-  padding: 12px 16px;
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.weekNavBtn {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 999px;
-  padding: 6px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.weekNavBtn:hover:not(:disabled) {
-  background: #f3f4f6;
-  border-color: #9ca3af;
-}
-
-.weekNavBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.weekNavLabel {
+  justify-content: space-between;
+  gap: 8px;
   font-size: 14px;
-  font-weight: 600;
-  color: #1f7a36; /* Komenoichi Green */
-  min-width: 80px;
-  text-align: center;
 }
+
+.noticeFooterRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.noticeCloseButton {
+  padding: 6px 0;
+  width: 72px;
+  border-radius: 9999px;
+  border: none;
+  background-color: #111827;
+  color: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.noticeCloseButton:hover {
+  opacity: 0.9;
+}
+
+
+/* ===========================
+   印刷用スタイル (@media print)
+   =========================== */
 
 @media print {
-  .weekNav {
+  /* ブラウザのURLや日付（ヘッダー・フッター）を完全に消す */
+  @page {
+    margin: 0mm;
+  }
+
+  /* 2枚目の白紙を防ぐため、html/body/root の高さや余白を完全リセット */
+  html, body, #root {
+    height: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Layoutコンポーネント等が持つ「見えない100vh」を強制解除 */
+  #root > div,
+  #root > div > div {
+    height: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 印刷内容のエリア。ここでだけ「見切れないための安全な余白」を取る */
+  .page {
+    height: auto !important;
+    min-height: auto !important;
+    padding: 10mm 15mm !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
+  }
+
+  .card {
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    page-break-after: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  .tableSection, .table {
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* 不要なUI要素の非表示 */
+  .iconButton,
+  .headerRuleButton,
+  .noticeCloseButton,
+  .modalOverlay,
+  .segmentControl {
+    display: none !important;
+  }
+
+  /* 画面下部のナビゲーション等を消す */
+  nav, footer, .bottomNav, [role="navigation"] {
     display: none !important;
   }
 }

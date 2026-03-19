@@ -32,6 +32,7 @@ type Props = {
   totalAmount: number;
   formatYen: (v: number | string | null | undefined) => string;
   onRowClick: (row: ReservationRow) => void;
+  offset: number;
 };
 
 const ReservationSummaryTable: React.FC<Props> = ({
@@ -43,6 +44,7 @@ const ReservationSummaryTable: React.FC<Props> = ({
   totalAmount,
   formatYen,
   onRowClick,
+  offset,
 }) => {
   if (loading) {
     return <div className={styles.infoText}>読み込み中です…</div>;
@@ -53,11 +55,15 @@ const ReservationSummaryTable: React.FC<Props> = ({
   }
 
   if (!hasRows) {
-    // 予約がない時のデザインを温かみのある表示に変更
+    // ★ offset は 0 か 1 しかないので、条件分岐もシンプルに
+    const emptyMessage = offset === 0 
+      ? "今週の予約はまだありません。" 
+      : "来週の予約はまだありません。";
+
     return (
       <div className={styles.emptyStateBox}>
-        <div className={styles.emptyStateIcon}>🌾</div>
-        <div>今週の予約はまだありません。</div>
+        {/* 絵文字は排除し、文字だけを中央に置くストイックなスタイル */}
+        <div className={styles.emptyText}>{emptyMessage}</div>
       </div>
     );
   }
@@ -75,7 +81,7 @@ const ReservationSummaryTable: React.FC<Props> = ({
             <th className={styles.thCompact}>10kg</th>
             <th className={styles.thCompact}>25kg</th>
             <th className={styles.thCompact}>合計金額</th>
-            <th style={{ width: "24px", padding: 0 }}></th> {/* 矢印用の空ヘッダー */}
+            <th style={{ width: "24px", padding: 0 }}></th>
           </tr>
         </thead>
 
@@ -92,7 +98,6 @@ const ReservationSummaryTable: React.FC<Props> = ({
                 return (
                   <td
                     key={size}
-                    // ★ 数量が0の場合は .zeroText クラスを付与して薄くする
                     className={`${styles.cellCenter} ${qty === 0 ? styles.zeroText : ""}`}
                   >
                     {qty}
@@ -102,7 +107,7 @@ const ReservationSummaryTable: React.FC<Props> = ({
               <td className={styles.cellRight}>
                 {formatYen(row.rice_subtotal)}
               </td>
-              <td className={styles.chevronCell}>›</td> {/* ここをクリックできるサインを追加 */}
+              <td className={styles.chevronCell}>›</td>
             </tr>
           ))}
         </tbody>
@@ -115,7 +120,6 @@ const ReservationSummaryTable: React.FC<Props> = ({
               return (
                 <td
                   key={idx}
-                  // ★ 合計も0の場合は薄くする
                   className={`${styles.cellCenter} ${totalQty === 0 ? styles.zeroText : ""}`}
                 >
                   {totalQty}
@@ -125,7 +129,7 @@ const ReservationSummaryTable: React.FC<Props> = ({
             <td className={styles.cellRight}>
               {formatYen(totalAmount)}
             </td>
-            <td></td> {/* 矢印列の空フッター */}
+            <td></td>
           </tr>
         </tfoot>
       </table>

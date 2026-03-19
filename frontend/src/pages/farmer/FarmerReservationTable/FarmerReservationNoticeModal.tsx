@@ -2,43 +2,18 @@ import React from "react";
 import styles from "./FarmerReservationTable.module.css";
 
 type FarmerReservationNoticeModalProps = {
-  /** モーダルを表示するかどうか */
   isOpen: boolean;
-  /** 「次回から表示しない」の現在値（親から渡す） */
-  dontShowAgain: boolean;
-  /** チェックボックス変更時に呼ばれる（親の state を更新） */
-  onChangeDontShowAgain: (value: boolean) => void;
-  /** 単純に閉じる（オーバーレイクリック、右上×） */
   onClose: () => void;
-  /** 下部のメイン「閉じる」ボタン。ここで永続化を反映させる */
-  onPrimaryClose: () => void;
 };
 
-/**
- * 農家向けの予約運用ルール説明モーダル。
- */
 const FarmerReservationNoticeModal: React.FC<
   FarmerReservationNoticeModalProps
-> = ({
-  isOpen,
-  dontShowAgain,
-  onChangeDontShowAgain,
-  onClose,
-  onPrimaryClose,
-}) => {
+> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  const handleOverlayClick = () => {
-    onClose();
-  };
-
+  const handleOverlayClick = () => onClose();
   const handleCardClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
     e.stopPropagation();
-  };
-
-  const handlePrimaryClose = () => {
-    // 永続化の実処理は親側に任せる
-    onPrimaryClose();
   };
 
   return (
@@ -68,15 +43,12 @@ const FarmerReservationNoticeModal: React.FC<
         </header>
 
         <div className={styles.modalBody}>
-          {/* 目立たせるリード文ボックス */}
           <div className={styles.noticeLeadBox}>
             安全な運用のために、必ず一度はお読みください。
           </div>
 
-          {/* 本文エリア（スクロール可能） */}
           <div className={styles.noticeScrollArea}>
             <div className={styles.ruleList}>
-              
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
                   <span className={styles.ruleIcon}>①</span>
@@ -87,7 +59,6 @@ const FarmerReservationNoticeModal: React.FC<
                 </p>
               </div>
 
-              {/* ★修正: 「仕組みがない」という表現を削り、スッキリさせました */}
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
                   <span className={styles.ruleIcon}>②</span>
@@ -127,27 +98,18 @@ const FarmerReservationNoticeModal: React.FC<
                   運営は品質に関するクレームに一切関与いたしません。なお、予約者には「返品・交換の申し出は受け渡し時にその場で行うこと」と規約で定めています。受け渡し日以降の返品対応は原則不要ですが、実際の対応は各農家さんのご判断にお任せします。
                 </p>
               </div>
-
             </div>
           </div>
 
-          {/* フッター：チェックボックス */}
-          <div className={styles.noticeFooterRow}>
-            <label className={styles.noticeFooterRowLeft}>
-              <input
-                type="checkbox"
-                checked={dontShowAgain}
-                onChange={(e) => onChangeDontShowAgain(e.target.checked)}
-              />
-              <span>次回からこの説明を表示しない</span>
-            </label>
-
+          {/* フッター：チェックボックスを廃止し、中央揃えのボタンのみに */}
+          <div className={styles.noticeFooterRow} style={{ justifyContent: "center", marginTop: "16px" }}>
             <button
               type="button"
-              onClick={handlePrimaryClose}
+              onClick={onClose}
               className={styles.noticeCloseButton}
+              style={{ width: "auto", padding: "8px 24px", fontSize: "14px" }}
             >
-              閉じる
+              確認して閉じる
             </button>
           </div>
         </div>

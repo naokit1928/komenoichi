@@ -128,6 +128,7 @@ from app_v2.farmer.api.pickup_settings_api import router as pickup_settings_rout
 from app_v2.farmer.api.farmer_settings_api import router as farmer_settings_router
 from app_v2.farmer.api.geocode_api import router as geocode_router
 from app_v2.farmer.farmer_me_api import router as farmer_me_router
+from app_v2.farmer.api.farmer_sales_api import router as farmer_sales_router
 
 # --- Customer Booking ---
 from app_v2.customer_booking.api.public_farms_api import router as public_farms_router
@@ -206,6 +207,7 @@ app.include_router(pickup_settings_router, prefix="/api")
 app.include_router(farmer_settings_router, prefix="/api")
 app.include_router(geocode_router, prefix="/api")
 app.include_router(farmer_me_router, prefix="/api")
+app.include_router(farmer_sales_router)
 
 # Customer
 app.include_router(public_farms_router)
