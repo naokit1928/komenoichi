@@ -155,8 +155,8 @@ export function useFarmsListPage() {
     loadingMore,
     errorMsg,
     lastConfirmedFarmId,
-    // ★ userLocation が null ならデフォルトを表示
-    effectiveMapCenter: userLocation ?? TOKUSHIMA_CENTER,
+    // ★ 修正: 位置情報があっても、100km以内に農家がいなければ強制的に徳島中心にする
+    effectiveMapCenter: (userLocation && !noFarmsWithin100km) ? userLocation : TOKUSHIMA_CENTER,
     observerTarget,
   };
 }
