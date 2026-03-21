@@ -20,13 +20,8 @@ const ReservationHeader: React.FC<Props> = ({
         <div className={styles.mainTitle}>{subtitle}</div>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-        }}
-      >
+      {/* ★ 変更：インラインスタイルを削除し、CSSクラス「.headerActions」に変更 */}
+      <div className={styles.headerActions}>
         {/* 目立ちすぎないアウトラインボタンに変更 */}
         <button
           type="button"

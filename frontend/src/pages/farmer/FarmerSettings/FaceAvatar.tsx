@@ -8,6 +8,8 @@ type Props = {
   onDelete?: () => void;
   uploading?: boolean;
   deleting?: boolean;
+  /** クロップモーダルの開閉を親に通知する */
+  onCropOpenChange?: (open: boolean) => void;
   className?: string;
   title?: string;
 };
@@ -34,6 +36,7 @@ export default function FaceAvatar({
   onDelete,
   uploading,
   deleting,
+  onCropOpenChange,
   className = "",
 }: Props) {
 
@@ -79,6 +82,7 @@ export default function FaceAvatar({
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCropOpen(true);
+    onCropOpenChange?.(true);
   };
 
   const onCropComplete = (_: Area, cropped: Area) => {
@@ -146,6 +150,7 @@ export default function FaceAvatar({
     } finally {
       setUploadingLocal(false);
       setCropOpen(false);
+      onCropOpenChange?.(false);
       if (cropSrc?.startsWith("blob:")) URL.revokeObjectURL(cropSrc);
       setCropSrc(null);
     }
@@ -309,6 +314,7 @@ export default function FaceAvatar({
                 onClick={() => {
                   if (isBusy) return;
                   setCropOpen(false);
+                  onCropOpenChange?.(false);
                   if (cropSrc?.startsWith("blob:")) URL.revokeObjectURL(cropSrc);
                   setCropSrc(null);
                 }}

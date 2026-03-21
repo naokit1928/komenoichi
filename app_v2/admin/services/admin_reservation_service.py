@@ -1,3 +1,4 @@
+# app_v2/admin/services/admin_reservation_service.py
 from __future__ import annotations
 
 import json
@@ -16,22 +17,20 @@ from app_v2.admin.services.admin_items_formatter import (
     calc_amounts,
 )
 
-# FarmerReservation / Export と同じロジックを再利用（表示は禁止）
 from app_v2.admin.services.admin_event_resolver import (
     parse_created_at,
     resolve_event,
 )
 
+# ★ Komenoichiの本来の仕様である「動的コード生成（ハッシュ計算）」
+_PICKUP_SALT = 7919
+
+def _generate_pickup_code(reservation_id: int, consumer_id: int) -> str:
+    code = ((reservation_id * 104729) ^ (consumer_id * 179) ^ _PICKUP_SALT) % 10000
+    return f"{code:04d}"
+
 
 class AdminReservationService:
-    """
-    /api/admin/reservations 用 Service。
-
-    【重要な不変条件】
-    - 表示の正は DB.reservations.pickup_display のみ
-    - Admin 側での再計算・再解釈は禁止
-    """
-
     def __init__(self, repo: Optional[AdminReservationRepository] = None) -> None:
         self.repo = repo or AdminReservationRepository()
 
@@ -50,11 +49,7 @@ class AdminReservationService:
         date_to: Optional[date] = None,
         event_start: Optional[datetime] = None,
     ) -> Tuple[List[AdminReservationListItemDTO], int]:
-        """
-        管理画面一覧用の DTO 配列と total_count を返す。
-        """
 
-        # --- event_start フィルタモード ---
         if event_start is not None:
             raw_rows = self.repo.list_reservations(
                 limit=10000,
@@ -88,7 +83,6 @@ class AdminReservationService:
 
             return dtos, len(dtos)
 
-        # --- 通常モード ---
         raw_rows = self.repo.list_reservations(
             limit=limit,
             offset=offset,
@@ -124,10 +118,6 @@ class AdminReservationService:
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
-        """
-        FarmerReservationTable のヘッダ相当となる
-        「受け渡しイベント一覧」を返す。
-        """
 
         raw_rows = self.repo.list_reservations(
             limit=10000,
@@ -161,7 +151,6 @@ class AdminReservationService:
                     "pickup_slot_code": pickup_slot_code,
                     "event_start": event_start,
                     "event_end": event_end,
-                    # ★ 表示は DB の値をそのまま使用
                     "pickup_display": row.get("pickup_display"),
                     "reservation_count": 0,
                     "pending_count": 0,
@@ -189,15 +178,24 @@ class AdminReservationService:
         return items
 
     # ------------------------------------------------------------------
+    # ダッシュボード用 アラート一覧
+    # ------------------------------------------------------------------
+    def get_alerts_for_admin(self) -> Dict[str, List[AdminReservationListItemDTO]]:
+        anomalies_raw = self.repo.list_payment_anomalies(limit=50)
+        zombies_raw = self.repo.list_zombie_reservations(hours_old=1, limit=50)
+
+        return {
+            "payment_anomalies": [self._build_admin_dto(row) for row in anomalies_raw],
+            "zombies": [self._build_admin_dto(row) for row in zombies_raw],
+        }
+
+    # ------------------------------------------------------------------
     # 内部ヘルパ
     # ------------------------------------------------------------------
     def _build_admin_dto(
         self,
         row: Dict[str, Any],
     ) -> AdminReservationListItemDTO:
-        """
-        reservations の生データから DTO を組み立てる。
-        """
 
         pickup_slot_code = str(row.get("pickup_slot_code") or "")
         created_at = parse_created_at(row.get("created_at"))
@@ -207,7 +205,6 @@ class AdminReservationService:
             pickup_slot_code=pickup_slot_code,
         )
 
-        # ★ 表示は DB.reservations.pickup_display のみ
         pickup_display = row.get("pickup_display")
 
         items_display = build_items_display(row.get("items_json"))
@@ -246,10 +243,21 @@ class AdminReservationService:
         except (TypeError, ValueError):
             pickup_map_url = ""
 
+        # ★ 正しい仕様：DBから取得するのではなく、Python側でハッシュ計算を行う
+        pickup_code = ""
+        if customer_user_id > 0:
+            pickup_code = _generate_pickup_code(int(row["id"]), customer_user_id)
+
         return AdminReservationListItemDTO(
             reservation_id=int(row["id"]),
             farm_id=int(row["farm_id"]),
+            pickup_slot_code=pickup_slot_code,
+            pickup_code=pickup_code,
             customer_user_id=customer_user_id,
+            consumer_email=row.get("consumer_email"),
+            payment_intent_id=row.get("payment_intent_id"),
+            payment_status=payment_status,
+            confirm_session_id=row.get("confirm_session_id"),
             owner_last_name=owner_last_name or None,
             owner_first_name=owner_first_name or None,
             owner_last_kana=owner_last_kana or None,
@@ -257,9 +265,10 @@ class AdminReservationService:
             owner_postcode=farmer_postcode or None,
             owner_address_line=addr_line or None,
             owner_phone=(row.get("owner_phone") or "").strip() or None,
+            owner_email=(row.get("owner_email") or "").strip() or None,
             pickup_start=event_start,
             pickup_end=event_end,
-            pickup_display=pickup_display,
+            pickup_display=pickup_display or "",
             pickup_place_name=pickup_place_name or None,
             pickup_map_url=pickup_map_url or None,
             pickup_detail_memo=pickup_detail_memo or None,

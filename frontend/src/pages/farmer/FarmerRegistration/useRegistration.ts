@@ -75,8 +75,6 @@ function buildFullAddressForGeocoding(v: RegistrationValues): string | null {
   if (v.pref) parts.push(v.pref.trim());
   if (v.city) parts.push(v.city.trim());
   if (v.addr1) parts.push(v.addr1.trim());
-  if (v.addr2) parts.push(v.addr2.trim());
-
   if (parts.length === 0) return null;
   return ["日本", parts.join("")].join("");
 }
@@ -121,15 +119,10 @@ export function useRegistration() {
     pref: "",
     city: "",
     addr1: "",
-    addr2: "",
     lat: "",
     lng: "",
     pickupPlaceName: "",
     pickupTime: "",
-    pickupRoof: true,
-    email: "",
-    farmName: "",
-    pickupNotes: "",
   });
 
   const [pickupTimeOption, setPickupTimeOption] =
@@ -168,7 +161,7 @@ export function useRegistration() {
 
   const fullAddressForMap = useMemo(
     () => buildFullAddressForGeocoding(values),
-    [values.ownerPostal, values.pref, values.city, values.addr1, values.addr2]
+    [values.ownerPostal, values.pref, values.city, values.addr1]
   );
 
   const [baseLat, setBaseLat] = useState<number | null>(null);
@@ -237,18 +230,13 @@ export function useRegistration() {
           owner_postcode: values.ownerPostal.trim(),
           owner_pref: values.pref.trim(),
           owner_city: values.city.trim(),
-          owner_addr_line: [values.addr1, values.addr2]
-            .map((v) => v.trim())
-            .filter(Boolean)
-            .join(" "),
+          owner_addr_line: values.addr1.trim(),
           owner_phone: values.phone.trim(),
 
           pickup_lat: Number(values.lat),
           pickup_lng: Number(values.lng),
           pickup_place_name: values.pickupPlaceName.trim(),
-          pickup_notes: values.pickupNotes
-            ? values.pickupNotes.trim()
-            : null,
+          pickup_notes: null,
           pickup_time: String(values.pickupTime),
         }
       );

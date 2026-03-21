@@ -178,23 +178,24 @@ function PickupPlaceNameModal({
           />
         </div>
 
+        {/* バリデーションエラー */}
+        {draft.trim().length > 0 && draft.trim().length < 2 && (
+          <p style={{ marginTop: 6, fontSize: 12, color: "#DC2626" }}>
+            2文字以上で入力してください
+          </p>
+        )}
+
         {/* 保存ボタン */}
         <div style={{ marginTop: 18 }}>
           <button
             onClick={async () => {
               if (busy) return;
               const sanitized = sanitize(draft);
-
-              // 2 文字未満は保存させない
-              if (sanitized.trim().length < 2) {
-                alert("受け渡し場所名は2文字以上で入力してください");
-                return;
-              }
-
+              if (sanitized.trim().length < 2) return;
               await onConfirm(sanitized);
               onClose();
             }}
-            disabled={busy}
+            disabled={busy || draft.trim().length < 2}
             aria-label="保存"
             style={{
               width: "100%",
@@ -208,8 +209,8 @@ function PickupPlaceNameModal({
               alignItems: "center",
               justifyContent: "center",
               boxShadow: "0 1px 0 rgba(0,0,0,.02)",
-              opacity: busy ? 0.6 : 1,
-              cursor: busy ? "not-allowed" : "pointer",
+              opacity: (busy || draft.trim().length < 2) ? 0.5 : 1,
+              cursor: (busy || draft.trim().length < 2) ? "not-allowed" : "pointer",
             }}
             className="transition active:scale-[.99]"
           >

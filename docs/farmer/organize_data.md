@@ -367,7 +367,7 @@ URL 例
 
 合計金額
 
-内部予約ID（reservation_id）※小さく表示
+内部システム照会ID（reservation_id）※小さく表示
 
 🔧 データ構造（内部）
 

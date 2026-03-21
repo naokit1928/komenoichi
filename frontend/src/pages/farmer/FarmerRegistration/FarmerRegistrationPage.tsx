@@ -8,8 +8,6 @@ import OwnerSection from "./OwnerSection";
 
 import PickupLocationCard from "../FarmerPickupSettings/PickupLocationCard";
 import PickupPlaceNameCard from "../FarmerPickupSettings/PickupPlaceNameCard";
-import PickupNotesCard from "../FarmerPickupSettings/PickupNotesCard";
-
 import PickupTimeCardForRegistration from "./PickupTimeCardForRegistration";
 import type { TimeSlotOption } from "./PickupTimeCardForRegistration";
 
@@ -18,6 +16,7 @@ import type { TimeSlotOption } from "./PickupTimeCardForRegistration";
 // ============================
 function ConfirmModal({
   values,
+  pickupTimeLabel,
   onConfirm,
   onCancel,
 }: {
@@ -31,7 +30,12 @@ function ConfirmModal({
     pref: string;
     city: string;
     addr1: string;
+    pickupPlaceName: string;
+    pickupTime: string;
+    lat: string;
+    lng: string;
   };
+  pickupTimeLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -43,6 +47,8 @@ function ConfirmModal({
     { label: "都道府県", value: values.pref },
     { label: "市区町村", value: values.city },
     { label: "番地", value: values.addr1 },
+    { label: "受け渡し場所名", value: values.pickupPlaceName },
+    { label: "受け取り日時", value: pickupTimeLabel },
   ];
 
   return ReactDOM.createPortal(
@@ -94,7 +100,9 @@ function ConfirmModal({
             lineHeight: 1.6,
           }}
         >
-          以下の情報は登録後に変更できません。
+          氏名・住所・電話番号は登録後に変更できません。
+          <br />
+          受け渡し場所・日時は後から変更できます。
           <br />
           正確に入力されているかご確認ください。
         </p>
@@ -249,6 +257,26 @@ export default function FarmerRegistrationPage() {
       </h2>
 
       <form onSubmit={reg.handleSubmit} className="space-y-6">
+        {/* 変更不可バナー */}
+        <div style={{
+          padding: "12px 16px",
+          background: "#FEF2F2",
+          border: "1px solid #FECACA",
+          borderRadius: 16,
+          fontSize: 13,
+          color: "#DC2626",
+          fontWeight: 600,
+          lineHeight: 1.6,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 8,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>氏名・住所・電話番号は登録後に変更できません。正確に入力してください。</span>
+        </div>
+
         {/* 基本情報 */}
         <div className="bg-white rounded-2xl shadow-sm px-4 py-5">
           <OwnerSection
@@ -303,11 +331,6 @@ export default function FarmerRegistrationPage() {
             onSave={(v) => reg.set("pickupPlaceName")(v)}
           />
 
-          <PickupNotesCard
-            value={reg.values.pickupNotes}
-            saving={false}
-            onSave={(v) => reg.set("pickupNotes")(v)}
-          />
 
           <PickupTimeCardForRegistration
             value={reg.pickupTimeOption}
@@ -373,6 +396,13 @@ export default function FarmerRegistrationPage() {
       {showConfirm && (
         <ConfirmModal
           values={reg.values}
+          pickupTimeLabel={
+            reg.values.pickupTime === "WED_19_20"
+              ? "毎週水曜 19:00–20:00"
+              : reg.values.pickupTime === "SAT_10_11"
+              ? "毎週土曜 10:00–11:00"
+              : "未選択"
+          }
           onConfirm={handleConfirm}
           onCancel={() => setShowConfirm(false)}
         />

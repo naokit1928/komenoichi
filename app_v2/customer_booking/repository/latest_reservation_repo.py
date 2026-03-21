@@ -24,7 +24,7 @@ class LatestReservationRepository:
         consumer_id: int,
     ) -> Optional[int]:
         """
-        最新の予約IDを返す（reservation_booked_api 等で使用）
+        最新のシステム照会IDを返す（reservation_booked_api 等で使用）
         """
         conn = sqlite3.connect(self.db_path)
         try:

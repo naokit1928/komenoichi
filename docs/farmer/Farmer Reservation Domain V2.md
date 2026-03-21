@@ -100,7 +100,7 @@ reservations テーブルの V2 カラム群を唯一の真実として扱う。
 
 16.1 reservations テーブル構造（V2使用部分）
 カラム名	型	NULL	説明
-id	INTEGER PK	NO	予約ID
+id	INTEGER PK	NO	システム照会ID
 user_id	INTEGER	NO	予約者ID
 farm_id	INTEGER	NO	対象農家
 status	VARCHAR(32)	NO	"pending" / "confirmed"
@@ -153,7 +153,7 @@ line_total = unit_price × quantity（サーバが計算）
 
 16.3 status の意味
 status	説明
-pending	ConfirmPageで予約ID作成直後
+pending	ConfirmPageでシステム照会ID作成直後
 confirmed	Stripe成功後（農家側UIが表示する状態）
 
 農家一覧では confirmed のみを表示。

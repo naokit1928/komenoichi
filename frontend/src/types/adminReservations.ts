@@ -1,6 +1,4 @@
-// src/types/adminReservations.ts
-// ⚠️ バックエンド admin_reservation_dtos.py の完全ミラー
-
+// frontend/src/types/adminReservations.ts
 export type NotificationStatusValue =
   | "DASH"
   | "NONE"
@@ -17,8 +15,15 @@ export interface NotificationStatusSummaryDTO {
 export interface AdminReservationListItemDTO {
   reservation_id: number;
   farm_id: number;
+  pickup_slot_code: string; 
+  pickup_code: string; // ★ 追加
 
   customer_user_id?: number | null;
+
+  consumer_email?: string | null;
+  payment_intent_id?: string | null;
+  payment_status?: string | null;
+  confirm_session_id?: string | null;
 
   owner_last_name?: string | null;
   owner_first_name?: string | null;
@@ -27,8 +32,9 @@ export interface AdminReservationListItemDTO {
   owner_postcode?: string | null;
   owner_address_line?: string | null;
   owner_phone?: string | null;
+  owner_email?: string | null;
 
-  pickup_start: string;   // datetime → ISO string
+  pickup_start: string;
   pickup_end: string;
   pickup_display: string;
 
@@ -44,7 +50,7 @@ export interface AdminReservationListItemDTO {
 
   reservation_status: string;
 
-  notification_summary: NotificationStatusSummaryDTO;
+  notification_summary?: NotificationStatusSummaryDTO;
 
   created_at: string;
   updated_at?: string | null;
@@ -52,4 +58,27 @@ export interface AdminReservationListItemDTO {
 
 export interface AdminReservationListResponse {
   items: AdminReservationListItemDTO[];
+  total_count: number;
+}
+
+export interface AdminReservationWeekSummary {
+  farm_id: number;
+  pickup_slot_code: string;
+  event_start: string;
+  event_end: string;
+  pickup_display: string;
+  reservation_count: number;
+  pending_count: number;
+  confirmed_count: number;
+  cancelled_count: number;
+  rice_subtotal: number;
+}
+
+export interface AdminReservationWeekListResponse {
+  items: AdminReservationWeekSummary[];
+}
+
+export interface AdminAlertsResponse {
+  payment_anomalies: AdminReservationListItemDTO[];
+  zombies: AdminReservationListItemDTO[];
 }

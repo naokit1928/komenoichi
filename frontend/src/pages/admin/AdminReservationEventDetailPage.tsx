@@ -1,6 +1,4 @@
 // frontend/src/pages/admin/AdminReservationEventDetailPage.tsx
-// 通知ステータスUI: 枠付きピルを廃止し、文字のみ色分け表示
-
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { API_BASE } from "@/config/api";
@@ -50,7 +48,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
           { signal: controller.signal }
         );
 
-
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data: AdminReservationListResponse = await res.json();
@@ -87,7 +84,7 @@ const AdminReservationEventDetailPage: React.FC = () => {
   const ownerPostalCode = items[0]?.owner_postcode ?? "";
   const ownerAddressLine = items[0]?.owner_address_line ?? "";
   const ownerPhone = items[0]?.owner_phone ?? "";
-
+  const ownerEmail = items[0]?.owner_email ?? ""; 
 
   // C / X 集計
   const { confirmedCount, cancelledCount } = useMemo(() => {
@@ -131,28 +128,22 @@ const AdminReservationEventDetailPage: React.FC = () => {
     [items]
   );
   const visibleItems = useMemo(
-  () =>
-    items.filter(
-      (r) =>
-        r.reservation_status !== "pending" ||
-        highlightId === Number(r.reservation_id)
-    ),
-  [items, highlightId]
-);
-
+    () =>
+      items.filter(
+        (r) =>
+          r.reservation_status !== "pending" ||
+          highlightId === Number(r.reservation_id)
+      ),
+    [items, highlightId]
+  );
 
   const sumRiceSubtotal = useMemo(
     () => confirmedItems.reduce((sum, r) => sum + r.rice_subtotal, 0),
     [confirmedItems]
   );
-  const sumServiceFee = useMemo(
-    () => feeItems.reduce((sum, r) => sum + r.service_fee, 0),
-    [feeItems]
-  );
 
   const formatNumber = (n: number) =>
     new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }).format(n);
-
 
   // クエリ不足
   if (!farmIdParam || !eventStartParam) {
@@ -180,7 +171,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-5xl px-4 py-6">
-
         {/* ヘッダ */}
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -227,11 +217,12 @@ const AdminReservationEventDetailPage: React.FC = () => {
                     <div>郵便番号：{ownerPostalCode || "（未登録）"}</div>
                     <div>住所：{ownerAddressLine || "（未登録）"}</div>
                     <div>電話番号：{ownerPhone || "（未登録）"}</div>
+                    <div>Email：{ownerEmail || "（未登録）"}</div>
                   </div>
                 </div>
 
                 <div className="text-right text-xs text-gray-500">
-                  <div>farm_id: {farmIdParam}</div>
+                  <div className="bg-gray-100 px-2 py-1 rounded font-mono">farm_id: {farmIdParam}</div>
                 </div>
               </div>
             </div>
@@ -301,12 +292,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
                       {formatNumber(sumRiceSubtotal)} 円
                     </div>
                   </div>
-                  <div>
-                    <div className="text-xs text-gray-500">サービス料合計（C+X）</div>
-                    <div className="mt-1 text-base font-semibold text-gray-900">
-                      {formatNumber(sumServiceFee)} 円
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -322,26 +307,29 @@ const AdminReservationEventDetailPage: React.FC = () => {
 
         {/* 一覧テーブル */}
         {!loading && visibleItems.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
-                    予約ID
+                  {/* ★ 変更：ヘッダーの名称を整理 */}
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">
+                    受渡番号・照会ID / 注文内容
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
-                    ユーザーID
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">
+                    Email / User ID
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">
+                    Stripe決済情報
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">
                     作成日時
                   </th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 whitespace-nowrap">
                     お米代
                   </th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500 whitespace-nowrap">
                     ステータス
                   </th>
-
                 </tr>
               </thead>
 
@@ -349,41 +337,93 @@ const AdminReservationEventDetailPage: React.FC = () => {
                 {visibleItems.map((r) => {
                   const statusLabel =
                     r.reservation_status === "confirmed"
-                      ? "C"
+                      ? "確 定"
                       : r.reservation_status === "cancelled"
-                      ? "X"
+                      ? "キャンセル"
                       : r.reservation_status;
 
                   const statusClass =
                     r.reservation_status === "confirmed"
-                      ? "bg-green-50 text-green-700"
+                      ? "bg-green-50 text-green-700 border border-green-200"
                       : r.reservation_status === "cancelled"
-                      ? "bg-red-50 text-red-700"
+                      ? "bg-red-50 text-red-700 border border-red-200"
                       : "bg-gray-100 text-gray-600";
-
 
                   return (
                     <tr
                       key={r.reservation_id}
                       className={
                         highlightId === Number(r.reservation_id)
-                         ? "bg-slate-50 hover:bg-slate-100"
-                         : "hover:bg-gray-50"
+                          ? "bg-blue-50 hover:bg-blue-100"
+                          : "hover:bg-gray-50"
                       }
                     >
-                      <td className="px-4 py-2 text-sm">
-                        <div className="font-mono text-xs">#{r.reservation_id}</div>
+                      {/* ★ 変更：受渡番号と注文数量を整理して表示 */}
+                      <td className="px-4 py-3 align-top whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-bold text-gray-900 text-lg tracking-wider">
+                              {/* データがない古い予約は「未発行」と表示してレイアウト崩れを防ぐ */}
+                              {r.pickup_code || <span className="text-gray-400 text-sm font-normal">未発行</span>}
+                            </span>
+                            <span className="font-mono text-gray-500 text-xs">
+                              (ID: #{r.reservation_id})
+                            </span>
+                          </div>
+                          <div className="text-sm font-semibold text-gray-700">
+                            {r.items_display}
+                          </div>
+                        </div>
                       </td>
 
-                      <td className="px-4 py-2 text-sm">
-                        <div className="font-mono text-xs">{r.customer_user_id}</div>
+                      <td className="px-4 py-3 text-sm align-top whitespace-nowrap">
+                        <div className="text-gray-900">
+                          {r.consumer_email || (
+                            <span className="text-gray-400">Email未取得</span>
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500 font-mono">
+                          User ID: {r.customer_user_id || "-"}
+                        </div>
                       </td>
 
-                      <td className="px-4 py-2 text-sm">
+                      <td className="px-4 py-3 text-sm align-top whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">PI:</span>
+                          {r.payment_intent_id ? (
+                            <code
+                              className="cursor-pointer rounded bg-gray-100 px-1 py-0.5 text-xs hover:bg-gray-200"
+                              onClick={() =>
+                                navigator.clipboard.writeText(
+                                  r.payment_intent_id!
+                                )
+                              }
+                              title="クリックでコピー"
+                            >
+                              {r.payment_intent_id.substring(0, 14)}...
+                            </code>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-600">
+                          Status:{" "}
+                          <span
+                            className={
+                              r.payment_status === "succeeded"
+                                ? "font-semibold text-green-600"
+                                : ""
+                            }
+                          >
+                            {r.payment_status || "-"}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3 text-sm align-top whitespace-nowrap">
                         <div className="text-xs text-gray-800">
                           {r.created_at
                             ? new Date(r.created_at).toLocaleString("ja-JP", {
-                                year: "numeric",
                                 month: "2-digit",
                                 day: "2-digit",
                                 hour: "2-digit",
@@ -393,21 +433,19 @@ const AdminReservationEventDetailPage: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="px-4 py-2 text-right text-sm text-gray-900">
-                        <div className="text-xs">{formatNumber(r.rice_subtotal)} 円</div>
+                      <td className="px-4 py-3 text-right text-sm align-top whitespace-nowrap">
+                        <div className="font-semibold text-gray-900">
+                          {formatNumber(r.rice_subtotal)} 円
+                        </div>
                       </td>
 
-                      <td className="px-4 py-2 text-center text-sm">
+                      <td className="px-4 py-3 text-center align-top whitespace-nowrap">
                         <span
-                          className={
-                            "inline-flex rounded-full px-2 py-0.5 text-xs font-medium " +
-                            statusClass
-                          }
+                          className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusClass}`}
                         >
                           {statusLabel}
                         </span>
                       </td>
-                      
                     </tr>
                   );
                 })}

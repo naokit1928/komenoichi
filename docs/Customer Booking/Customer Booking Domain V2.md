@@ -319,7 +319,7 @@ next_pickup_start / deadline
 
 3-6. 予約完了ページ
 
-予約ID
+システム照会ID
 
 farm_id
 
@@ -512,7 +512,7 @@ Confirm ページ（予約内容の確認）
 
 の両方で共通して利用することを想定する。
 現在の UI では Confirm ページは「金額確認のみ」なので、
-金額関連＋予約IDを中心とした最小セットを定義する。
+金額関連＋システム照会IDを中心とした最小セットを定義する。
 
 TypeScript 定義（フロント側イメージ）
 
@@ -629,7 +629,7 @@ Customer Booking Domain V2
 
 | カラム名   | 型              | NULL | 用途 |
 |-----------|-----------------|------|------|
-| id        | INTEGER PK      | NO   | 予約ID（ReservationResultDTO.reservation_id と一致） |
+| id        | INTEGER PK      | NO   | システム照会ID（ReservationResultDTO.reservation_id と一致） |
 | user_id   | INTEGER         | NO   | 予約したユーザーID（当面は 1 固定などで運用可） |
 | farm_id   | INTEGER         | NO   | どの農家への予約か |
 

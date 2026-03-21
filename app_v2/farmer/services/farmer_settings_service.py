@@ -99,6 +99,7 @@ class FarmerSettingsService:
         missing = self._compute_missing_fields(farm, profile, pr_raw)
 
         return FarmerSettingsDTO(
+            farm_id=farm_id,  # ★ ここを追加しました
             is_accepting_reservations=bool(farm.get("is_accepting_reservations")),
             active_flag=int(farm.get("active_flag") or 1),
             is_ready_to_publish=len(missing) == 0,

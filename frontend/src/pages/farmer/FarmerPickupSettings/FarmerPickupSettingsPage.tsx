@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import ReactDOM from "react-dom";
 import PickupLocationCard from "./PickupLocationCard";
 import PickupPlaceNameCard from "./PickupPlaceNameCard";
 import PickupNotesCard from "./PickupNotesCard";
@@ -31,6 +32,13 @@ const FarmerPickupSettingsPage: React.FC = () => {
   const [pickupTime, setPickupTime] = useState<string | null>(null);
 
   const [activeReservationsCount, setActiveReservationsCount] = useState(0);
+
+  // トースト
+  const [toast, setToast] = useState<{ kind: "ok" | "ng"; text: string } | null>(null);
+  const showToast = useCallback((kind: "ok" | "ng", text: string) => {
+    setToast({ kind, text });
+    setTimeout(() => setToast(null), 1800);
+  }, []);
 
   // ローディング状態
   const [initialLoading, setInitialLoading] = useState(true);
@@ -85,6 +93,29 @@ const FarmerPickupSettingsPage: React.FC = () => {
       <FarmerSettingsHeader title="受け渡し設定" />
       <div style={{ height: "24px" }} />
 
+      {/* 予約ロックバナー */}
+      {!canEdit && (
+        <div style={{
+          margin: "0 16px 0",
+          padding: "12px 16px",
+          background: "#FEF2F2",
+          border: "1px solid #FECACA",
+          borderRadius: 16,
+          fontSize: 13,
+          color: "#DC2626",
+          fontWeight: 600,
+          lineHeight: 1.6,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          今週すでに予約が入っているため、設定は変更できません。
+        </div>
+      )}
+
       <div className="mx-auto max-w-md px-4 py-6 space-y-6">
         {/* 場所カード */}
         <PickupLocationCard
@@ -95,7 +126,6 @@ const FarmerPickupSettingsPage: React.FC = () => {
           radiusMeters={400}
           saving={savingLocation}
           disabled={initialLoading || !canEdit || savingLocation}
-          cannotChangeReason={lockReason}
           onSave={async (lat, lng) => {
             try {
               setSavingLocation(true);
@@ -105,8 +135,9 @@ const FarmerPickupSettingsPage: React.FC = () => {
                 pickup_lng: lng,
               });
               applyFarmState(data.farm, data.status);
+              showToast("ok", "受け渡し場所を保存しました。");
             } catch {
-              alert("受け渡し場所の保存に失敗しました");
+              showToast("ng", "受け渡し場所の保存に失敗しました");
             } finally {
               setSavingLocation(false);
             }
@@ -118,7 +149,6 @@ const FarmerPickupSettingsPage: React.FC = () => {
           value={pickupPlaceName}
           saving={savingPlaceName}
           disabled={initialLoading || !canEdit || savingPlaceName}
-          cannotChangeReason={lockReason}
           onSave={async (val) => {
             try {
               setSavingPlaceName(true);
@@ -127,8 +157,9 @@ const FarmerPickupSettingsPage: React.FC = () => {
                 pickup_place_name: val,
               });
               applyFarmState(data.farm, data.status);
+              showToast("ok", "場所名を保存しました。");
             } catch {
-              alert("受け渡し場所名の保存に失敗しました");
+              showToast("ng", "受け渡し場所名の保存に失敗しました");
             } finally {
               setSavingPlaceName(false);
             }
@@ -140,7 +171,6 @@ const FarmerPickupSettingsPage: React.FC = () => {
           value={pickupNotes}
           saving={savingNotes}
           disabled={initialLoading || !canEdit || savingNotes}
-          cannotChangeReason={lockReason}
           onSave={async (val) => {
             try {
               setSavingNotes(true);
@@ -149,8 +179,9 @@ const FarmerPickupSettingsPage: React.FC = () => {
                 pickup_notes: val,
               });
               applyFarmState(data.farm, data.status);
+              showToast("ok", "補足メモを保存しました。");
             } catch {
-              alert("補足メモの保存に失敗しました");
+              showToast("ng", "補足メモの保存に失敗しました");
             } finally {
               setSavingNotes(false);
             }
@@ -162,7 +193,6 @@ const FarmerPickupSettingsPage: React.FC = () => {
           value={pickupTime as TimeSlotOption}
           saving={savingTime}
           disabled={initialLoading || !canEdit || savingTime}
-          cannotChangeReason={lockReason}
           onSave={async (slot) => {
             try {
               setSavingTime(true);
@@ -171,14 +201,48 @@ const FarmerPickupSettingsPage: React.FC = () => {
                 pickup_time: String(slot),
               });
               applyFarmState(data.farm, data.status);
+              showToast("ok", "受け取り時間を保存しました。");
             } catch {
-              alert("受け取り時間の保存に失敗しました");
+              showToast("ng", "受け取り時間の保存に失敗しました");
             } finally {
               setSavingTime(false);
             }
           }}
         />
       </div>
+      {/* トースト */}
+      {toast && ReactDOM.createPortal(
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 2147483647,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: 18,
+            padding: "12px 20px",
+            background: toast.kind === "ok" ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)",
+            color: "white",
+            fontSize: 15,
+            fontWeight: 600,
+            boxShadow: "0 8px 32px rgba(0,0,0,.2)",
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            {toast.kind === "ok" ? (
+              <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            ) : (
+              <path d="M18 6L6 18M6 6l12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            )}
+          </svg>
+          {toast.text}
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

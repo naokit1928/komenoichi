@@ -76,6 +76,10 @@ const FarmerTermsPage = React.lazy(
   () => import("./pages/public/Legal/FarmerTermsPage")
 );
 
+// ===== 管理画面系ページ =====
+const AdminDashboardPage = React.lazy(
+  () => import("./pages/admin/AdminDashboardPage")
+);
 const AdminReservationWeeksPage = React.lazy(
   () => import("./pages/admin/AdminReservationWeeksPage")
 );
@@ -179,11 +183,12 @@ export default function AppRoutes() {
               <Route path="settings" element={<FarmerSettingsPage />} />
               <Route path="pickup-settings" element={<FarmerPickupSettingsPage />} />
               <Route path="menu" element={<FarmerMenu />} />
-              {/* ★ 新しく追加 */}
               <Route path="sales" element={<FarmerSalesPage />} />
             </Route>
           </Route>
 
+          {/* ===== 管理画面系ルート ===== */}
+          <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/reservations/weeks" element={<AdminReservationWeeksPage />} />
           <Route path="/admin/reservations/event" element={<AdminReservationEventDetailPage />} />
 

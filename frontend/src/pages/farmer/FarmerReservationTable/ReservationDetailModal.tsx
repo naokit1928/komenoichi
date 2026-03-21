@@ -33,13 +33,21 @@ const ReservationDetailModal: React.FC<Props> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <header className={styles.modalHeader}>
+          
+          {/* ★ 変更：名称と視覚的ヒエラルキー（大きさ・色）に圧倒的な差をつける */}
           <div className={styles.modalTitleBlock}>
-            <div className={styles.modalTitleRow}>
-              <div className={styles.modalTitle}>
-                予約コード {row.pickup_code}
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              {/* 現場で一番大事な「4桁」を巨大化 */}
+              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: 600 }}>
+                受渡番号
               </div>
-              <div className={styles.modalId}>
-                内部ID：{row.reservation_id}
+              <div style={{ fontSize: "28px", fontWeight: 700, color: "#111827", letterSpacing: "0.1em", lineHeight: 1.1 }}>
+                {row.pickup_code}
+              </div>
+              
+              {/* システム用IDはハッシュタグ付きで小さく薄く配置 */}
+              <div style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px", fontFamily: "monospace" }}>
+                システム照会ID: #{row.reservation_id}
               </div>
             </div>
           </div>
@@ -48,22 +56,17 @@ const ReservationDetailModal: React.FC<Props> = ({
             type="button"
             className={styles.modalCloseButton}
             onClick={onClose}
+            aria-label="閉じる"
           >
             ×
           </button>
         </header>
 
-        {/* ★ 色を赤系に統一し、絵文字を排除 */}
-        <div className={styles.warningBox}>
-          【注意】以下の単価は「予約時の価格」です。<br />
-          必ずこの単価・金額で会計してください。
-        </div>
-
         <div className={styles.modalBody}>
           <table className={styles.modalTable}>
             <thead>
               <tr>
-                <th>品名</th>
+                <th className={styles.cellLeft}>商品</th>
                 <th className={styles.cellCenter}>数量</th>
                 <th className={styles.cellRight}>単価</th>
                 <th className={styles.cellRight}>金額</th>
@@ -90,7 +93,6 @@ const ReservationDetailModal: React.FC<Props> = ({
                 </tr>
               ))}
 
-              {/* ★ 合計金額をレシート風に強調（文字を大きく、太く） */}
               <tr className={styles.modalTotalRow}>
                 <td colSpan={3} style={{ textAlign: "right", paddingRight: "16px", verticalAlign: "middle" }}>
                   合計

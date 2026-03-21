@@ -112,28 +112,53 @@ export default function PickupTimeCardForRegistration({
               </div>
 
               <div style={{ marginTop: 14 }} className="space-y-3">
-                {OPTIONS.map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      onSave(opt.id);
-                      setOpen(false);
-                    }}
-                    style={{
-                      borderRadius: 16,
-                      border: "1px solid rgba(0,0,0,0.12)",
-                      padding: "12px 14px",
-                      textAlign: "left",
-                      background: "#FFFFFF",
-                      width: "100%",
-                    }}
-                  >
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>
-                      {opt.label}
-                    </div>
-                  </button>
-                ))}
+                {OPTIONS.map((opt) => {
+                  const selected = value === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        onSave(opt.id);
+                        setOpen(false);
+                      }}
+                      className="w-full text-left transition"
+                      style={{
+                        borderRadius: 16,
+                        border: selected ? "2px solid #111827" : "1px solid rgba(0,0,0,0.12)",
+                        padding: "12px 14px",
+                        backgroundColor: selected ? "#F3F4F6" : "#FFFFFF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>
+                        {opt.label}
+                      </div>
+                      {selected ? (
+                        <span style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 22, height: 22,
+                          borderRadius: "999px",
+                          backgroundColor: "#111827",
+                          color: "#FFFFFF",
+                          fontSize: 14, fontWeight: 700,
+                        }}>✓</span>
+                      ) : (
+                        <span style={{
+                          display: "inline-flex",
+                          width: 22, height: 22,
+                          borderRadius: "999px",
+                          border: "1px solid rgba(0,0,0,0.18)",
+                        }} />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </>,

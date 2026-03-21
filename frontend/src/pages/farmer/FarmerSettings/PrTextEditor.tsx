@@ -207,7 +207,7 @@ function PrTextModal({
             className="text-gray-800"
             style={{ fontSize: 16, fontWeight: 700, letterSpacing: ".01em" }}
           >
-            説明文
+            農家からのメッセージ
           </div>
           <button
             aria-label="閉じる"
@@ -269,7 +269,7 @@ function PrTextModal({
               color: "#374151",
             }}
             maxLength={MAX_LEN + 200}
-            aria-label="PR説明文を入力"
+            aria-label="農家からのメッセージを入力"
           />
         </div>
 
@@ -347,7 +347,7 @@ export default function PrTextEditor({
   // カード上のプレビュー（未入力ならグレーの説明）
   const preview = useMemo(() => {
     const v = (text ?? "").trim();
-    if (!v) return "説明文を追加（任意）";
+    if (!v) return "";
     return v;
   }, [text]);
 
@@ -366,7 +366,7 @@ export default function PrTextEditor({
   };
 
   return (
-    <section className={`w-full ${className}`} style={{ marginTop: 24 }}>
+    <section className={`w-full ${className}`} style={{ marginTop: 24, marginBottom: 120 }}>
       <button
         type="button"
         onClick={() => !disabled && setOpen(true)}
@@ -380,7 +380,7 @@ export default function PrTextEditor({
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.04)",
           cursor: disabled ? "not-allowed" : "pointer",
         }}
-        aria-label="説明文を編集"
+        aria-label="メッセージを編集"
       >
         <div className="flex items-start justify-between">
           <span
@@ -391,7 +391,7 @@ export default function PrTextEditor({
               color: "#111827",
             }}
           >
-            説明文
+            農家からのメッセージ
           </span>
           <span
             style={{
@@ -404,20 +404,28 @@ export default function PrTextEditor({
           </span>
         </div>
 
-        <div
-          style={{
-            marginTop: 8,
-            fontSize: 16,
-            lineHeight: 1.75,
-            color:
-              preview === "説明文を追加（任意）" ? "#9CA3AF" : "#374151",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            overflowWrap: "anywhere",
-          }}
-        >
-          {preview}
-        </div>
+        {preview ? (
+          <div
+            style={{
+              marginTop: 8,
+              fontSize: 16,
+              lineHeight: 1.75,
+              color: "#374151",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+            }}
+          >
+            {preview}
+          </div>
+        ) : (
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 13, color: "#9CA3AF", lineHeight: 1.6 }}>
+              こだわり、栽培方法、農家としての想いなど、<br />
+              アピールしたいことを自由に書いてください。
+            </div>
+          </div>
+        )}
       </button>
 
       <PrTextModal

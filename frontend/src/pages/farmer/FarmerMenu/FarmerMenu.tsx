@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useOutletContext, Link } from "react-router-dom";
 import { API_BASE } from "@/config/api";
+import { ModeTransition, triggerModeTransition } from "@/components/ModeTransition";
 
 // グレー系カラー（農家モード固定）
 const C = {
@@ -30,6 +31,7 @@ export default function FarmerMenu() {
   const navigate = useNavigate();
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [transitionActive, setTransitionActive] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -192,7 +194,7 @@ export default function FarmerMenu() {
 
       {/* ── 予約者モードへ FAB ── */}
       <button
-        onClick={() => navigate("/farms")}
+        onClick={() => triggerModeTransition(setTransitionActive, navigate, "/farms")}
         style={{
           position: "fixed",
           bottom: "calc(72px + env(safe-area-inset-bottom) + 20px)",
@@ -279,6 +281,7 @@ export default function FarmerMenu() {
           </div>
         </div>
       )}
+      <ModeTransition active={transitionActive} label="予約者モードへ" />
     </div>
   );
 }

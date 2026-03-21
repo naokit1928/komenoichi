@@ -21,7 +21,6 @@ const ReservationBookedPage: React.FC = () => {
   const [data, setData] = useState<ReservationBookedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [consumerId, setConsumerId] = useState<number | null>(null);
   const [consumerEmail, setConsumerEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,9 +38,6 @@ const ReservationBookedPage: React.FC = () => {
         }
 
         const whoami = await whoamiRes.json();
-        if (typeof whoami.consumer_id === "number") {
-          setConsumerId(whoami.consumer_id);
-        }
         if (whoami.email) {
           setConsumerEmail(whoami.email);
         }
@@ -176,10 +172,6 @@ const ReservationBookedPage: React.FC = () => {
 
   return renderShell(
     <div>
-      <p style={{ fontSize: 10, color: "#9ca3af", textAlign: "right", margin: "0 0 8px 0" }}>
-        consumer_id: {consumerId ?? "-"} / res_id: {data.reservation_id}
-      </p>
-      
       <PickupSummaryCard
         pickupDisplay={pickup_display}
         pickupPlaceName={pickup_place_name}
@@ -191,6 +183,23 @@ const ReservationBookedPage: React.FC = () => {
       <MemoCard memo={pickup_detail_memo} />
       <NoticeCard />
       <CancelActionCard cancelActionUri={cancelActionUri} />
+
+      {/* システム照会ID — 目立たないが問い合わせ時に使える */}
+      {data.reservation_id && (
+        <div style={{
+          marginTop: 32,
+          textAlign: "center",
+          color: "#7a6c58",
+          fontSize: 11,
+          lineHeight: 1.8,
+        }}>
+          <span>システム照会ID: </span>
+          <span style={{ fontFamily: "monospace", letterSpacing: "0.04em" }}>
+            {data.reservation_id}
+          </span>
+
+        </div>
+      )}
     </div>
   );
 };

@@ -13,14 +13,7 @@ export default function PublishToggleCard({
 }: Props) {
   const requestToggle = () => {
     if (disabled) return;
-    const next = !isOn;
-    const ok = window.confirm(
-      next
-        ? "公開を開始します。よろしいですか？"
-        : "公開を一時停止します。既存の予約はキャンセルされません。よろしいですか？"
-    );
-    if (!ok) return;
-    onToggle(next);
+    onToggle(!isOn);
   };
 
   /** dangerouslySetInnerHTML の代替。太字スタイルを直接指定する。 */

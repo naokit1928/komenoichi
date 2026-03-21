@@ -14,7 +14,7 @@ class CancelTokenPayload:
     """
     予約キャンセル用リンクに埋め込むペイロード。
 
-    - reservation_id: 対象の予約ID
+    - reservation_id: 対象のシステム照会ID
     - consumer_id: 予約した consumer の ID
     - exp: トークン有効期限（Unixタイム秒）
     - sub: 用途を識別するサブジェクト（固定値 "cancel_reservation"）

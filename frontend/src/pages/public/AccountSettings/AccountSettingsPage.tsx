@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 import { PublicBottomBar } from "@/components/PublicBottomBar";
 import { LoginBottomSheet } from "@/components/LoginBottomSheet"; // ★追加
+import { ModeTransition, triggerModeTransition } from "@/components/ModeTransition";
 
 const C = {
   red:       "#C62828",
@@ -29,6 +30,7 @@ export default function AccountSettingsPage() {
   const [showAuthModal, setShowAuthModal] = useState(false); // これだけでOK
   
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [transitionActive, setTransitionActive] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -186,7 +188,7 @@ export default function AccountSettingsPage() {
       {/* フローティングボタン */}
       {identity.is_farmer && (
         <button
-          onClick={() => navigate("/farmer")}
+          onClick={() => triggerModeTransition(setTransitionActive, navigate, "/farmer")}
           style={{
             position: "fixed",
             bottom: "calc(64px + env(safe-area-inset-bottom) + 20px)",
@@ -253,6 +255,7 @@ export default function AccountSettingsPage() {
           </div>
         </div>
       )}
+      <ModeTransition active={transitionActive} label="農家モードへ" />
     </>
   );
 }

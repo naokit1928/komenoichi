@@ -78,6 +78,7 @@ class PRImageDTO(BaseModel):
 
 
 class FarmerSettingsDTO(BaseModel):
+    farm_id: int  # ★ ここを追加しました
     is_accepting_reservations: bool = False
     is_ready_to_publish: bool = False
     active_flag: int = 1
@@ -106,7 +107,7 @@ class FarmerSettingsDTO(BaseModel):
 
 
 # ============================================================
-# Reservations Export DTOs（※ 既存機能・無変更）
+# Reservations Export DTOs
 # ============================================================
 
 

@@ -19,13 +19,16 @@
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
+/* ===========================
+   ヘッダー（おさまりとデザインを改良）
+   =========================== */
 .header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px 8px;
+  align-items: center; /* 垂直中央揃え */
+  justify-content: space-between; /* 両端に配置 */
+  padding: 16px; /* 均等にして中央揃えを完璧に */
   border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap; /* 数量などを縦に割らせない */
+  white-space: nowrap; /* タイトルを縦に割らせない */
 }
 
 .titleBlock {
@@ -34,31 +37,44 @@
   gap: 2px;
   text-align: left;
   flex: 1;
+  min-width: 0;
 }
 
 .mainTitle {
   font-size: 16px;
   font-weight: 600;
   color: #111827;
+  word-break: keep-all;
 }
 
+/* 右側のボタンエリアの配置を調整 */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* ボタンとアイコンの間隔を最適化 */
+  flex-shrink: 0; /* 潰れないようにする */
+}
+
+/* ★ 変更：ピルから「角形」にし、デザインを洗練 */
 .headerRuleButton {
-  padding: 6px 14px;
-  border-radius: 9999px;
-  border: 1px solid #d1d5db;
+  padding: 6px 12px; /* パディングを少し詰め、おさまりを良く */
+  border-radius: 6px; /* 角形に変更（カード全体の角丸と統一） */
+  border: 1px solid #d1d5db; /* 枠線 */
   background-color: #ffffff;
-  color: #374151;
-  font-size: 13px;
+  color: #111827; /* テキスト色を黒にしてよりプロ仕様に */
+  font-size: 12px; /* 少し小さく */
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s;
+  transition: all 0.2s ease; /* スムーズなアニメーション */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* 控えめな影で質感向上 */
 }
 
 .headerRuleButton:hover {
-  background-color: #f3f4f6;
+  background-color: #f9fafb; /* 薄いグレーの背景 */
+  border-color: #c1c5cb; /* 枠線を少し濃く */
   color: #111827;
-  border-color: #9ca3af;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 影を強く */
 }
 
 .iconButton {
@@ -71,10 +87,21 @@
   align-items: center;
   justify-content: center;
   color: #111827;
+  transition: background 0.2s ease;
 }
 
 .iconButton:hover {
   background: #f3f4f6;
+}
+
+/* ★ 追加：テーブルフェードインアニメーション */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tableFadeIn {
+  animation: fadeSlideUp 0.25s ease-out forwards;
 }
 
 .tableSection {
@@ -231,10 +258,8 @@
   background-color: #f3f4f6;
   border-radius: 999px;
   padding: 2px;
-  /* ★ 余白を詰める */
   margin: 12px auto 16px;
   width: 100%;
-  /* ★ 横幅を小さくする */
   max-width: 240px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
@@ -246,20 +271,22 @@
   z-index: 1;
   background: none;
   border: none;
-  /* ★ 上下左右のパディングを減らして高さを抑える */
   padding: 6px 12px;
-  /* ★ 文字サイズを少し小さく */
   font-size: 13px;
   font-weight: 600;
   color: #6b7280;
   cursor: pointer;
   border-radius: 999px;
-  transition: color 0.3s ease;
+  transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ★ 黒色に変更し、少し拡大＆影をつけて「切り替えた感（重み）」を出す */
 .segmentTab.active {
   color: #ffffff;
+  background-color: #111827;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transform: scale(1.02);
 }
 
 .segmentTab:disabled {

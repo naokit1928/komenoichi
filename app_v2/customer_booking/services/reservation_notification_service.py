@@ -64,7 +64,8 @@ class ReservationNotificationService:
                 "google_maps_url": map_url,
                 "total_price": f"{ctx['rice_subtotal']:,}",
                 "reservation_code": pickup_code,
-                "booked_page_url": f"{self.frontend_base}/reservation/booked"
+                "booked_page_url": f"{self.frontend_base}/reservation/booked",
+                "reservation_id": ctx["reservation_id"],
             }
             
             send_reservation_confirmed_email(to_email=to_email, template_model=model)

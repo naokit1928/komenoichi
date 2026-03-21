@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { API_BASE } from "@/config/api";
 import { useFarmDetail } from "./hooks/useFarmDetail";
@@ -8,7 +8,6 @@ import FarmDetailHero from "./components/FarmDetailHero";
 import FarmDetailBody from "./components/FarmDetailBody";
 import FarmDetailCTA from "./components/FarmDetailCTA";
 
-// ★ 注文ルール
 import { calcTotalKg, isOverMaxKg } from "./rules/orderRules";
 
 const FAVORITES_KEY = "favoriteFarms";
@@ -35,7 +34,6 @@ const saveFavoriteIds = (ids: string[]) => {
 
 type Kg = 5 | 10 | 25;
 
-/* ===== identity ===== */
 async function fetchIdentity(): Promise<{
   is_logged_in: boolean;
   email: string | null;
@@ -47,7 +45,6 @@ async function fetchIdentity(): Promise<{
   return res.json();
 }
 
-/* ===== state API ===== */
 type ConsumerState = {
   is_logged_in: boolean;
   pending: {
@@ -75,11 +72,17 @@ export default function FarmDetailPage() {
   const farmIdStr = String(farmId ?? "");
   const navigate = useNavigate();
 
+  // ★ プレビューモード検知
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get("preview") === "true";
+
   const [consumerEmail, setConsumerEmail] =
     useState<string | undefined>(undefined);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // プレビュー時はAPIコールしない
+    if (isPreview) return;
     async function run() {
       const data = await fetchIdentity();
       if (data?.is_logged_in) {
@@ -90,17 +93,15 @@ export default function FarmDetailPage() {
       }
     }
     run();
-  }, []);
+  }, [isPreview]);
 
-  /* ===== Active 判定は state API を正とする ===== */
   const [hasActive, setHasActive] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (isPreview || !isLoggedIn) {
       setHasActive(false);
       return;
     }
-
     (async () => {
       try {
         const state = await fetchConsumerState();
@@ -109,7 +110,7 @@ export default function FarmDetailPage() {
         setHasActive(false);
       }
     })();
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isPreview]);
 
   const {
     farm,
@@ -126,11 +127,13 @@ export default function FarmDetailPage() {
   const favAnimatingRef = useRef(false);
 
   useEffect(() => {
+    if (isPreview) return;
     const ids = loadFavoriteIds();
     setIsFav(ids.includes(farmIdStr));
-  }, [farmIdStr]);
+  }, [farmIdStr, isPreview]);
 
   const toggleFavorite = () => {
+    if (isPreview) return;
     const ids = loadFavoriteIds();
     if (ids.includes(farmIdStr)) {
       saveFavoriteIds(ids.filter((id) => id !== farmIdStr));
@@ -146,6 +149,7 @@ export default function FarmDetailPage() {
   const titleText = farm?.pr_title ?? null;
 
   const doShare = async () => {
+    if (isPreview) return;
     const url = (farm as any)?.share_url || window.location.href;
     const shareData = {
       title: titleText ?? undefined,
@@ -188,11 +192,13 @@ export default function FarmDetailPage() {
   const money = (n: number) => n.toLocaleString();
 
   const inc = (kg: Kg) => {
+    if (isPreview) return;
     setSelectedKg(kg);
     setQtyByKg((p) => ({ ...p, [kg]: p[kg] + 1 }));
   };
 
   const dec = (kg: Kg) => {
+    if (isPreview) return;
     setSelectedKg(kg);
     setQtyByKg((p) => ({ ...p, [kg]: Math.max(0, p[kg] - 1) }));
   };
@@ -200,7 +206,7 @@ export default function FarmDetailPage() {
   const totalKg = calcTotalKg(qtyByKg);
   const isEmptySelection = totalKg === 0;
   const isOverLimit = isOverMaxKg(qtyByKg);
-  const isNextDisabled = isEmptySelection || isOverLimit;
+  const isNextDisabled = isPreview || isEmptySelection || isOverLimit;
 
   const pickupTextCard = farm?.next_pickup_display ?? "未設定";
   const pickupTextCTA = farm?.next_pickup_display
@@ -208,7 +214,7 @@ export default function FarmDetailPage() {
     : "受け渡し日時は未設定です";
 
   const handleNext = async () => {
-    if (!farm || isNextDisabled) return;
+    if (isPreview || !farm || isNextDisabled) return;
 
     const form = {
       farm_id: Number(farmIdStr),
@@ -223,14 +229,12 @@ export default function FarmDetailPage() {
       client_next_pickup_deadline_iso: farm.next_pickup_deadline ?? null,
     };
 
-    // 未ログイン → MagicLink 経由
     if (!isLoggedIn) {
       sessionStorage.setItem("CONFIRM_CTX", JSON.stringify(form));
       navigate(`/login?mode=confirm&farmId=${farmIdStr}`);
       return;
     }
 
-    // アクティブ予約あり
     if (hasActive) {
       navigate(`/farms/${farmIdStr}/active`);
       return;
@@ -270,7 +274,11 @@ export default function FarmDetailPage() {
         isFav={isFav}
         onToggleFav={toggleFavorite}
         onShare={doShare}
-        onBack={() => navigate("/farms")} // ★ 一律で /farms へ戻す
+        onBack={() => {
+          // プレビュー時は何もしない（外側のモーダルで閉じる）
+          if (isPreview) return;
+          navigate("/farms");
+        }}
       />
 
       <section
@@ -297,7 +305,7 @@ export default function FarmDetailPage() {
             sizes={sizes}
             selectedKg={selectedKg}
             qtyByKg={qtyByKg}
-            onSelectKg={setSelectedKg}
+            onSelectKg={isPreview ? () => {} : setSelectedKg}
             onInc={inc}
             onDec={dec}
             money={money}

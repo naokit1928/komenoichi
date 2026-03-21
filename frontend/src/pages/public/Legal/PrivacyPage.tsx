@@ -35,7 +35,7 @@ export default function PrivacyPage({ isModal = false }: { isModal?: boolean }) 
 
       <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>3. 個人情報の第三者提供</h2>
       <p style={{ marginBottom: 16 }}>
-        本サービスは、ユーザーの同意を得ることなく、第三者に個人情報を提供することはありません。ただし、法令に基づく場合を除きます。なお、予約が確定した場合、取引に必要な最小限の情報（予約ID等）が対象の農家に共有されます。
+        本サービスは、ユーザーの同意を得ることなく、第三者に個人情報を提供することはありません。ただし、法令に基づく場合を除きます。なお、予約が確定した場合、取引に必要な最小限の情報（受渡番号やシステム照会ID等の識別情報）が対象の農家に共有されます。
       </p>
 
       <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>4. 退会時のデータの取り扱い（匿名化）</h2>

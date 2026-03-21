@@ -16,7 +16,6 @@ export type RegistrationValues = {
   pref: string;
   city: string;
   addr1: string; // 番地・建物名まで全部
-  addr2: string; // 任意（建物名など）
 
   // 受け渡し（必須）
   lat: string;
@@ -24,12 +23,6 @@ export type RegistrationValues = {
   pickupPlaceName: string;
   // ★ バックエンド仕様に合わせて "WED_19_20" / "SAT_10_11" を使う
   pickupTime: string;
-  pickupRoof: boolean | null; // true のときだけOK（フロント側バリデーション用）
-
-  // 任意
-  email: string;
-  farmName: string;
-  pickupNotes: string;
 };
 
 // 受け渡し 2 つ択（value は backend 仕様に合わせる：新コードのみ）
@@ -74,8 +67,8 @@ export function validate(values: RegistrationValues): string[] {
   // 名前（必須）
   if (isEmpty(values.lastName)) errors.push("姓を入力してください。");
   if (isEmpty(values.firstName)) errors.push("名を入力してください。");
-  if (isEmpty(values.lastKana)) errors.push("セイを入力してください。");
-  if (isEmpty(values.firstKana)) errors.push("メイを入力してください。");
+  if (isEmpty(values.lastKana)) errors.push("せい（ふりがな）を入力してください。");
+  if (isEmpty(values.firstKana)) errors.push("めい（ふりがな）を入力してください。");
 
   // 郵便番号（7桁）
   const postal = normalizePostal(values.ownerPostal);
@@ -95,11 +88,8 @@ export function validate(values: RegistrationValues): string[] {
   if (!phoneDigits) errors.push("電話番号を入力してください。");
 
   // 緯度経度（必須・数値変換可能）
-  if (toFloatOrNull(values.lat) === null) {
-    errors.push("受け渡し場所の緯度（lat）を入力してください。");
-  }
-  if (toFloatOrNull(values.lng) === null) {
-    errors.push("受け渡し場所の経度（lng）を入力してください。");
+  if (toFloatOrNull(values.lat) === null || toFloatOrNull(values.lng) === null) {
+    errors.push("受け渡し場所を設定してください。");
   }
 
   // 受け渡し場所名（必須）
@@ -109,17 +99,8 @@ export function validate(values: RegistrationValues): string[] {
 
   // 受け渡し時間（必須）
   if (isEmpty(values.pickupTime)) {
-    errors.push("受け渡し時間を選択してください。");
+    errors.push("受け取り日時を選択してください。");
   }
-
-  // 屋根（true のみ許可）
-  if (values.pickupRoof !== true) {
-    errors.push(
-      "屋根のある場所のみ登録できます（「屋根あり」を選択してください）。"
-    );
-  }
-
-  // 任意項目（email / farmName / pickupNotes）はバリデーション不要
 
   return errors;
 }
@@ -140,7 +121,6 @@ export function validate(values: RegistrationValues): string[] {
 //    "pref": "徳島県",
 //    "city": "徳島市",
 //    "addr1": "仲之町1-2-3",
-//    "addr2": "",
 //    "farm_name": "山田農園",
 //    "pickup_lat": 34.07,
 //    "pickup_lng": 134.55,
@@ -169,17 +149,12 @@ export function buildPayload(values: RegistrationValues, lineUserId: string) {
 
     // 連絡先
     phone,
-    email: (values.email || "").trim(), // 任意だが常に送る
 
     // 住所
     postal_code: postal,
     pref: (values.pref || "").trim(),
     city: (values.city || "").trim(),
     addr1: (values.addr1 || "").trim(),
-    addr2: (values.addr2 || "").trim(), // UI で空なら空文字を送る
-
-    // 農園名
-    farm_name: (values.farmName || "").trim(),
 
     // 受け渡し
     pickup_lat: lat,
@@ -187,6 +162,5 @@ export function buildPayload(values: RegistrationValues, lineUserId: string) {
     pickup_place_name: (values.pickupPlaceName || "").trim(),
     // ★ ここも新コードそのまま送る（"WED_19_20" / "SAT_10_11"）
     pickup_time: values.pickupTime,
-    pickup_notes: (values.pickupNotes || "").trim(),
   };
 }

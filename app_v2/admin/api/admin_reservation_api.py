@@ -20,6 +20,10 @@ from app_v2.admin.usecases.resolve_event_by_reservation import (
 from app_v2.admin.dto.admin_reservation_dtos import (
     AdminReservationListItemDTO,
 )
+# ★ NEW: アラート取得のため直接 Service を呼ぶ
+from app_v2.admin.services.admin_reservation_service import (
+    AdminReservationService,
+)
 
 router = APIRouter(
     prefix="/api/admin/reservations",
@@ -33,6 +37,14 @@ router = APIRouter(
 class AdminReservationListResponse(BaseModel):
     items: List[AdminReservationListItemDTO]
     total_count: int
+
+
+# ============================================================
+# アラート一覧用 DTO (★ NEW)
+# ============================================================
+class AdminAlertsResponse(BaseModel):
+    payment_anomalies: List[AdminReservationListItemDTO]
+    zombies: List[AdminReservationListItemDTO]
 
 
 # ============================================================
@@ -226,4 +238,23 @@ def resolve_event_by_reservation_id(
         reservation_id=ctx["reservation_id"],
         farm_id=ctx["farm_id"],
         event_start=ctx["event_start"],
+    )
+
+# ============================================================
+# ★ NEW: ダッシュボード・アラート一覧 API
+# ============================================================
+
+@router.get("/alerts", response_model=AdminAlertsResponse)
+def get_admin_alerts():
+    """
+    管理者用：ダッシュボードのアラート一覧を取得する API
+    - payment_anomalies: 決済完了なのに confirmed になっていない予約
+    - zombies: 長時間 PENDING のままの予約
+    """
+    svc = AdminReservationService()
+    alerts = svc.get_alerts_for_admin()
+    
+    return AdminAlertsResponse(
+        payment_anomalies=alerts["payment_anomalies"],
+        zombies=alerts["zombies"],
     )

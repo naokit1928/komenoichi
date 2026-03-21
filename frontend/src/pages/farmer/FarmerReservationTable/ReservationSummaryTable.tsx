@@ -46,24 +46,18 @@ const ReservationSummaryTable: React.FC<Props> = ({
   onRowClick,
   offset,
 }) => {
-  if (loading) {
-    return <div className={styles.infoText}>読み込み中です…</div>;
-  }
-
-  if (error) {
-    return <div className={styles.errorText}>{error}</div>;
-  }
+  if (loading) return null;
+  if (error) return null;
 
   if (!hasRows) {
-    // ★ offset は 0 か 1 しかないので、条件分岐もシンプルに
-    const emptyMessage = offset === 0 
-      ? "今週の予約はまだありません。" 
-      : "来週の予約はまだありません。";
+    let emptyMessage = "予約はまだありません。";
+    if (offset === -1) emptyMessage = "先週の予約はありません。";
+    else if (offset === 0) emptyMessage = "今週の予約はまだありません。";
+    else if (offset === 1) emptyMessage = "来週の予約はまだありません。";
 
     return (
       <div className={styles.emptyStateBox}>
-        {/* 絵文字は排除し、文字だけを中央に置くストイックなスタイル */}
-        <div className={styles.emptyText}>{emptyMessage}</div>
+        <p className={styles.emptyText}>{emptyMessage}</p>
       </div>
     );
   }
@@ -73,15 +67,15 @@ const ReservationSummaryTable: React.FC<Props> = ({
       <table className={styles.table}>
         <thead>
           <tr>
-            <th className={styles.thCompact}>
-              <span className={styles.thTop}>予約</span>
-              <span className={styles.thBottom}>コード</span>
+            {/* ★ 変更：2行だったものを「受渡番号」の1行に変更し、絶対に改行させない */}
+            <th style={{ whiteSpace: "nowrap" }}>
+              受渡番号
             </th>
-            <th className={styles.thCompact}>5kg</th>
-            <th className={styles.thCompact}>10kg</th>
-            <th className={styles.thCompact}>25kg</th>
-            <th className={styles.thCompact}>合計金額</th>
-            <th style={{ width: "24px", padding: 0 }}></th>
+            <th>5kg</th>
+            <th>10kg</th>
+            <th>25kg</th>
+            <th>金額</th>
+            <th></th>
           </tr>
         </thead>
 
@@ -92,7 +86,10 @@ const ReservationSummaryTable: React.FC<Props> = ({
               className={styles.dataRow}
               onClick={() => onRowClick(row)}
             >
-              <td>{row.pickup_code}</td>
+              {/* ★ 変更：4桁の番号を現場でパッと見やすいように、少し強調したフォントに */}
+              <td style={{ fontWeight: 600, letterSpacing: "0.05em", fontFamily: "monospace", fontSize: "15px" }}>
+                {row.pickup_code}
+              </td>
               {SIZE_COLUMNS.map((size) => {
                 const qty = quantityForSize(row.items, size);
                 return (

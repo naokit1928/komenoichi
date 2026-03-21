@@ -25,7 +25,7 @@ const ReservationCodeCard: React.FC<Props> = ({ pickupCode }) => {
           marginBottom: 6,
         }}
       >
-        予約コード
+        受渡番号
       </div>
       <div
         style={{

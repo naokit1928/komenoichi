@@ -1,3 +1,4 @@
+# app_v2/admin/dto/admin_reservation_dtos.py
 from __future__ import annotations
 
 from datetime import datetime
@@ -13,10 +14,6 @@ from pydantic import BaseModel
 class AdminReservationListItemDTO(BaseModel):
     """
     /admin/reservations 一覧の 1 行分（= 1 予約）を表す DTO。
-
-    設計原則：
-    - 「管理者が一覧で把握したい情報」を 1 オブジェクトに集約
-    - DB の生値をそのまま持たず、意味のある単位に整形済み
     """
 
     # --------------------------------------------------------
@@ -24,9 +21,17 @@ class AdminReservationListItemDTO(BaseModel):
     # --------------------------------------------------------
     reservation_id: int
     farm_id: int
+    pickup_slot_code: str
+    pickup_code: str  # ★ 追加：正しい4桁の受渡番号
 
     # 予約者（consumer）
     customer_user_id: Optional[int] = None
+    
+    # 追跡用データ
+    consumer_email: Optional[str] = None
+    payment_intent_id: Optional[str] = None
+    payment_status: Optional[str] = None
+    confirm_session_id: Optional[str] = None
 
     # --------------------------------------------------------
     # 農家オーナー情報
@@ -38,6 +43,7 @@ class AdminReservationListItemDTO(BaseModel):
     owner_postcode: Optional[str] = None
     owner_address_line: Optional[str] = None
     owner_phone: Optional[str] = None
+    owner_email: Optional[str] = None
 
     # --------------------------------------------------------
     # 受け渡し日時
@@ -45,7 +51,6 @@ class AdminReservationListItemDTO(BaseModel):
     pickup_start: datetime
     pickup_end: datetime
     pickup_display: str
-    # 例: "12/10(水) 19:00–20:00"
 
     # --------------------------------------------------------
     # 受け渡し場所情報
@@ -58,7 +63,6 @@ class AdminReservationListItemDTO(BaseModel):
     # 予約内容（一覧表示用に整形済み）
     # --------------------------------------------------------
     items_display: str
-    # 例: "10kg×1 / 5kg×1"
 
     # --------------------------------------------------------
     # 金額
@@ -66,14 +70,11 @@ class AdminReservationListItemDTO(BaseModel):
     rice_subtotal: int
     service_fee: int
     total_amount: int
-    # rice_subtotal + service_fee（service 層で算出）
 
     # --------------------------------------------------------
     # 予約ステータス
     # --------------------------------------------------------
     reservation_status: str
-    # reservations.status をそのまま使用
-    # 例: "confirmed" / "cancelled"
 
     # --------------------------------------------------------
     # メタ情報

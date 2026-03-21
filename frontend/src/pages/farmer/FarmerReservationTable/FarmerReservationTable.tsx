@@ -40,17 +40,16 @@ function formatEventLabel(meta: EventMeta | null): string {
 const FarmerReservationTable: React.FC<Props> = ({
   mode = "farmer",
 }) => {
-  // ★ offset は 0(今週) か 1(来週) のみを取る
-  const [offset, setOffset] = useState(0);
-
-  const { data, loading, error, hasRows, totalBySize, totalAmount, formatYen } = useFarmerReservations(offset);
-
-  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [offset, setOffset] = useState<number>(0);
+  
+  const { data, loading, error } = useFarmerReservations(offset);
   const [selectedRow, setSelectedRow] = useState<ReservationRow | null>(null);
+  const [showNoticeModal, setShowNoticeModal] = useState<boolean>(false);
 
   useEffect(() => {
-    const ack = localStorage.getItem(NOTICE_STORAGE_KEY);
-    if (!ack && mode === "farmer") {
+    if (mode !== "farmer") return;
+    const hasAck = localStorage.getItem(NOTICE_STORAGE_KEY);
+    if (!hasAck) {
       setShowNoticeModal(true);
     }
   }, [mode]);
@@ -60,42 +59,76 @@ const FarmerReservationTable: React.FC<Props> = ({
     setShowNoticeModal(false);
   };
 
-  const handleOpenNoticeModal = () => setShowNoticeModal(true);
-  
-  const handlePrint = () => {
-    window.print();
-  };
-
   const handleRowClick = (row: ReservationRow) => {
     setSelectedRow(row);
   };
-  
+
   const handleCloseDetailModal = () => {
     setSelectedRow(null);
   };
 
+  const formatYen = (v: number | string | null | undefined): string => {
+    if (v == null) return "---";
+    const num = Number(v);
+    if (isNaN(num)) return "---";
+    return num.toLocaleString("ja-JP");
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   const rows = data?.rows ?? [];
+  const hasRows = rows.length > 0;
+  
+  const SIZE_COLUMNS = [5, 10, 25] as const;
+  const totalBySize = SIZE_COLUMNS.map((size) => {
+    if (!data || !hasRows) return 0;
+    if (
+      data.bundle_summary &&
+      Array.isArray(data.bundle_summary.items) &&
+      data.bundle_summary.items.length > 0
+    ) {
+      const found = data.bundle_summary.items.find((i) => i.size_kg === size);
+      if (found) return found.total_quantity;
+    }
+    return rows.reduce((sum, r) => {
+      const it = r.items.find((i) => i.size_kg === size);
+      return sum + (it ? it.quantity : 0);
+    }, 0);
+  });
+
+  const totalAmount = data?.bundle_summary?.total_rice_subtotal ?? 0;
+
+  // ★ バグ修正：offsetに合わせて空文字の時のメッセージを動的に変更
+  const headerSubtitleRaw = formatEventLabel(data?.event_meta || null);
+  let displaySubtitle = headerSubtitleRaw || "予約データがありません";
+
+  if (!hasRows && (displaySubtitle.includes("来週") || displaySubtitle.includes("予約データがありません") || displaySubtitle === "")) {
+    if (offset === -1) displaySubtitle = "先週の予約はありません";
+    else if (offset === 0) displaySubtitle = "今週の予約はありません";
+    else if (offset === 1) displaySubtitle = "来週の予約はありません";
+  }
 
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        {mode === "farmer" && (
-          <ReservationHeader
-            subtitle={formatEventLabel(data?.event_meta ?? null)}
-            onPrint={handlePrint}
-            onOpenNotice={handleOpenNoticeModal}
-          />
-        )}
+        <ReservationHeader
+          subtitle={displaySubtitle}
+          onPrint={handlePrint}
+          onOpenNotice={() => setShowNoticeModal(true)}
+        />
 
-        {/* ---------- 週切り替えナビゲーション（セグメントコントロール） ---------- */}
         {mode === "farmer" && (
           <div className={styles.segmentControl}>
-            {/* ★ アニメーション用のアクティブスライダー */}
-            <div 
-              className={styles.segmentSlider} 
-              style={{ transform: `translateX(${offset * 100}%)` }} 
-            />
-            
+            <button
+              onClick={() => setOffset(-1)}
+              className={`${styles.segmentTab} ${offset === -1 ? styles.active : ""}`}
+              disabled={loading}
+              aria-pressed={offset === -1}
+            >
+              先週
+            </button>
             <button
               onClick={() => setOffset(0)}
               className={`${styles.segmentTab} ${offset === 0 ? styles.active : ""}`}
@@ -116,7 +149,8 @@ const FarmerReservationTable: React.FC<Props> = ({
         )}
 
         {mode === "farmer" && (
-          <section className={styles.tableSection}>
+          // ★ key={offset} によって、タブ切り替え時にフェードインアニメーションが発火
+          <section key={`table-section-${offset}`} className={`${styles.tableSection} ${styles.tableFadeIn}`}>
             {loading ? (
               <div className={styles.infoText}>読み込み中...</div>
             ) : error ? (

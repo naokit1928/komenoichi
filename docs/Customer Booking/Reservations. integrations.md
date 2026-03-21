@@ -208,7 +208,7 @@ reservation.price
 例：
 
 【予約が確定しました】
-予約ID: {reservation.id}
+システム照会ID: {reservation.id}
 受け渡しの詳細は「予約確認」画面をご確認ください。
 
 
