@@ -100,6 +100,7 @@ function TitleEditModal({
       setDraftPlain(limited);
       setDraftPreferredCut(null);
     }
+
     const el = e.target;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
@@ -136,25 +137,35 @@ function TitleEditModal({
           zIndex: 2147483646,
         }}
       />
-      {/* 本体：中心寄せにしつつ、下に余白を作ってキーボード回避 */}
+      
+      {/* 本体ラッパー：
+          画面全体に広げ、Flexboxで「中央寄せ」をベースにしつつ
+          paddingBottom でモーダルの位置を上方向に自然に押し上げます。
+      */}
       <div
-        role="dialog"
-        aria-modal="true"
-        className="fixed inset-0 z-[2147483647] flex flex-col items-center justify-center"
         style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 2147483647,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center", // ベースは中央寄せ
           padding: "16px",
-          paddingBottom: "20vh", // タイトル用は少し控えめの20vh押し上げ
-          pointerEvents: "none",
+          paddingBottom: "25vh",    // ★ ここで位置を少し上に押し上げ（キーボード回避用）
+          pointerEvents: "none",     // 背後のクリックを通すため（本体は別途 auto にする）
         }}
       >
         <div
+          role="dialog"
+          aria-modal="true"
           style={{
             width: "min(560px, 92vw)",
             borderRadius: 28,
             background: "#FFFFFF",
             boxShadow: "0 28px 70px rgba(0,0,0,.32)",
             padding: "22px 18px 18px",
-            pointerEvents: "auto",
+            pointerEvents: "auto",   // 自身のクリックは有効にする
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -174,6 +185,7 @@ function TitleEditModal({
                 border: "none",
                 padding: 0,
                 cursor: "pointer",
+                color: "#111",
               }}
             >
               <svg width="22" height="22" viewBox="0 0 24 24">
@@ -215,6 +227,7 @@ function TitleEditModal({
                 border: "none",
                 borderBottom: `2px solid ${isValid ? "transparent" : "#ef4444"}`,
                 padding: "6px 8px",
+                backgroundColor: "transparent",
               }}
               maxLength={MAX_LEN}
             />
@@ -256,8 +269,9 @@ function TitleEditModal({
                 boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
                 opacity: canSave ? 1 : 0.5,
                 cursor: canSave ? "pointer" : "not-allowed",
+                transition: "all 0.1s ease",
               }}
-              className="transition active:scale-[.99]"
+              className="active:scale-[.99]"
             >
               {busy ? (
                 <span className="inline-flex items-center gap-3">
@@ -305,6 +319,7 @@ export default function TitleEditor({
   className = "",
 }: Props) {
   const [open, setOpen] = useState(false);
+
   const [plain, setPlain] = useState<string>(value ?? "");
   const [preferredCut, setPreferredCut] = useState<number | null>(null);
 
