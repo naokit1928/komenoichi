@@ -1,3 +1,4 @@
+// frontend/src/pages/auth/LoginOrRegisterPage.tsx
 import React, { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { API_BASE } from "@/config/api";
@@ -173,11 +174,16 @@ export default function LoginOrRegisterPage() {
                 border: `1px solid ${C.border}`,
                 fontSize: 15,
                 color: C.ink,
-                marginBottom: 12,
+                marginBottom: 4, // 隙間を詰める
                 boxSizing: "border-box",
                 outline: "none",
               }}
             />
+
+            {/* ★ 控えめな1行ヘルプテキスト */}
+            <div style={{ fontSize: 11, color: C.ink3, marginBottom: 16, paddingLeft: 4 }}>
+              ※ 携帯メールは届かない場合があります。Gmail等を推奨します。
+            </div>
 
             {err && (
               <div style={{ color: C.red, fontSize: 13, marginBottom: 16, fontWeight: 600, textAlign: "center" }}>

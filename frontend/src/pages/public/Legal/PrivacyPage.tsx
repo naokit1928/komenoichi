@@ -44,7 +44,7 @@ export default function PrivacyPage({ isModal = false }: { isModal?: boolean }) 
       </p>
 
       <p style={{ marginTop: 40, fontSize: 14, color: "#6B7280" }}>
-        制定日：2026年3月10日
+        制定日：2026年3月24日
       </p>
     </div>
   );

@@ -1,3 +1,4 @@
+// frontend/src/pages/auth/AuthEmailRegisterPage.tsx
 import React, { useState, useEffect } from "react";
 import { API_BASE } from "@/config/api";
 import { Link } from "react-router-dom";
@@ -19,10 +20,10 @@ export default function AuthEmailRegisterPage() {
   const [sent, setSent] = useState(false);
   const [magicLinkUrl, setMagicLinkUrl] = useState<string | null>(null);
 
-  // ★ 追加: クールダウン用のState
+  // クールダウン用のState
   const [cooldown, setCooldown] = useState(0);
 
-  // ★ 追加: クールダウンのカウントダウン処理
+  // クールダウンのカウントダウン処理
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => {
@@ -36,7 +37,6 @@ export default function AuthEmailRegisterPage() {
       setError("メールアドレスを入力してください。");
       return;
     }
-    // ★ 追加: クールダウン中は送信させない
     if (cooldown > 0) return;
 
     try {
@@ -67,7 +67,6 @@ export default function AuthEmailRegisterPage() {
       }
 
       setSent(true);
-      // ★ 追加: 送信成功時に60秒のクールダウンを開始
       setCooldown(60);
     } catch (e: any) {
       setError(e.message ?? "エラーが発生しました");
@@ -118,11 +117,16 @@ export default function AuthEmailRegisterPage() {
                 border: `1px solid ${C.border}`,
                 fontSize: 15,
                 color: C.ink,
-                marginBottom: 12,
+                marginBottom: 4, // 隙間を詰める
                 boxSizing: "border-box",
                 outline: "none",
               }}
             />
+
+            {/* ★ 控えめな1行ヘルプテキスト */}
+            <div style={{ fontSize: 11, color: C.ink3, marginBottom: 16, paddingLeft: 4 }}>
+              ※ 携帯メールは届かない場合があります。Gmail等を推奨します。
+            </div>
 
             {error && (
               <div style={{ color: C.red, fontSize: 13, marginBottom: 16, fontWeight: 600, textAlign: "center" }}>
@@ -139,12 +143,12 @@ export default function AuthEmailRegisterPage() {
 
             <button
               onClick={handleSendLink}
-              disabled={loading || !email || cooldown > 0} // ★ クールダウン中も非活性に
+              disabled={loading || !email || cooldown > 0} 
               style={{
                 width: "100%",
                 display: "block",
                 padding: "14px",
-                background: (loading || cooldown > 0) ? "#d1d5db" : C.ink, // ★ 非活性時はグレーに
+                background: (loading || cooldown > 0) ? "#d1d5db" : C.ink, 
                 color: "#ffffff",
                 borderRadius: 9999,
                 border: "none",
@@ -155,7 +159,6 @@ export default function AuthEmailRegisterPage() {
                 marginTop: 8,
               }}
             >
-              {/* ★ テキストを動的に切り替え */}
               {loading ? "送信中…" : cooldown > 0 ? `再送信可能まで ${cooldown}秒` : "登録リンクを送信"}
             </button>
             
