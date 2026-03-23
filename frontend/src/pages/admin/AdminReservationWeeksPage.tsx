@@ -1,234 +1,433 @@
 // frontend/src/pages/admin/AdminReservationWeeksPage.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { API_BASE } from "@/config/api";
-import type {
-  AdminReservationWeekSummary,
-  AdminReservationWeekListResponse,
-  AdminReservationListItemDTO,
-  AdminReservationListResponse,
-} from "../../types/adminReservations";
+import type { AdminReservationWeekSummary, AdminReservationWeekListResponse } from "../../types/adminReservations";
 
-const formatNumber = (n: number) =>
-  new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }).format(n);
+// ── Brand tokens ──
+const C = {
+  ink:       "#0f172a",
+  ink2:      "#334155",
+  ink3:      "#475569",
+  border:    "#cbd5e1",
+  bg:        "#f8fafc",
+  cardBg:    "#ffffff",
+  red:       "#dc2626",
+  redLight:  "#fef2f2",
+  redBorder: "#fecaca",
+  focus:     "#0f172a",
+  barChart:  "#94a3b8",
+  statusGreen: "#10B981", 
+  statusGray:  "#94A3B8", 
+} as const;
 
-const getCancelRateClass = (rate: number | null): string => {
-  if (rate == null) return "text-gray-500";
-  if (rate >= 30) return "text-red-600 font-semibold";
-  if (rate >= 10) return "text-yellow-600 font-semibold";
-  return "text-gray-700";
+const formatNumber = (n: number) => new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }).format(n);
+
+const getCancelRateStyle = (rate: number | null): React.CSSProperties => {
+  if (rate == null) return { color: C.ink3 };
+  if (rate >= 30) return { color: C.red, fontWeight: 700 };
+  if (rate >= 10) return { color: C.ink, fontWeight: 700 };
+  return { color: C.ink2 };
 };
 
-type FarmerInfo = {
-  owner_last_name?: string;
-  owner_first_name?: string;
-  owner_last_kana?: string;
-  owner_first_kana?: string;
-  owner_postcode?: string;
-  owner_address_line?: string;
-  owner_phone?: string;  // ★追加
-  owner_email?: string;  // ★追加
+// AdminFarmsListPage と同じデータ構造を受け取るための型
+type FarmDetailData = {
+  farm_id: number;
+  owner_full_name: string;
+  owner_full_kana: string;
+  owner_email: string;
+  owner_phone: string;
+  owner_address_line: string;
+  first_reservation_at?: string;
+  total_confirmed_6m?: number;
+  total_cancelled_6m?: number;
+  total_sales_6m?: number;
+  net_active_hours?: number;
+  is_public?: number;
+  is_accepting_reservations?: number;
+  active_flag?: number;
 };
 
 const AdminReservationWeeksPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
   const farmIdParam = searchParams.get("farm_id");
   const farmId = farmIdParam ? Number(farmIdParam) : null;
-
+  
   const [weeks, setWeeks] = useState<AdminReservationWeekSummary[]>([]);
-  const [farmerInfo, setFarmerInfo] = useState<FarmerInfo | null>(null);
-
+  const [farmData, setFarmData] = useState<FarmDetailData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!farmId) return;
-
     const controller = new AbortController();
-
+    
     const fetchAll = async () => {
-      setLoading(true);
-      setError(null);
-      setFarmerInfo(null);
-
+      setLoading(true); setError(null);
       try {
         const weeksParams = new URLSearchParams({ farm_id: String(farmId) });
-        const weeksRes = await fetch(`${API_BASE}/api/admin/reservations/weeks?` + weeksParams.toString(), {
-          signal: controller.signal,
-        });
-
-        if (!weeksRes.ok) throw new Error(`HTTP ${weeksRes.status}`);
-
-        const weeksData: AdminReservationWeekListResponse = await weeksRes.json();
+        const weeksReq = fetch(`${API_BASE}/api/admin/reservations/weeks?` + weeksParams.toString(), { signal: controller.signal });
         
-        const sorted = [...(weeksData.items ?? [])].sort(
-          (a, b) => new Date(b.event_start).getTime() - new Date(a.event_start).getTime()
-        );
+        const farmsReq = fetch(`${API_BASE}/api/admin/farms/`, { signal: controller.signal });
+
+        const [weeksRes, farmsRes] = await Promise.all([weeksReq, farmsReq]);
+        
+        if (!weeksRes.ok || !farmsRes.ok) throw new Error("API通信に失敗しました");
+
+        const weeksJson: AdminReservationWeekListResponse = await weeksRes.json();
+        const sorted = [...(weeksJson.items ?? [])].sort((a, b) => new Date(b.event_start).getTime() - new Date(a.event_start).getTime());
         setWeeks(sorted);
 
-        const headerParams = new URLSearchParams({ farm_id: String(farmId), limit: "1", offset: "0" });
-        const headerRes = await fetch(`${API_BASE}/api/admin/reservations?` + headerParams.toString(), {
-          signal: controller.signal,
-        });
+        const farmsJson = await farmsRes.json();
+        const targetFarm = farmsJson.farms?.find((f: any) => f.farm_id === farmId);
+        if (targetFarm) setFarmData(targetFarm);
 
-        if (headerRes.ok) {
-          const headerData: AdminReservationListResponse = await headerRes.json();
-          const first: AdminReservationListItemDTO | undefined = headerData.items?.[0];
-
-          if (first) {
-            setFarmerInfo({
-              owner_last_name: first.owner_last_name || undefined,
-              owner_first_name: first.owner_first_name || undefined,
-              owner_last_kana: first.owner_last_kana || undefined,
-              owner_first_kana: first.owner_first_kana || undefined,
-              owner_postcode: first.owner_postcode || undefined,
-              owner_address_line: first.owner_address_line || undefined,
-              owner_phone: first.owner_phone || undefined, // ★追加
-              owner_email: first.owner_email || undefined, // ★追加
-            });
-          }
-        }
       } catch (e: any) {
         if (e.name === "AbortError") return;
-        console.error(e);
-        setError("受け渡しイベント一覧の取得に失敗しました。");
+        setError("データの取得に失敗しました。");
       } finally {
         setLoading(false);
       }
     };
-
     fetchAll();
     return () => controller.abort();
   }, [farmId]);
 
-  if (!farmId) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="mx-auto max-w-5xl rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
-          farm_id が指定されていません。
-          <button onClick={() => navigate("/admin")} className="ml-4 font-bold underline">
-            ダッシュボードに戻る
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // ★ 追加: BAN切り替えロジック
+  const handleToggleBan = async (targetFarmId: number, currentFlag: number) => {
+    const nextFlag = currentFlag === 1 ? 0 : 1;
+    const actionName = nextFlag === 0 ? "利用停止 (BAN)" : "BANを解除";
+    
+    if (!window.confirm(`農家ID: ${targetFarmId} を ${actionName} しますか？`)) return;
 
-  const fullName = (farmerInfo?.owner_last_name ?? "") + " " + (farmerInfo?.owner_first_name ?? "");
-  const fullKana = (farmerInfo?.owner_last_kana ?? "") + " " + (farmerInfo?.owner_first_kana ?? "");
+    const secret = window.prompt(`[${actionName}] 実行のためのシークレットキー(ADMIN_SECRET)を入力してください:`);
+    if (!secret) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/farmer/settings-v2/admin/active-flag`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Secret": secret },
+        body: JSON.stringify({ farm_id: targetFarmId, active_flag: nextFlag }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 403) alert("シークレットキーが間違っています。");
+        else alert("エラーが発生しました。");
+        return;
+      }
+      
+      setFarmData(prev => prev ? { ...prev, active_flag: nextFlag } : null);
+    } catch (e) {
+      alert("通信エラーが発生しました。");
+    }
+  };
+
+  // ── パフォーマンス指標の計算 ──
+  const conf = farmData?.total_confirmed_6m ?? 0;
+  const canc = farmData?.total_cancelled_6m ?? 0;
+  const sales = farmData?.total_sales_6m ?? 0;
+  const denom = conf + canc;
+  
+  const cancelRate = denom > 20 ? Math.round((canc / denom) * 100) : null;
+  const netHours = farmData?.net_active_hours ?? 0;
+  const velocity100 = netHours > 0 ? (conf / netHours) * 100 : 0;
+  const displayVelocity = netHours > 100 ? `${velocity100.toFixed(1)}件` : "—";
+  const displayHours = netHours > 0 ? netHours.toFixed(1) : "0.0";
+
+  // ステータスバッジ用
+  const safeActiveFlag = farmData?.active_flag ?? 1;
+  const isBanned = safeActiveFlag === 0;
+
+  // ── 過去12ヶ月の月別トレンドデータ生成 ──
+  const monthlyTrends = useMemo(() => {
+    const result = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      result.push({
+        year: d.getFullYear(), month: d.getMonth() + 1, label: `${d.getFullYear()}年${d.getMonth() + 1}月`,
+        sales: 0, count: 0, cancelled: 0,
+      });
+    }
+
+    weeks.forEach(w => {
+      const d = new Date(w.event_start);
+      const bucket = result.find(b => b.year === d.getFullYear() && b.month === d.getMonth() + 1);
+      if (bucket) {
+        bucket.sales += w.rice_subtotal;
+        bucket.count += w.confirmed_count;
+        bucket.cancelled += w.cancelled_count;
+      }
+    });
+
+    return result.map(b => {
+      const d = b.count + b.cancelled;
+      return { ...b, cancelRate: d > 0 ? Math.round((b.cancelled / d) * 100) : 0 };
+    });
+  }, [weeks]);
+
+  const maxSales = Math.max(...monthlyTrends.map(m => m.sales), 5000); 
+  const maxCount = Math.max(...monthlyTrends.map(m => m.count), 5);
+
+  if (!farmId) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-5xl px-4 py-6">
+    <>
+      <style>{`
+        .desktop-only { display: block; }
+        .mobile-only { display: none; }
+        .admin-page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         
-        {/* ヘッダ & 戻るボタン */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">予約タイムライン</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              受け渡し回ごとのキャンセル率と売上合計を確認します。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate("/admin")}
-            className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 shadow-sm"
-          >
-            ← ダッシュボードに戻る
-          </button>
-        </div>
+        .admin-top-cards { 
+          display: grid; 
+          grid-template-columns: 1fr 1fr 1.5fr; 
+          gap: 12px; 
+          margin-bottom: 16px; 
+          align-items: stretch; 
+        }
+        
+        .chart-container { position: relative; flex: 1; display: flex; align-items: flex-end; padding-top: 16px; min-height: 120px; }
+        .chart-bar-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; cursor: crosshair; }
+        
+        .chart-tooltip { 
+          position: absolute; background: #0f172a; color: #fff; padding: 8px 12px; 
+          border-radius: 6px; font-size: 11px; white-space: nowrap; opacity: 0; 
+          pointer-events: none; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+          transform: translateY(4px); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          text-align: left;
+        }
+        .chart-tooltip::after { 
+          content: ""; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); 
+          border-width: 5px 5px 0; border-style: solid; border-color: #0f172a transparent transparent transparent; 
+        }
+        .chart-bar-col:hover .chart-tooltip { opacity: 1; transform: translateY(0); }
 
-        {/* 農家ヘッダ */}
-        {farmerInfo && (
-          <div className="mb-6 rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-lg font-bold text-gray-900">
-                  {fullName.trim() || "農家情報"}
-                  {fullKana.trim() && <span className="ml-2 text-xs font-normal text-gray-500">({fullKana.trim()})</span>}
-                </div>
-                <div className="mt-2 space-y-1 text-sm text-gray-600">
-                  <div>郵便番号：{farmerInfo.owner_postcode || "（未登録）"}</div>
-                  <div>住所：{farmerInfo.owner_address_line || "（未登録）"}</div>
-                  <div>電話番号：{farmerInfo.owner_phone || "（未登録）"}</div> {/* ★追加 */}
-                  <div>Email：{farmerInfo.owner_email || "（未登録）"}</div>     {/* ★追加 */}
-                </div>
+        @media (max-width: 800px) {
+          .admin-top-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .admin-trend-card { grid-column: span 2; }
+        }
+
+        @media (max-width: 640px) {
+          .admin-page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .admin-top-cards { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+          .admin-trend-card { grid-column: span 1; }
+          .desktop-only { display: none !important; }
+          .mobile-only { display: flex !important; flex-direction: column; gap: 8px; }
+        }
+      `}</style>
+
+      <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif", padding: "16px", color: C.ink }}>
+        <div style={{ maxWidth: 1140, margin: "0 auto" }}>
+          
+          {/* ★ ヘッダー部にステータスバッジを追加 */}
+          <div className="admin-page-header">
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button type="button" onClick={() => navigate(-1)} style={{ fontSize: 12, fontWeight: 700, color: C.ink, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+                ← 戻る
+              </button>
+              <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: C.ink }}>農家詳細データ (ID: {farmId})</h1>
+            </div>
+
+            {farmData && (
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                {isBanned ? (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: C.red, padding: "2px 8px", borderRadius: 4 }}>利用停止 (BAN)</span>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: farmData.is_public ? C.ink : C.ink3, border: `1px solid ${farmData.is_public ? C.ink : C.border}`, background: farmData.is_public ? "transparent" : C.bg, padding: "2px 8px", borderRadius: 4 }}>
+                      {farmData.is_public ? "公開中" : "非公開"}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: farmData.is_accepting_reservations ? "#fff" : C.ink3, background: farmData.is_accepting_reservations ? C.statusGreen : C.border, padding: "3px 8px", borderRadius: 4 }}>
+                      {farmData.is_accepting_reservations ? "予約受付中" : "受付停止中"}
+                    </span>
+                  </>
+                )}
+                <button 
+                  onClick={() => handleToggleBan(farmId, safeActiveFlag)} 
+                  style={{ fontSize: 11, fontWeight: 700, color: isBanned ? C.ink3 : C.red, background: "none", border: "none", textDecoration: "underline", padding: 0, cursor: "pointer", marginLeft: 4 }}
+                >
+                  {isBanned ? "BAN解除" : "BANする"}
+                </button>
               </div>
-              <div className="text-right text-sm font-mono text-gray-500 bg-gray-100 px-3 py-1 rounded h-fit">
-                Farm ID: {farmId}
+            )}
+          </div>
+
+          {error && <div style={{ marginBottom: 12, background: C.redLight, color: C.red, padding: "8px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{error}</div>}
+
+          <div className="admin-top-cards">
+            
+            {/* 1. 農家情報 */}
+            <div style={{ background: C.cardBg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div style={{ background: C.ink, padding: "6px 12px", fontSize: 10, fontWeight: 700, color: "#fff", letterSpacing: "0.05em" }}>PROFILE</div>
+              <div style={{ padding: "12px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 2 }}>{farmData?.owner_full_name || "—"}</div>
+                <div style={{ fontSize: 10, color: C.ink3, marginBottom: 12 }}>{farmData?.owner_full_kana || "—"}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11, color: C.ink2 }}>
+                  <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>✉ {farmData?.owner_email || "—"}</div>
+                  <div>📞 {farmData?.owner_phone || "—"}</div>
+                  <div style={{ lineHeight: 1.4 }}>🏠 {farmData?.owner_address_line || "—"}</div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {error && <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {loading && <div className="mb-6 text-sm text-gray-600">読み込み中…</div>}
+            {/* 2. パフォーマンス */}
+            <div style={{ background: C.cardBg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div style={{ background: C.ink, padding: "6px 12px", fontSize: 10, fontWeight: 700, color: "#fff", letterSpacing: "0.05em" }}>PERFORMANCE (過去6ヶ月)</div>
+              <div style={{ padding: "12px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: "10px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: `1px solid ${C.border}`, paddingBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: C.ink3 }}>お米代(確)</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>¥{formatNumber(sales)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: `1px solid ${C.border}`, paddingBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: C.ink3 }}>販売速度 (件/100h)</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{displayVelocity} <span style={{ fontSize: 11, color: C.ink3, fontWeight: 500 }}>({displayHours}h)</span></span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <span style={{ fontSize: 11, color: C.ink3 }}>Cancel Rate</span>
+                  <span style={{ fontSize: 18, ...getCancelRateStyle(cancelRate) }}>{cancelRate == null ? "—" : `${cancelRate}%`} <span style={{ fontSize: 11, color: C.ink3, fontWeight: 500 }}>(確{conf} / キ{canc})</span></span>
+                </div>
+              </div>
+            </div>
 
-        {!loading && weeks.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-5 py-3 text-left font-semibold text-gray-600">受け渡し日時</th>
-                  <th className="px-5 py-3 text-left font-semibold text-gray-600">ステータス別</th>
-                  <th className="px-5 py-3 text-right font-semibold text-gray-600">キャンセル率</th>
-                  <th className="px-5 py-3 text-right font-semibold text-gray-600">お米合計（Cのみ）</th>
-                  <th className="px-5 py-3 text-right font-semibold text-gray-600">アクション</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {weeks.map((w) => {
-                  const denom = w.confirmed_count + w.cancelled_count;
-                  const cancelRate = denom === 0 ? null : Math.round((w.cancelled_count / denom) * 100);
+            {/* 3. 統合トレンドグラフ */}
+            {!loading && weeks.length > 0 && (
+              <div className="admin-trend-card" style={{ background: C.cardBg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div style={{ background: C.ink, padding: "6px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", letterSpacing: "0.05em" }}>MONTHLY TRENDS (過去1年間)</span>
+                </div>
+                <div style={{ padding: "8px 12px", flex: 1, display: "flex", flexDirection: "column" }}>
+                  
+                  {/* 凡例（レジェンド） */}
+                  <div style={{ display: "flex", gap: "16px", fontSize: 9, color: C.ink3, paddingBottom: 6, borderBottom: `1px dashed ${C.border}` }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ width: 8, height: 8, background: C.barChart, borderRadius: 2 }}></div>売上
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ width: 8, height: 2, background: C.ink }}></div>件数
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ width: 8, height: 2, background: C.red, borderTop: `2px dotted ${C.red}` }}></div>キャンセル率
+                    </span>
+                  </div>
 
-                  return (
-                    <tr key={`${w.pickup_slot_code}-${w.event_start}`} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-4 font-medium text-gray-900">
-                        {w.pickup_display}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-green-700 bg-green-50 px-2 py-1 rounded font-semibold border border-green-100">
-                            確定 {w.confirmed_count}
-                          </span>
-                          <span className="text-red-700 bg-red-50 px-2 py-1 rounded font-semibold border border-red-100">
-                            キャンセル {w.cancelled_count}
-                          </span>
+                  {/* 統合グラフ描画エリア */}
+                  <div className="chart-container">
+                    <svg style={{ position: "absolute", top: 16, left: 0, width: "100%", height: "calc(100% - 36px)", overflow: "visible", pointerEvents: "none", zIndex: 10 }}>
+                      {monthlyTrends.map((m, i) => {
+                        if (i === monthlyTrends.length - 1) return null;
+                        const next = monthlyTrends[i + 1];
+                        return <line key={`cr-line-${i}`} x1={`${(i + 0.5) * (100 / 12)}%`} y1={`${100 - m.cancelRate * 0.85}%`} x2={`${(i + 1.5) * (100 / 12)}%`} y2={`${100 - next.cancelRate * 0.85}%`} stroke={C.red} strokeWidth="1.5" strokeDasharray="3 3" opacity={0.6} />;
+                      })}
+                      {monthlyTrends.map((m, i) => {
+                        if (i === monthlyTrends.length - 1) return null;
+                        const next = monthlyTrends[i + 1];
+                        return <line key={`cnt-line-${i}`} x1={`${(i + 0.5) * (100 / 12)}%`} y1={`${100 - (m.count / maxCount) * 85}%`} x2={`${(i + 1.5) * (100 / 12)}%`} y2={`${100 - (next.count / maxCount) * 85}%`} stroke={C.ink} strokeWidth="1.5" />;
+                      })}
+                      {monthlyTrends.map((m, i) => (
+                        <circle key={`cr-circle-${i}`} cx={`${(i + 0.5) * (100 / 12)}%`} cy={`${100 - m.cancelRate * 0.85}%`} r="2.5" fill="#fff" stroke={C.red} strokeWidth="1.5" opacity={0.8} />
+                      ))}
+                      {monthlyTrends.map((m, i) => (
+                        <circle key={`cnt-circle-${i}`} cx={`${(i + 0.5) * (100 / 12)}%`} cy={`${100 - (m.count / maxCount) * 85}%`} r="3" fill="#fff" stroke={C.ink} strokeWidth="1.5" />
+                      ))}
+                    </svg>
+
+                    {monthlyTrends.map((m, i) => {
+                      const isHover = hoverIndex === i;
+                      return (
+                        <div key={`bar-${i}`} className="chart-bar-col" onMouseEnter={() => setHoverIndex(i)} onMouseLeave={() => setHoverIndex(null)}>
+                          {isHover && (
+                            <div className="chart-tooltip" style={{ top: -60 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, borderBottom: "1px solid rgba(255,255,255,0.2)", paddingBottom: 4 }}>{m.label}</div>
+                              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: 10 }}>
+                                <span style={{ color: C.border }}>売上:</span><span style={{ fontWeight: 700 }}>¥{formatNumber(m.sales)}</span>
+                                <span style={{ color: C.border }}>件数:</span><span style={{ fontWeight: 700 }}>{m.count}件</span>
+                                <span style={{ color: "#fecaca" }}>ｷｬﾝｾﾙ:</span><span style={{ color: "#fecaca", fontWeight: 700 }}>{m.cancelRate}%</span>
+                              </div>
+                            </div>
+                          )}
+                          <div style={{ width: "60%", maxWidth: 16, height: `${(m.sales / maxSales) * 85}%`, background: isHover ? C.ink2 : C.barChart, borderRadius: "2px 2px 0 0", opacity: 0.85, transition: "background 0.2s" }} />
+                          <div style={{ height: 4 }} />
+                          <div style={{ fontSize: 9, color: isHover ? C.ink : C.ink3, fontWeight: 700, marginTop: 2, height: 12 }}>{m.month}</div>
                         </div>
-                      </td>
-                      <td className={`px-5 py-4 text-right font-bold ${getCancelRateClass(cancelRate)}`}>
-                        {cancelRate == null ? "-" : `${cancelRate}%`}
-                      </td>
-                      <td className="px-5 py-4 text-right font-bold text-gray-900">
-                        {formatNumber(w.rice_subtotal)} 円
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/admin/reservations/event?farm_id=${farmId}&event_start=${encodeURIComponent(w.event_start)}`)}
-                          className="rounded bg-gray-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-700 shadow-sm"
-                        >
-                          詳細を見る →
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      );
+                    })}
+                  </div>
+
+                </div>
+              </div>
+            )}
           </div>
-        )}
 
-        {!loading && farmId !== null && weeks.length === 0 && !error && (
-         <div className="mt-6 rounded-lg bg-white p-8 text-center text-gray-500 border border-gray-200">
-           この農家の受け渡しイベント（確定またはキャンセルの予約）はまだありません。
-         </div>
-        )}
+          {/* ── 下段：極薄テーブル（リスト） ── */}
+          {!loading && weeks.length > 0 && (
+            <>
+              {/* PC用リスト */}
+              <div className="desktop-only" style={{ background: C.cardBg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640, textAlign: "left" }}>
+                  <thead style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
+                    <tr>
+                      <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: C.ink3 }}>受け渡し日時</th>
+                      <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: C.ink3 }}>Status (確 / キ)</th>
+                      <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: C.ink3, textAlign: "right" }}>Sales (確定のみ)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weeks.map((w) => (
+                      <tr 
+                        key={`${w.pickup_slot_code}-${w.event_start}`} 
+                        onClick={() => navigate(`/admin/reservations/event?farm_id=${farmId}&event_start=${encodeURIComponent(w.event_start)}`)}
+                        style={{ borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background 0.2s" }} 
+                        onMouseOver={(e) => e.currentTarget.style.background = C.bg} 
+                        onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: C.ink }}>{w.pickup_display}</td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", gap: 8, fontSize: 13 }}>
+                            <span style={{ color: C.ink }}>確: <span style={{ fontWeight: 700 }}>{w.confirmed_count}</span></span>
+                            <span style={{ color: C.border }}>/</span>
+                            <span style={{ color: C.ink3 }}>キ: {w.cancelled_count}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 15, fontWeight: 700, color: C.ink, textAlign: "right" }}>¥{formatNumber(w.rice_subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
+              {/* スマホ用リスト */}
+              <div className="mobile-only">
+                {weeks.map((w) => (
+                  <div 
+                    key={`mobile-${w.pickup_slot_code}-${w.event_start}`} 
+                    onClick={() => navigate(`/admin/reservations/event?farm_id=${farmId}&event_start=${encodeURIComponent(w.event_start)}`)}
+                    style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
+                    onMouseOver={(e) => e.currentTarget.style.background = C.bg}
+                    onMouseOut={(e) => e.currentTarget.style.background = C.cardBg}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{w.pickup_display}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                      <div>
+                        <span style={{ color: C.ink }}>確: <b>{w.confirmed_count}</b></span>
+                        <span style={{ color: C.border, margin: "0 8px" }}>/</span>
+                        <span style={{ color: C.ink3 }}>キ: {w.cancelled_count}</span>
+                      </div>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>¥{formatNumber(w.rice_subtotal)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -72,7 +72,6 @@ export default function FarmDetailPage() {
   const farmIdStr = String(farmId ?? "");
   const navigate = useNavigate();
 
-  // ★ プレビューモード検知
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get("preview") === "true";
 
@@ -81,7 +80,6 @@ export default function FarmDetailPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // プレビュー時はAPIコールしない
     if (isPreview) return;
     async function run() {
       const data = await fetchIdentity();
@@ -265,6 +263,10 @@ export default function FarmDetailPage() {
   const centerLat = farm?.pickup_lat ?? undefined;
   const centerLng = farm?.pickup_lng ?? undefined;
 
+  const isAccepting = farm?.is_accepting_reservations === undefined 
+    ? true 
+    : Boolean(farm.is_accepting_reservations);
+
   return (
     <>
       <FarmDetailHero
@@ -275,7 +277,6 @@ export default function FarmDetailPage() {
         onToggleFav={toggleFavorite}
         onShare={doShare}
         onBack={() => {
-          // プレビュー時は何もしない（外側のモーダルで閉じる）
           if (isPreview) return;
           navigate("/farms");
         }}
@@ -319,14 +320,41 @@ export default function FarmDetailPage() {
         </div>
       </section>
 
-      <FarmDetailCTA
-        riceSubtotal={riceSubtotal}
-        pickupTextCTA={pickupTextCTA}
-        onNext={handleNext}
-        money={money}
-        disabled={isNextDisabled}
-        isOverLimit={isOverLimit}
-      />
+      {isAccepting ? (
+        <FarmDetailCTA
+          riceSubtotal={riceSubtotal}
+          pickupTextCTA={pickupTextCTA}
+          onNext={handleNext}
+          money={money}
+          disabled={isNextDisabled}
+          isOverLimit={isOverLimit}
+        />
+      ) : (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            background: "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            borderTop: "1px solid #e8e2d8",
+            padding: "16px 20px calc(16px + env(safe-area-inset-bottom))",
+            textAlign: "center",
+            boxShadow: "0 -4px 20px rgba(0,0,0,0.05)",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#C62828" }}>
+            現在、こちらの農家さんは予約受付をお休みしています
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "#7a6c58", lineHeight: 1.5 }}>
+            在庫調整や農作業のため、農家さん自身が一時的に予約をストップしています。<br />
+            次回の受付再開をお待ちください。
+          </p>
+        </div>
+      )}
     </>
   );
 }

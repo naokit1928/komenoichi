@@ -79,6 +79,9 @@ class PublicFarmDetailDTO(BaseModel):
     pickup_notes: str
     pickup_lat: float
     pickup_lng: float
+    
+    # ★ 追加：フロントエンドで「一時停止中」の赤いバーを出すための判定フラグ
+    is_accepting_reservations: bool = True
 
 
 # ============================================================

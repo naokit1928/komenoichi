@@ -127,13 +127,13 @@ function PreviewModal({
           alignItems: "center",
           justifyContent: "center",
           padding: "20px 16px",
-          pointerEvents: "none", // 親自体はクリック透過（背景オーバーレイに届く）
+          pointerEvents: "none",
         }}
       >
         {/* iframeコンテナ */}
         <div
           style={{
-            pointerEvents: "auto", // コンテナ内だけ操作可
+            pointerEvents: "auto",
             width: "100%",
             maxWidth: 390,
             height: "100%",
@@ -197,8 +197,6 @@ function PreviewModal({
             </button>
           </div>
 
-          {/* iframe — スクロール・スワイプを完全に動かすためpointer-eventsはデフォルト */}
-          {/* ボタン操作のブロックはFarmDetailPage側のisPreviewフラグで対応済み */}
           <iframe
             src={`/farms/${farmId}?preview=true`}
             title="農家ページプレビュー"
@@ -211,8 +209,6 @@ function PreviewModal({
           />
         </div>
       </div>
-
-
     </>,
     document.body
   );
@@ -329,8 +325,6 @@ export default function FarmerSettingsPage() {
   const missingItems: MissingItem[] = (data?.missing_fields ?? [])
     .map((f) => MISSING_FIELD_INFO[f])
     .filter((x): x is MissingItem => !!x);
-  const totalRequired = Object.keys(MISSING_FIELD_INFO).length;
-  const completedCount = totalRequired - missingItems.length;
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] pb-52">
@@ -352,7 +346,7 @@ export default function FarmerSettingsPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>
-                  公開まであと{missingItems.length}項目
+                  受付開始まであと{missingItems.length}項目
                 </span>
                 {missingItems.map((item) => (
                   <span
@@ -494,7 +488,9 @@ export default function FarmerSettingsPage() {
         />
       )}
 
-      {/* 公開切り替え確認モーダル */}
+      {/* =========================================
+          公開切り替え確認モーダル（変更部分）
+      ========================================= */}
       {publishConfirm && ReactDOM.createPortal(
         <>
           <div
@@ -518,12 +514,12 @@ export default function FarmerSettingsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <p style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 8 }}>
-              {publishConfirm.next ? "公開を開始しますか？" : "公開を一時停止しますか？"}
+              {publishConfirm.next ? "予約受付を再開しますか？" : "予約受付を一時停止しますか？"}
             </p>
             <p style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.7, marginBottom: 20 }}>
               {publishConfirm.next
-                ? "公開すると消費者が予約できるようになります。"
-                : "一時停止しても既存の予約はキャンセルされません。"}
+                ? "再開すると、消費者がお米を予約できるようになります。"
+                : "一時停止しても既存の予約はキャンセルされず、農家一覧から非表示になります。"}
             </p>
             <div style={{ display: "flex", gap: 10 }}>
               <button
@@ -542,7 +538,7 @@ export default function FarmerSettingsPage() {
                   setPublishConfirm(null);
                   postMe(
                     { is_accepting_reservations: v },
-                    v ? "公開を開始しました！" : "公開を一時停止しました。"
+                    v ? "予約受付を再開しました！" : "予約受付を一時停止しました。"
                   );
                 }}
                 style={{
@@ -552,7 +548,7 @@ export default function FarmerSettingsPage() {
                   color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
                 }}
               >
-                {publishConfirm.next ? "公開する" : "一時停止する"}
+                {publishConfirm.next ? "再開する" : "一時停止する"}
               </button>
             </div>
           </div>

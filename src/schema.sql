@@ -90,7 +90,6 @@ CREATE TABLE reservations (
     event_end_at DATETIME,
     guest_key TEXT,
     confirm_session_id TEXT,
-    -- ★修正: consumers_backup ではなく正しい consumers を参照
     FOREIGN KEY (consumer_id) REFERENCES consumers(consumer_id),
     FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
 );
@@ -176,3 +175,16 @@ CREATE TABLE consumer_favorites (
     FOREIGN KEY (consumer_id) REFERENCES consumers(consumer_id),
     FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
 );
+
+-- =========================================================
+-- farm_status_logs (農家の受付トグル切り替え履歴)
+-- =========================================================
+CREATE TABLE farm_status_logs (
+    log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    farm_id INTEGER NOT NULL,
+    is_accepting INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
+);
+
+CREATE INDEX idx_farm_status_logs_farm_id ON farm_status_logs(farm_id);

@@ -42,7 +42,6 @@ class FarmerSettingsService:
         if price_10kg is None: return None, None
         base = self._round_to_100(price_10kg)
         
-        # 定数クラスを使用
         raw5 = base * FarmConfig.PRICE_RATIO_5KG + FarmConfig.PRICE_OFFSET_5KG
         raw25 = base * FarmConfig.PRICE_RATIO_25KG + FarmConfig.PRICE_OFFSET_25KG
         
@@ -98,10 +97,13 @@ class FarmerSettingsService:
 
         missing = self._compute_missing_fields(farm, profile, pr_raw)
 
+        raw_active_flag = farm.get("active_flag")
+        safe_active_flag = int(raw_active_flag) if raw_active_flag is not None else 1
+
         return FarmerSettingsDTO(
-            farm_id=farm_id,  # ★ ここを追加しました
+            farm_id=farm_id,
             is_accepting_reservations=bool(farm.get("is_accepting_reservations")),
-            active_flag=int(farm.get("active_flag") or 1),
+            active_flag=safe_active_flag,
             is_ready_to_publish=len(missing) == 0,
             missing_fields=missing,
             rice_variety_label=farm.get("rice_variety_label"),
@@ -140,7 +142,16 @@ class FarmerSettingsService:
             profile_updates: Dict[str, Any] = {}
 
             if is_accepting_reservations is not None:
-                farm_updates["is_accepting_reservations"] = bool(is_accepting_reservations)
+                new_accepting = bool(is_accepting_reservations)
+                farm_updates["is_accepting_reservations"] = new_accepting
+                
+                # 受付を開始したら自動的に「公開(看板を出す)」状態にする
+                if new_accepting:
+                    farm_updates["is_public"] = 1
+                
+                # ★追加: トグルの状態が前回と異なる場合のみ、履歴テーブルにログを記録する
+                if current.is_accepting_reservations != new_accepting:
+                    self.repo.insert_status_log(conn, farm_id, 1 if new_accepting else 0)
             
             if rice_variety_label is not None:
                 farm_updates["rice_variety_label"] = rice_variety_label

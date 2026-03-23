@@ -16,7 +16,6 @@ export default function PublishToggleCard({
     onToggle(!isOn);
   };
 
-  /** dangerouslySetInnerHTML の代替。太字スタイルを直接指定する。 */
   const boldStyle: React.CSSProperties = {
     fontWeight: 800,
     color: "#111827",
@@ -24,37 +23,31 @@ export default function PublishToggleCard({
 
   return (
     <section className={`w-full ${className}`} style={{ marginTop: 24 }}>
-      {/* TitleEditor と同一の card 構造 */}
       <button
         type="button"
         onClick={requestToggle}
         disabled={disabled}
         className="w-full bg-white"
-        aria-label="予約受付の公開状態を切り替える"
+        aria-label="予約受付の状態を切り替える"
         style={{
           backgroundColor: "#FFFFFF",
           border: "1px solid rgba(0,0,0,0.07)",
           borderRadius: 24,
-          padding: "44px 46px", // TitleEditor と完全一致
+          padding: "44px 46px",
           boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
           cursor: disabled ? "not-allowed" : "pointer",
           textAlign: "center",
         }}
       >
         <div className="w-full flex flex-col items-center">
-          {/* タイトル */}
-          <div
-            className="text-[15px] sm:text-base tracking-wide"
-            style={boldStyle}
-          >
-            予約受付
+          <div className="text-[15px] sm:text-base tracking-wide" style={boldStyle}>
+            予約の受付状態
           </div>
 
-          {/* トグル（※ button ではない） */}
           <div
             role="button"
             tabIndex={disabled ? -1 : 0}
-            aria-label={`公開を${isOn ? "オフ" : "オン"}にする`}
+            aria-label={`受付を${isOn ? "オフ" : "オン"}にする`}
             aria-pressed={isOn}
             onClick={(e) => {
               e.stopPropagation();
@@ -97,22 +90,18 @@ export default function PublishToggleCard({
             />
           </div>
 
-          {/* 状態メッセージ */}
-          <div
-            className="text-[12.5px] text-center leading-relaxed"
-            style={{ marginTop: 12 }}
-          >
+          <div className="text-[12.5px] text-center leading-relaxed" style={{ marginTop: 12 }}>
             {isOn ? (
               <>
-                現在 <span style={boldStyle}>公開中</span> です。いつでも停止できます。
+                現在 <span style={boldStyle}>予約受付中</span> です。いつでも停止できます。
                 <br />
                 既存の予約はキャンセルされません。
               </>
             ) : (
               <>
-                現在 <span style={boldStyle}>非公開</span> です。いつでも公開にできます。
+                現在 <span style={boldStyle}>受付停止中</span> です。いつでも再開できます。
                 <br />
-                既存の予約はキャンセルされません。
+                一覧からは非表示になり、新規予約は入りません。
               </>
             )}
           </div>

@@ -76,6 +76,13 @@ class FarmerSettingsRepository:
             (registration_status, farm_id),
         )
 
+    # ★ 追加: トグルの切り替え履歴（ログ）を保存するメソッド
+    def insert_status_log(self, conn: sqlite3.Connection, farm_id: int, is_accepting: int) -> None:
+        conn.execute(
+            "INSERT INTO farm_status_logs (farm_id, is_accepting, created_at) VALUES (?, ?, datetime('now'))",
+            (farm_id, is_accepting)
+        )
+
     # --- PR images ---
 
     def load_pr_images_list(self, conn: sqlite3.Connection, farm_id: int) -> List[Dict[str, Any]]:
@@ -100,7 +107,6 @@ class FarmerSettingsRepository:
         if not farm:
             raise RuntimeError("farm not found")
         
-        # 初期化が必要かチェック
         if (farm.get("monthly_upload_bytes") is None or 
             farm.get("monthly_upload_limit") is None):
             return self.create_initial_profile(conn, farm_id)
@@ -122,10 +128,7 @@ class FarmerSettingsRepository:
     # --- Reservation ---
     
     def count_active_reservations(self, conn: sqlite3.Connection, farm_id: int) -> int:
-        # シンプル化: deletedフラグがある場合のみ除外するロジックなどは維持
         query = "SELECT COUNT(*) AS cnt FROM reservations WHERE farm_id = ? AND status = 'confirmed'"
-        # カラムが存在するかどうかのチェックは省略（スキーマが安定している前提）
-        # 必要なら try-except で囲む
         cur = conn.execute(query, (farm_id,))
         row = cur.fetchone()
         return int(row["cnt"]) if row else 0
