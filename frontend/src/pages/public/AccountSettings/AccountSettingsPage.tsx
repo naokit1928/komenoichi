@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 import { PublicBottomBar } from "@/components/PublicBottomBar";
-import { LoginBottomSheet } from "@/components/LoginBottomSheet"; // ★追加
+import { LoginBottomSheet } from "@/components/LoginBottomSheet";
 import { ModeTransition, triggerModeTransition } from "@/components/ModeTransition";
 
 const C = {
@@ -20,6 +20,7 @@ type ConsumerIdentity = {
   email: string | null;
   is_farmer?: boolean;
   own_farm_id?: number | null;
+  is_admin?: boolean; // ★ 追加: 管理者フラグ
 };
 
 export default function AccountSettingsPage() {
@@ -27,7 +28,7 @@ export default function AccountSettingsPage() {
 
   const [identity, setIdentity] = useState<ConsumerIdentity | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showAuthModal, setShowAuthModal] = useState(false); // これだけでOK
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [transitionActive, setTransitionActive] = useState(false);
@@ -108,7 +109,6 @@ export default function AccountSettingsPage() {
           ログインまたは登録
         </button>
 
-        {/* 規約・サポートメニュー */}
         <div>
           <div style={{ backgroundColor: "#fff", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
             <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
@@ -123,7 +123,6 @@ export default function AccountSettingsPage() {
           </div>
         </div>
 
-        {/* ★ 共通化されたボトムシートを呼び出すだけ！ */}
         <LoginBottomSheet 
           isOpen={showAuthModal} 
           onClose={() => setShowAuthModal(false)} 
@@ -162,6 +161,21 @@ export default function AccountSettingsPage() {
           <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
             <span style={{ fontSize: 16, fontWeight: 400 }}>プライバシーポリシー</span><span style={{ color: C.ink, fontSize: 18 }}>›</span>
           </a>
+
+          {/* ★ 追加: 管理者のみ表示される隠し扉 */}
+          {identity.is_admin && (
+            <button 
+              onClick={() => navigate("/admin")} 
+              style={{ 
+                display: "flex", justifyContent: "space-between", alignItems: "center", 
+                width: "100%", padding: "20px 0", background: "none", border: "none", borderBottom: `1px solid ${C.border}`,
+                textDecoration: "none", color: C.red, cursor: "pointer", textAlign: "left"
+              }}
+            >
+              <span style={{ fontSize: 16, fontWeight: 700 }}>管理者ダッシュボード</span>
+              <span style={{ color: C.red, fontSize: 18 }}>›</span>
+            </button>
+          )}
           
           <button 
             onClick={() => setShowLogoutModal(true)} 
@@ -185,7 +199,6 @@ export default function AccountSettingsPage() {
         </button>
       </div>
 
-      {/* フローティングボタン */}
       {identity.is_farmer && (
         <button
           onClick={() => triggerModeTransition(setTransitionActive, navigate, "/farmer")}
@@ -221,7 +234,6 @@ export default function AccountSettingsPage() {
         </button>
       )}
 
-      {/* ログアウトモーダル等 省略せずにそのまま */}
       {showLogoutModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
           <div style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 360, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>

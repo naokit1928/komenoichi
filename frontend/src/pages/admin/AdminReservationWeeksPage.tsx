@@ -69,9 +69,8 @@ const AdminReservationWeeksPage: React.FC = () => {
       setLoading(true); setError(null);
       try {
         const weeksParams = new URLSearchParams({ farm_id: String(farmId) });
-        const weeksReq = fetch(`${API_BASE}/api/admin/reservations/weeks?` + weeksParams.toString(), { signal: controller.signal });
-        
-        const farmsReq = fetch(`${API_BASE}/api/admin/farms/`, { signal: controller.signal });
+        const weeksReq = fetch(`${API_BASE}/api/admin/reservations/weeks?` + weeksParams.toString(), { signal: controller.signal, credentials: "include" });
+        const farmsReq = fetch(`${API_BASE}/api/admin/farms/`, { signal: controller.signal, credentials: "include" });
 
         const [weeksRes, farmsRes] = await Promise.all([weeksReq, farmsReq]);
         

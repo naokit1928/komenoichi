@@ -43,7 +43,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/admin/reservations/alerts`);
+        const res = await fetch(`${API_BASE}/api/admin/reservations/alerts`, { credentials: "include" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setAlerts(await res.json());
       } catch {
@@ -69,8 +69,10 @@ export default function AdminDashboardPage() {
 
     const timer = setTimeout(async () => {
       try {
+        // ★ 修正: credentials: "include" を追加
         const res = await fetch(`${API_BASE}/api/admin/farms/resolve-by-owner-kana?query=${encodeURIComponent(q)}`, {
-          signal: controller.signal
+          signal: controller.signal,
+          credentials: "include"
         });
         if (!res.ok) throw new Error("API Error");
         const data = await res.json();
@@ -99,7 +101,10 @@ export default function AdminDashboardPage() {
     if (!Number.isFinite(n) || n <= 0) { setSearchError("システム照会ID が不正です。"); return; }
     setSearchError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/reservations/resolve-by-reservation-id?reservation_id=${n}`);
+      // ★ 修正: credentials: "include" を追加
+      const res = await fetch(`${API_BASE}/api/admin/reservations/resolve-by-reservation-id?reservation_id=${n}`, {
+        credentials: "include"
+      });
       if (!res.ok) throw new Error("Not Found");
       const data = await res.json();
       navigate(`/admin/reservations/event?farm_id=${data.farm_id}&event_start=${encodeURIComponent(data.event_start)}&highlight_reservation_id=${data.reservation_id}`);

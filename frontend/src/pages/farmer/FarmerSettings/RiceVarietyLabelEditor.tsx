@@ -84,8 +84,9 @@ function RiceVarietyModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="fixed left-1/2 top-1/2 z-[2147483647] -translate-x-1/2 -translate-y-1/2"
+        className="fixed left-1/2 z-[2147483647] -translate-x-1/2"
         style={{
+          top: "60px",
           width: "min(560px, 92vw)",
           borderRadius: 28,
           background: "#FFFFFF",

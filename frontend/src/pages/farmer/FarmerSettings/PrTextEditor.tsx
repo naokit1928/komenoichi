@@ -192,13 +192,16 @@ function PrTextModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="fixed left-1/2 top-1/2 z-[2147483647] -translate-x-1/2 -translate-y-1/2"
+        className="fixed left-1/2 z-[2147483647] -translate-x-1/2"
         style={{
+          top: "40px",
           width: "min(560px, 92vw)",
           borderRadius: 28,
           background: "#FFFFFF",
           boxShadow: "0 28px 70px rgba(0,0,0,.32)",
           padding: "22px 18px 18px",
+          maxHeight: "calc(100vh - 80px)",
+          overflowY: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >

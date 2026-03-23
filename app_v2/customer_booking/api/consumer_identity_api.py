@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
 import sqlite3
+import os # ★ 追加
 
 from app_v2.db.core import resolve_db_path
 
@@ -7,7 +8,6 @@ router = APIRouter(
     prefix="/consumers",
     tags=["consumers"],
 )
-
 
 @router.get("/identity")
 def get_consumer_identity(request: Request):
@@ -32,6 +32,7 @@ def get_consumer_identity(request: Request):
             "email": None,
             "is_farmer": False,
             "own_farm_id": None,
+            "is_admin": False, # ★ 追加
         }
 
     try:
@@ -43,6 +44,7 @@ def get_consumer_identity(request: Request):
             "email": None,
             "is_farmer": False,
             "own_farm_id": None,
+            "is_admin": False, # ★ 追加
         }
 
     db_path = resolve_db_path()
@@ -71,13 +73,19 @@ def get_consumer_identity(request: Request):
             "email": None,
             "is_farmer": False,
             "own_farm_id": None,
+            "is_admin": False, # ★ 追加
         }
 
+    # ★ 追加: 管理者かどうかの判定
+    admin_emails_env = os.getenv("ADMIN_EMAILS", "")
+    allowed_emails = [e.strip().lower() for e in admin_emails_env.split(",") if e.strip()]
+    is_admin = bool(email and email.lower() in allowed_emails)
+
     # ここに来たときだけ「ログイン済み」
-    # ★ is_farmer と own_farm_id を追加して返す
     return {
         "is_logged_in": True,
         "email": email,
         "is_farmer": farm_id is not None,
         "own_farm_id": farm_id,
+        "is_admin": is_admin, # ★ 追加してフロントに返す
     }

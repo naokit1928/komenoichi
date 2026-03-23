@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
 from app_v2.admin.usecases.by_farm import (
@@ -20,14 +20,16 @@ from app_v2.admin.usecases.resolve_event_by_reservation import (
 from app_v2.admin.dto.admin_reservation_dtos import (
     AdminReservationListItemDTO,
 )
-# ★ NEW: アラート取得のため直接 Service を呼ぶ
 from app_v2.admin.services.admin_reservation_service import (
     AdminReservationService,
 )
+from app_v2.admin.dependencies import verify_admin_session
 
+# ★ dependencies を追加してルーター全体をロック
 router = APIRouter(
     prefix="/api/admin/reservations",
     tags=["admin_reservations"],
+    dependencies=[Depends(verify_admin_session)]
 )
 
 # ============================================================
@@ -40,7 +42,7 @@ class AdminReservationListResponse(BaseModel):
 
 
 # ============================================================
-# アラート一覧用 DTO (★ NEW)
+# アラート一覧用 DTO 
 # ============================================================
 class AdminAlertsResponse(BaseModel):
     payment_anomalies: List[AdminReservationListItemDTO]
@@ -241,7 +243,7 @@ def resolve_event_by_reservation_id(
     )
 
 # ============================================================
-# ★ NEW: ダッシュボード・アラート一覧 API
+# ダッシュボード・アラート一覧 API
 # ============================================================
 
 @router.get("/alerts", response_model=AdminAlertsResponse)

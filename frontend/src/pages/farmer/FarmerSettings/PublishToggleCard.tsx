@@ -33,10 +33,9 @@ export default function PublishToggleCard({
           backgroundColor: "#FFFFFF",
           border: "1px solid rgba(0,0,0,0.07)",
           borderRadius: 24,
-          padding: "44px 46px",
+          padding: "36px 24px", // テキストが左揃えになっても綺麗に見えるように左右の余白を少し調整
           boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
           cursor: disabled ? "not-allowed" : "pointer",
-          textAlign: "center",
         }}
       >
         <div className="w-full flex flex-col items-center">
@@ -62,7 +61,7 @@ export default function PublishToggleCard({
             }}
             className="relative transition"
             style={{
-              marginTop: 12,
+              marginTop: 16,
               width: 76,
               height: 40,
               borderRadius: 9999,
@@ -90,18 +89,24 @@ export default function PublishToggleCard({
             />
           </div>
 
-          <div className="text-[12.5px] text-center leading-relaxed" style={{ marginTop: 12 }}>
+          {/* ★ 変更箇所: 左揃え (textAlign: "left") にし、幅を 100% にして自然に折り返させる */}
+          <div 
+            style={{ 
+              marginTop: 20, 
+              fontSize: 13, 
+              lineHeight: 1.6, 
+              color: "#475569",
+              textAlign: "left",
+              width: "100%"
+            }}
+          >
             {isOn ? (
               <>
-                現在 <span style={boldStyle}>予約受付中</span> です。いつでも停止できます。
-                <br />
-                既存の予約はキャンセルされません。
+                現在<span style={boldStyle}>予約受付中</span>です。いつでも停止できます。既存の予約はキャンセルされません。
               </>
             ) : (
               <>
-                現在 <span style={boldStyle}>受付停止中</span> です。いつでも再開できます。
-                <br />
-                一覧からは非表示になり、新規予約は入りません。
+                現在<span style={boldStyle}>受付停止中</span>です。いつでも再開できます。一覧からは非表示になり、新規予約は入りません。
               </>
             )}
           </div>

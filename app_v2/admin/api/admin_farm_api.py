@@ -1,18 +1,22 @@
+# backend/app_v2/admin/api/admin_farm_api.py
 from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from pydantic import BaseModel
 
 from app_v2.admin.usecases.resolve_farm_by_owner_kana import (
     resolve_farm_by_owner_kana,
 )
 from app_v2.admin.repository.admin_farm_repo import AdminFarmRepository
+from app_v2.admin.dependencies import verify_admin_session
 
+# ★ dependencies を追加してルーター全体をロック
 router = APIRouter(
     prefix="/api/admin/farms",
     tags=["admin_farms"],
+    dependencies=[Depends(verify_admin_session)]
 )
 
 class AdminFarmMatchDTO(BaseModel):
@@ -43,7 +47,6 @@ class AdminFarmListItemDTO(BaseModel):
     total_cancelled_6m: int = 0
     total_sales_6m: int = 0
     
-    # ★ 追加: 正味稼働時間
     net_active_hours: float = 0.0
 
 class AdminFarmListResponse(BaseModel):

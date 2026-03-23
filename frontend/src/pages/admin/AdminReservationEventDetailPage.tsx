@@ -106,7 +106,7 @@ const AdminReservationEventDetailPage: React.FC = () => {
       setLoading(true); setError(null);
       try {
         const params = new URLSearchParams({ farm_id: String(farmId), event_start: eventStartParam });
-        const res = await fetch(`${API_BASE}/api/admin/reservations?` + params.toString(), { signal: controller.signal });
+        const res = await fetch(`${API_BASE}/api/admin/reservations?` + params.toString(), { signal: controller.signal, credentials: "include" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: AdminReservationListResponse = await res.json();
         setItems(data.items || []);

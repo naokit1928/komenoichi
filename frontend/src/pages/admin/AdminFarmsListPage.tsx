@@ -58,7 +58,7 @@ const AdminFarmsListPage: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/admin/farms/`);
+        const res = await fetch(`${API_BASE}/api/admin/farms/`, { credentials: "include" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setFarms(data.farms ?? []);

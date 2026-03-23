@@ -11,6 +11,8 @@ const AuthEmailRegisterPage = React.lazy(
 
 import FarmerLayout from "./pages/farmer/FarmerLayout";
 
+import AdminGuard from "./components/AdminGuard";
+
 const FarmerReservationTable = React.lazy(
   () => import("./pages/farmer/FarmerReservationTable/FarmerReservationTable")
 );
@@ -190,10 +192,14 @@ export default function AppRoutes() {
             </Route>
           </Route>
 
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/farms" element={<AdminFarmsListPage />} />
-          <Route path="/admin/reservations/weeks" element={<AdminReservationWeeksPage />} />
-          <Route path="/admin/reservations/event" element={<AdminReservationEventDetailPage />} />
+          {/* 管理者専用ルート（AdminGuardで保護） */}
+          <Route path="/admin" element={<AdminGuard />}>
+            <Route index element={<AdminDashboardPage />} />
+            <Route path="farms" element={<AdminFarmsListPage />} />
+            <Route path="reservations/weeks" element={<AdminReservationWeeksPage />} />
+            <Route path="reservations/event" element={<AdminReservationEventDetailPage />} />
+          </Route>
+
 
           <Route
             path="*"
