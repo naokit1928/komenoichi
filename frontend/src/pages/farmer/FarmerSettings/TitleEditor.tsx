@@ -82,7 +82,8 @@ function TitleEditModal({
       el.focus();
       el.selectionStart = el.selectionEnd = el.value.length;
       el.style.height = "auto";
-      el.style.height = Math.min(el.scrollHeight, 200) + "px";
+      // ★修正箇所: 高さを少し余裕を持って計算する
+      el.style.height = Math.min(el.scrollHeight + 2, 200) + "px";
     });
   }, [open, initialPlain, initialPreferredCut]);
 
@@ -103,7 +104,8 @@ function TitleEditModal({
 
     const el = e.target;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+    // ★修正箇所: ここでも高さに余裕を持たせる
+    el.style.height = Math.min(el.scrollHeight + 2, 200) + "px";
   };
 
   const onKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
@@ -127,7 +129,6 @@ function TitleEditModal({
 
   return ReactDOM.createPortal(
     <>
-      {/* 背景 */}
       <div
         onClick={onClose}
         style={{
@@ -138,10 +139,6 @@ function TitleEditModal({
         }}
       />
       
-      {/* 本体ラッパー：
-          画面全体に広げ、Flexboxで「中央寄せ」をベースにしつつ
-          paddingBottom でモーダルの位置を上方向に自然に押し上げます。
-      */}
       <div
         style={{
           position: "fixed",
@@ -150,10 +147,10 @@ function TitleEditModal({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center", // ベースは中央寄せ
+          justifyContent: "center",
           padding: "16px",
-          paddingBottom: "25vh",    // ★ ここで位置を少し上に押し上げ（キーボード回避用）
-          pointerEvents: "none",     // 背後のクリックを通すため（本体は別途 auto にする）
+          paddingBottom: "25vh",
+          pointerEvents: "none",
         }}
       >
         <div
@@ -165,11 +162,10 @@ function TitleEditModal({
             background: "#FFFFFF",
             boxShadow: "0 28px 70px rgba(0,0,0,.32)",
             padding: "22px 18px 18px",
-            pointerEvents: "auto",   // 自身のクリックは有効にする
+            pointerEvents: "auto",
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* ヘッダ */}
           <div className="flex items-start justify-between">
             <div
               className="text-gray-800"
@@ -200,7 +196,6 @@ function TitleEditModal({
             </button>
           </div>
 
-          {/* 入力 */}
           <div className="mt-5 w-full flex justify-center">
             <textarea
               ref={taRef}
@@ -226,14 +221,14 @@ function TitleEditModal({
                 letterSpacing: "-.01em",
                 border: "none",
                 borderBottom: `2px solid ${isValid ? "transparent" : "#ef4444"}`,
-                padding: "6px 8px",
+                // ★修正箇所: 上下のpaddingを増やして文字が見切れないようにする
+                padding: "16px 8px",
                 backgroundColor: "transparent",
               }}
               maxLength={MAX_LEN}
             />
           </div>
 
-          {/* 注意書き */}
           <p
             className="text-center"
             style={{
@@ -246,7 +241,6 @@ function TitleEditModal({
             文字数 <strong>{MIN_LEN}〜{MAX_LEN} 文字</strong>
           </p>
 
-          {/* 保存ボタン */}
           <div style={{ marginTop: 16 }}>
             <button
               onClick={() => {

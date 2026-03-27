@@ -108,6 +108,12 @@ function PrTextModal({
     setDraft(text);
   }, [open, initialValue]);
 
+  const autosize = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 360) + "px";
+  };
+
+  // ★修正箇所: 「開いた直後だけ」フォーカスして末尾にカーソルを移動する
   useEffect(() => {
     if (!open) return;
     requestAnimationFrame(() => {
@@ -115,15 +121,16 @@ function PrTextModal({
       if (!el) return;
       el.focus();
       el.selectionStart = el.selectionEnd = el.value.length;
-      el.style.height = "auto";
-      el.style.height = Math.min(el.scrollHeight, 360) + "px";
+      autosize(el);
     });
-  }, [open, draft]);
+  }, [open]); // 依存配列から draft を除外！
 
-  const autosize = (el: HTMLTextAreaElement) => {
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 360) + "px";
-  };
+  // ★修正箇所: テキストが変わった時の高さ自動調整は別で行う
+  useEffect(() => {
+    if (open && taRef.current) {
+      autosize(taRef.current);
+    }
+  }, [draft, open]);
 
   const over = draft.length > MAX_LEN;
   const canSave = !busy && !over;
@@ -168,18 +175,21 @@ function PrTextModal({
     );
 
     setDraft(sanitized);
-    requestAnimationFrame(() => {
-      if (!taRef.current) return;
-      taRef.current.selectionStart = taRef.current.selectionEnd = newCaret;
-      autosize(taRef.current);
-    });
+
+    // ★修正箇所: サニタイズによって文字が変わった時"だけ"カーソルを強制する
+    // これにより、通常のバックスペースや文字入力時はネイティブのカーソル移動が活きる
+    if (raw !== sanitized) {
+      requestAnimationFrame(() => {
+        if (!taRef.current) return;
+        taRef.current.selectionStart = taRef.current.selectionEnd = newCaret;
+      });
+    }
   };
 
   if (!open) return null;
 
   return ReactDOM.createPortal(
     <>
-      {/* 背景クリック → 閉じるだけ。保存はしない */}
       <div
         onClick={onClose}
         style={{
@@ -266,7 +276,7 @@ function PrTextModal({
               background: "transparent",
               border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 16,
-              padding: "12px 14px",
+              padding: "16px 14px", // 上下の余白を少し増やして見やすく
               fontSize: 16,
               lineHeight: 1.75,
               color: "#374151",
@@ -287,7 +297,7 @@ function PrTextModal({
                 MAX_TOTAL_LINES,
                 MAX_BLANKS
               );
-              await onConfirm(sanitized); // ← ここだけで確定保存
+              await onConfirm(sanitized);
               onClose();
             }}
             disabled={!canSave}
@@ -330,10 +340,8 @@ export default function PrTextEditor({
   const [open, setOpen] = useState(false);
   const [text, setText] = useState<string>("");
 
-  // 親からの「確定値」をサニタイズして内部 state へ
   useEffect(() => {
     const raw = value ?? "";
-    // もし value が例文そのものなら「未入力扱い」にする
     const base =
       raw.trim() === PLACEHOLDER_EXAMPLE.trim() ? "" : raw;
 
@@ -347,7 +355,6 @@ export default function PrTextEditor({
     setText(sanitized);
   }, [value]);
 
-  // カード上のプレビュー（未入力ならグレーの説明）
   const preview = useMemo(() => {
     const v = (text ?? "").trim();
     if (!v) return "";
@@ -355,7 +362,6 @@ export default function PrTextEditor({
   }, [text]);
 
   const handleConfirm = async (next: string) => {
-    // 保存ボタンを押したときだけ確定
     const { text: sanitized } = sanitizeWithCaret(
       next ?? "",
       (next ?? "").length,

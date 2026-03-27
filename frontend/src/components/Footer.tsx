@@ -22,6 +22,8 @@ export default function Footer() {
           <Link to="/law" style={{ color: "#7a6c58", fontSize: 12, textDecoration: "none" }}>特定商取引法に基づく表記</Link>
           <Link to="/terms" style={{ color: "#7a6c58", fontSize: 12, textDecoration: "none" }}>利用規約</Link>
           <Link to="/privacy" style={{ color: "#7a6c58", fontSize: 12, textDecoration: "none" }}>プライバシーポリシー</Link>
+          {/* ★ 追加：消費者からは目立たないが、農家さん向けLPへの導線 */}
+          <Link to="/about-farmer" style={{ color: "#7a6c58", fontSize: 12, textDecoration: "none" }}>農家の方へ（出品のご案内）</Link>
         </div>
 
         {/* コピーライト */}

@@ -1,4 +1,5 @@
 import React from "react";
+import { DEFAULT_MAX_TOTAL_KG } from "../rules/orderRules"; // ★上限値の定数をインポート
 
 // ── Brand tokens ──────────────────────────────────
 const C = {
@@ -92,7 +93,8 @@ export default function FarmDetailCTA({
                 marginTop: 2,
               }}
             >
-              ※注文上限を超えています
+              {/* ★ ここに上限値を動的に表示 */}
+              ※1回のご注文は{DEFAULT_MAX_TOTAL_KG}kgまでです
             </div>
           )}
         </div>

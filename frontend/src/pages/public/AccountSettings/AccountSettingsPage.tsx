@@ -73,7 +73,7 @@ export default function AccountSettingsPage() {
 
   const renderLayout = (child: React.ReactNode) => (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: C.bgBase, overflowX: "hidden" }}>
-      <div style={{ flexGrow: 1, padding: "24px 16px 120px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
+      <div style={{ flexGrow: 1, padding: "24px 16px 180px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
         {child}
       </div>
       <PublicBottomBar consumerEmail={identity?.email ?? null} />
@@ -190,10 +190,11 @@ export default function AccountSettingsPage() {
         </div>
       </div>
 
-      <div style={{ marginTop: 48, textAlign: "center" }}>
+      {/* ログアウトと退会の間に意図的に巨大な余白を作り、誤タップを完全に防ぐ */}
+      <div style={{ marginTop: 160, textAlign: "center" }}>
         <button
           onClick={() => setShowDeleteModal(true)}
-          style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 13, textDecoration: "underline", cursor: "pointer", padding: "8px 16px" }}
+          style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: "8px 16px" }}
         >
           退会（アカウント削除）をご希望の方はこちら
         </button>

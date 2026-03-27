@@ -70,6 +70,14 @@ const LoginOnlyPage = React.lazy(
   () => import("./pages/public/Login/LoginOnlyPage")
 );
 
+const FarmerLandingPage = React.lazy(
+  () => import("./pages/public/FarmerLanding/FarmerLandingPage")
+);
+
+const FarmerApplyPage = React.lazy(
+  () => import("./pages/public/FarmerApply/FarmerApplyPage")
+);
+
 // ===== 法務・ポリシー系ページ =====
 const LawPage = React.lazy(() => import("./pages/public/Legal/LawPage"));
 const TermsPage = React.lazy(() => import("./pages/public/Legal/TermsPage"));
@@ -172,6 +180,10 @@ export default function AppRoutes() {
           <Route path="/cancel/confirm" element={<CancelConfirmPage />} />
           <Route path="/payment_success" element={<PaymentSuccessPage />} />
           <Route path="/payment/success" element={<Navigate to="/payment_success" replace />} />
+
+          <Route path="/about-farmer" element={<FarmerLandingPage />} />
+
+          <Route path="/apply" element={<FarmerApplyPage />} />
 
           {/* ===== 法務・ポリシー系ルート ===== */}
           <Route path="/law" element={<LawPage />} />
