@@ -27,19 +27,21 @@ const C = {
 const formatNumber = (n: number) =>
   new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }).format(n);
 
+// ★ 変更：no_show のスタイルとラベルを追加
 const getStatusStyle = (status: string): React.CSSProperties => {
   if (status === "confirmed") return { background: C.ink, color: "#fff", border: `1px solid ${C.ink}` };
+  if (status === "no_show") return { background: C.red, color: "#fff", border: `1px solid ${C.red}` }; // ★
   if (status === "cancelled") return { background: C.redLight, color: C.red, border: `1px solid ${C.redBorder}` };
   return { background: C.bg, color: C.ink3, border: `1px solid ${C.border}` };
 };
 
 const getStatusLabel = (status: string): string => {
   if (status === "confirmed") return "確 定";
+  if (status === "no_show") return "無断ｷｬﾝｾﾙ"; // ★
   if (status === "cancelled") return "キャンセル";
   return status;
 };
 
-// クリックでコピーできるコンポーネント
 const CopyableText: React.FC<{ text: string, prefix?: string }> = ({ text, prefix = "" }) => {
   const [copied, setCopied] = useState(false);
 
@@ -95,7 +97,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ★ 追加: メモの折り畳み状態
   const [isMemoExpanded, setIsMemoExpanded] = useState(false);
 
   useEffect(() => {
@@ -132,11 +133,12 @@ const AdminReservationEventDetailPage: React.FC = () => {
   const ownerPhone = items[0]?.owner_phone ?? "";
   const ownerEmail = items[0]?.owner_email ?? ""; 
 
+  // ★ 変更：no_show を cancelled 側にカウントする
   const { confirmedCount, cancelledCount } = useMemo(() => {
     let confirmed = 0; let cancelled = 0;
     items.forEach((r) => {
       if (r.reservation_status === "confirmed") confirmed += 1;
-      else if (r.reservation_status === "cancelled") cancelled += 1;
+      else if (r.reservation_status === "cancelled" || r.reservation_status === "no_show") cancelled += 1;
     });
     return { confirmedCount: confirmed, cancelledCount: cancelled };
   }, [items]);
@@ -223,7 +225,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
             <>
               <div className="admin-top-cards">
                 
-                {/* 1. 農家情報カード */}
                 <div className="admin-profile-card" style={{
                   background: C.cardBg, borderRadius: 12, border: `1px solid ${C.border}`,
                   overflow: "hidden", boxShadow: "0 4px 20px rgba(15,23,42,0.03)"
@@ -249,7 +250,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. イベント集計カード */}
                 <div className="admin-summary-card" style={{
                   background: C.cardBg, borderRadius: 12, border: `1px solid ${C.border}`,
                   overflow: "hidden", boxShadow: "0 4px 20px rgba(15,23,42,0.03)"
@@ -263,7 +263,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
                   <div style={{ padding: "20px 24px", flex: 1, display: "flex", flexDirection: "column" }}>
                     <div className="admin-event-summary-inner">
                       
-                      {/* 左側：日時と統計 */}
                       <div style={{ flex: 1.5, minWidth: 200, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                         <div style={{ marginBottom: 20 }}>
                           <div style={{ fontSize: 12, color: C.ink3, marginBottom: 4 }}>受け渡し日時</div>
@@ -286,7 +285,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* 右側：場所（地図情報・クリッカブルカード） */}
                       {(headerPickupPlaceName || headerPickupDetailMemo || headerPickupMapUrl) && (
                         <div 
                           onClick={() => {
@@ -321,7 +319,7 @@ const AdminReservationEventDetailPage: React.FC = () => {
                                   {headerPickupDetailMemo.slice(0, 35)}...
                                   <span
                                     onClick={(e) => {
-                                      e.stopPropagation(); // マップが開くのを防ぐ
+                                      e.stopPropagation();
                                       setIsMemoExpanded(true);
                                     }}
                                     style={{ color: C.ink, fontWeight: 700, marginLeft: 4, textDecoration: "underline", cursor: "pointer" }}
@@ -339,12 +337,10 @@ const AdminReservationEventDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* ── 予約リスト ── */}
               {visibleItems.length === 0 ? (
                 <div style={{ fontSize: 13, color: C.ink3 }}>※ この受け渡し回には pending の予約のみ存在します。</div>
               ) : (
                 <>
-                  {/* PC用テーブル */}
                   <div className="desktop-only" style={{ background: C.cardBg, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "0 4px 20px rgba(15,23,42,0.03)" }}>
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900, textAlign: "left" }}>
@@ -397,7 +393,6 @@ const AdminReservationEventDetailPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* スマホ用縦積みカード */}
                   <div className="mobile-only">
                     {visibleItems.map(r => {
                       const isHighlight = highlightId === Number(r.reservation_id);

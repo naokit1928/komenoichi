@@ -14,13 +14,13 @@ export default function FarmerTermsPage({ isModal = false }: { isModal?: boolean
       <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 32, color: "#111827" }}>
         農家向け利用規約
       </h1>
-      
+
       <p style={{ marginBottom: 32, fontSize: 15 }}>
         「こめのいち」（以下「本サービス」といいます）を農家としてご利用いただくにあたり、以下の規約（以下「本規約」といいます）への同意が必要です。アカウントを登録された時点で、本規約に同意したものとみなされます。
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-        
+
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
             第1条（予約の受付とキャンセル）
@@ -31,7 +31,6 @@ export default function FarmerTermsPage({ isModal = false }: { isModal?: boolean
           </ul>
         </section>
 
-        {/* ★ 追加：取扱商品と場所の制限 */}
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
             第2条（取扱商品および受け渡し場所の制限）
@@ -57,11 +56,13 @@ export default function FarmerTermsPage({ isModal = false }: { isModal?: boolean
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第4条（商品の事前準備に関する推奨および非推奨）
+            第4条（事前精米および余剰米の取り扱い）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
-            <li>予約者の受け渡し時の待ち時間を軽減するため、利用者は予約された農作物の一部を事前に精米・袋詰めしておくことが推奨されます。</li>
-            <li>ただし、前条に定める無断キャンセルのリスクを考慮し、予約された全量を事前に精米・準備しておくことは推奨いたしません。事前準備の範囲および判断は、利用者の自己責任において行うものとします。</li>
+            <li>利用者は、予約者をお待たせしないため、受け渡し日までに予約された全量を事前に精米・袋詰めしておくことが推奨されます。</li>
+            <li>無断キャンセルにより精米済みのお米が余った場合、利用者は冷蔵庫または冷暗所で保管のうえ、翌週の販売に回すことができます。ただし、本サービスにおいて販売できるのは<b>精米後8日以内</b>のお米に限ります。</li>
+            <li>精米後8日を超えたお米を本サービス上で販売することは固く禁じます。再来週以降への繰り越し販売は品質保持の観点から認められません。翌週の販売においても売れ残った余剰米については、利用者がご自身で消費するか、適切に処分するものとします。</li>
+            <li>余剰米の保管・品質管理・翌週への繰り越し販売に関するすべての判断および責任は、利用者に帰属するものとします。運営は余剰米に対する補填を一切行いません。</li>
           </ul>
         </section>
 
@@ -122,11 +123,11 @@ export default function FarmerTermsPage({ isModal = false }: { isModal?: boolean
   if (isModal) return content;
 
   return (
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      minHeight: "100vh", 
-      backgroundColor: isFarmerMode ? "#F7F7F7" : "#fdfcfa" 
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100vh",
+      backgroundColor: isFarmerMode ? "#F7F7F7" : "#fdfcfa"
     }}>
       <div style={{ flexGrow: 1, paddingBottom: 80 }}>{content}</div>
       <Footer />

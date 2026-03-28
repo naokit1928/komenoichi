@@ -36,8 +36,8 @@ app_v2/customer_booking/api/confirm_api.py
 現在の仕様
 ・合計重量 = sum(size_kg × quantity)
 ・合計 = 0 → 予約不可
-・合計 ≤ 上限値(40kg) → 予約可
-・合計 > 上限値(40kg) → 予約不可
+・合計 ≤ 上限値(30kg) → 予約可
+・合計 > 上限値(30kg) → 予約不可
 
 API 側の実際の挙動
 ・quantity = 0

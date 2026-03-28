@@ -88,16 +88,16 @@ class CancelService:
     def _calc_pickup_info(self, reservation_row: dict) -> Tuple[str, bool]:
         pickup_display = reservation_row.get("pickup_display") or ""
 
-        # ★ キャンセル期限を「受け渡し終了時刻」に変更
-        event_end_raw = reservation_row.get("event_end_at")
-        if not event_end_raw:
-            raise CancelDomainError("EVENT_END_NOT_SET")
+        # ★ キャンセル期限を「受け渡し開始時刻」に変更
+        event_start_raw = reservation_row.get("event_start_at") 
+        if not event_start_raw:
+            raise CancelDomainError("EVENT_START_NOT_SET")
 
-        event_end = datetime.fromisoformat(event_end_raw)
-        if event_end.tzinfo is None:
-            event_end = event_end.replace(tzinfo=UTC)
+        event_start = datetime.fromisoformat(event_start_raw)
+        if event_start.tzinfo is None:
+            event_start = event_start.replace(tzinfo=UTC)
 
-        cancel_limit = event_end
+        cancel_limit = event_start
         now_utc = datetime.now(UTC)
 
         is_cancellable = now_utc < cancel_limit

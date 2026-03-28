@@ -22,7 +22,6 @@ from app_v2.admin.services.admin_event_resolver import (
     resolve_event,
 )
 
-# ★ Komenoichiの本来の仕様である「動的コード生成（ハッシュ計算）」
 _PICKUP_SALT = 7919
 
 def _generate_pickup_code(reservation_id: int, consumer_id: int) -> str:
@@ -167,11 +166,10 @@ class AdminReservationService:
                 g["pending_count"] += 1
             elif status == "confirmed":
                 g["confirmed_count"] += 1
-            elif status == "cancelled":
-                g["cancelled_count"] += 1
-
-            if status == "confirmed":
                 g["rice_subtotal"] += int(row.get("rice_subtotal") or 0)
+            # ★ 修正: no_show をキャンセル件数としてカウント
+            elif status in ("cancelled", "no_show"):
+                g["cancelled_count"] += 1
 
         items = list(grouped.values())
         items.sort(key=lambda x: (x["event_start"], x["pickup_slot_code"]))
@@ -243,7 +241,6 @@ class AdminReservationService:
         except (TypeError, ValueError):
             pickup_map_url = ""
 
-        # ★ 正しい仕様：DBから取得するのではなく、Python側でハッシュ計算を行う
         pickup_code = ""
         if customer_user_id > 0:
             pickup_code = _generate_pickup_code(int(row["id"]), customer_user_id)

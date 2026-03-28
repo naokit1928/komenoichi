@@ -1,3 +1,4 @@
+// frontend/src/pages/public/ReservationBooked/ReservationBookedPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -10,7 +11,7 @@ import BookingItemsCard from "./BookingItemsCard";
 import PaymentSummaryCard from "./PaymentSummaryCard";
 import ReservationCodeCard from "./ReservationCodeCard";
 import MemoCard from "./MemoCard";
-import NoticeCard from "./NoticeCard";
+// ★ NoticeCard のインポートを削除しました
 import CancelActionCard from "./CancelActionCard";
 import { PublicBottomBar } from "@/components/PublicBottomBar";
 
@@ -181,7 +182,9 @@ const ReservationBookedPage: React.FC = () => {
       <PaymentSummaryCard riceSubtotalText={riceSubtotalText} />
       <ReservationCodeCard pickupCode={pickup_code} />
       <MemoCard memo={pickup_detail_memo} />
-      <NoticeCard />
+      
+      {/* ★ ここにあった <NoticeCard /> を削除しました */}
+      
       <CancelActionCard cancelActionUri={cancelActionUri} />
 
       {/* システム照会ID — 目立たないが問い合わせ時に使える */}
@@ -197,7 +200,6 @@ const ReservationBookedPage: React.FC = () => {
           <span style={{ fontFamily: "monospace", letterSpacing: "0.04em" }}>
             {data.reservation_id}
           </span>
-
         </div>
       )}
     </div>

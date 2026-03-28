@@ -2,18 +2,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 
-/* Confirm 専用カード */
 import { RiceBreakdown } from "./components/RiceBreakdown";
 import { ServiceFeeCard } from "./components/ServiceFeeCard";
 import { AgreementBlock } from "./components/AgreementBlock";
 
 import { calcTotalKg, isOverMaxKg } from "../FarmDetail/rules/orderRules";
 
-// ── Brand tokens ──────────────────────────────────
 const C = {
   red:       "#C62828",
   ink:       "#1a1108",
-  ink3:      "#7a6c58", // エラー画面などのサブテキスト用
+  ink3:      "#7a6c58", 
   border:    "#e8e2d8",
 } as const;
 
@@ -28,7 +26,16 @@ type ConfirmCtx = {
   clientNextPickupDeadlineIso?: string | null;
 };
 
-/* ===== identity ===== */
+type ConsumerState = {
+  penalty: {
+    status: "none" | "locked_requestable" | "locked_cooling" | "banned";
+    no_show_count: number;
+  };
+  active: {
+    exists: boolean;
+  };
+};
+
 async function fetchIdentity(): Promise<{
   is_logged_in: boolean;
   email: string | null;
@@ -41,15 +48,14 @@ async function fetchIdentity(): Promise<{
   return res.json();
 }
 
-/* ===== Active（confirmed）取得 ===== */
-async function fetchActiveReservation(): Promise<boolean> {
-  const res = await fetch(`${API_BASE}/api/reservations/booked/me`, {
+async function fetchConsumerState(): Promise<ConsumerState | null> {
+  const res = await fetch(`${API_BASE}/api/consumer/state`, {
     credentials: "include",
   });
-  return res.ok;
+  if (!res.ok) return null;
+  return res.json();
 }
 
-/* ===== PENDING（ConfirmSession 単位） ===== */
 async function fetchConfirmContext(cs: string): Promise<ConfirmCtx | null> {
   const res = await fetch(
     `${API_BASE}/api/confirm/sessions/${encodeURIComponent(cs)}/context`,
@@ -75,7 +81,6 @@ async function fetchConfirmContext(cs: string): Promise<ConfirmCtx | null> {
   };
 }
 
-/* ===== stripe ===== */
 async function checkoutFromConfirm(payload: { agreed: boolean; cs: string }) {
   const res = await fetch(`${API_BASE}/stripe/checkout/from-confirm`, {
     method: "POST",
@@ -104,8 +109,10 @@ export default function ConfirmPage() {
   const [agreed, setAgreed] = useState(false);
 
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  const [penalty, setPenalty] = useState<ConsumerState["penalty"] | null>(null);
+  const [pardoning, setPardoning] = useState(false);
 
-  /* ===== Confirm Context 取得 ===== */
   useEffect(() => {
     async function run() {
       try {
@@ -113,16 +120,18 @@ export default function ConfirmPage() {
           throw new Error("セッションが見つかりません。");
         }
 
-        // 自己予約ガード
         const idData = await fetchIdentity();
         if (idData?.own_farm_id && String(idData.own_farm_id) === farmId) {
           throw new Error("ご自身の農場には予約できません。");
         }
 
-        const hasActive = await fetchActiveReservation();
-        if (hasActive) {
+        const state = await fetchConsumerState();
+        if (state?.active?.exists) {
           navigate(`/farms/${farmId}/active`, { replace: true });
           return;
+        }
+        if (state?.penalty) {
+          setPenalty(state.penalty);
         }
 
         const context = await fetchConfirmContext(cs);
@@ -148,6 +157,24 @@ export default function ConfirmPage() {
         amount: it.unitPrice * it.qty,
       }));
   }, [ctx]);
+
+  const handlePardon = async () => {
+    if (!window.confirm("制限の解除を申請しますか？\n※システムの反映には通常数日かかる場合があります。")) return;
+    setPardoning(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/consumer/pardon`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("申請に失敗しました。");
+      const newState = await fetchConsumerState();
+      if (newState?.penalty) setPenalty(newState.penalty);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setPardoning(false);
+    }
+  };
 
   async function handleMainAction() {
     try {
@@ -187,7 +214,6 @@ export default function ConfirmPage() {
     );
   }
 
-  /* データがない場合（エラー時）の表示 */
   if (!ctx) {
     return (
       <div
@@ -198,12 +224,10 @@ export default function ConfirmPage() {
           textAlign: "center",
         }}
       >
-        {/* エラー理由そのものをタイトルにする */}
         <div style={{ fontSize: 18, fontWeight: 600, color: C.ink }}>
           {err || "エラーが発生しました"}
         </div>
         
-        {/* 自己予約エラー以外のときだけ、やり直しの案内を出す */}
         {err !== "ご自身の農場には予約できません。" && (
           <div style={{ color: C.ink3, fontSize: 14, marginTop: 12 }}>
             農家詳細ページに戻って、もう一度予約を開始してください。
@@ -237,7 +261,6 @@ export default function ConfirmPage() {
         margin: "0 auto",
       }}
     >
-      {/* ===== ヘッダー部（左に戻るボタン） ===== */}
       <div
         style={{
           display: "flex",
@@ -255,7 +278,7 @@ export default function ConfirmPage() {
             background: "none",
             border: "none",
             padding: "8px",
-            margin: "-8px", // ヒットエリア拡大のためのネガティブマージン
+            margin: "-8px",
             cursor: loading ? "not-allowed" : "pointer",
             display: "flex",
             alignItems: "center",
@@ -312,30 +335,73 @@ export default function ConfirmPage() {
         </div>
       )}
 
-      {/* 「予約確定に進む」ボタン */}
-      <button
-        onClick={handleMainAction}
-        disabled={loading}
-        style={{
-          width: "100%",
-          height: 52,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: loading ? "#d1d5db" : "#C62828",
-          color: "#fff",
-          borderRadius: 9999,
-          border: "none",
-          fontWeight: 600,
-          fontSize: 16,
-          marginTop: 32,
-          cursor: loading ? "not-allowed" : "pointer",
-          transition: "all 0.2s ease",
-          boxShadow: loading ? "none" : "0 4px 12px rgba(198, 40, 40, 0.3)",
-        }}
-      >
-        {loading ? "処理中…" : "予約確定に進む"}
-      </button>
+      {/* ★ 変更: BAN時は無機質に、解除待機は「数日」に変更したペナルティUI */}
+      <div style={{ marginTop: 32 }}>
+        {penalty?.status === "banned" ? (
+          <div style={{ padding: "16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "12px", textAlign: "center" }}>
+            {/* ★ 赤色や怒りの表現を消し、無機質なグレーでシャットアウト */}
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#4b5563" }}>
+              現在、このアカウントからはご予約手続きを行うことができません。
+            </p>
+          </div>
+        ) : penalty?.status === "locked_cooling" ? (
+          <div style={{ padding: "16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "12px", textAlign: "center" }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#4b5563" }}>
+              制限の解除申請を受け付けました。
+            </p>
+            {/* ★ 24時間ではなく「通常数日」に変更 */}
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>
+              システムの反映には通常数日かかります。<br/>恐れ入りますが、日を改めて再度ご予約をお試しください。
+            </p>
+          </div>
+        ) : penalty?.status === "locked_requestable" ? (
+          <div style={{ padding: "16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "12px", textAlign: "center" }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#dc2626", lineHeight: 1.4 }}>
+              農家より複数回の無断キャンセルが報告されたため、現在一時的に予約が制限されています。
+            </p>
+            <p style={{ margin: "8px 0 12px", fontSize: 11, color: "#7f1d1d", lineHeight: 1.4 }}>
+              ※もし無断キャンセルに心当たりがない場合、または今後の確実なお受け取りをお約束いただける場合は、以下のボタンより制限の解除を申請してください。
+            </p>
+            <button
+              onClick={handlePardon}
+              disabled={pardoning}
+              style={{
+                width: "100%", padding: "12px",
+                background: "#ffffff", color: "#dc2626", border: "1px solid #fca5a5",
+                borderRadius: 9999, fontSize: 13, fontWeight: 700,
+                cursor: pardoning ? "not-allowed" : "pointer",
+                opacity: pardoning ? 0.6 : 1,
+              }}
+            >
+              {pardoning ? "処理中..." : "制限の解除を申請する"}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleMainAction}
+            disabled={loading}
+            style={{
+              width: "100%",
+              height: 52,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: loading ? "#d1d5db" : "#C62828",
+              color: "#fff",
+              borderRadius: 9999,
+              border: "none",
+              fontWeight: 600,
+              fontSize: 16,
+              cursor: loading ? "not-allowed" : "pointer",
+              transition: "all 0.2s ease",
+              boxShadow: loading ? "none" : "0 4px 12px rgba(198, 40, 40, 0.3)",
+            }}
+          >
+            {loading ? "処理中…" : "予約確定に進む"}
+          </button>
+        )}
+      </div>
+
     </div>
   );
 }

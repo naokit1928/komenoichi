@@ -1,3 +1,4 @@
+// frontend/src/pages/farmer/FarmerReservationTable/hooks/useFarmerReservations.ts
 import { useEffect, useState } from "react";
 import { API_BASE } from "@/config/api";
 
@@ -8,6 +9,7 @@ import { API_BASE } from "@/config/api";
 export type EventMeta = {
   pickup_slot_code: string;
   pickup_display: string;
+  event_end_at: string; // ★ 追加：終了時刻
 };
 
 export type ReservationItem = {
@@ -23,6 +25,7 @@ export type ReservationRow = {
   created_at: string;
   rice_subtotal: number | null;
   items: ReservationItem[];
+  status: string; //
 };
 
 type SummaryItem = {
@@ -101,6 +104,7 @@ export function useFarmerReservations(offset: number = 0) {
   const [data, setData] = useState<ExpandedReservationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0); // ★ 追加：再読み込み用のトリガー
 
   /* ---------- Farmer データ取得 ---------- */
   useEffect(() => {
@@ -142,7 +146,9 @@ export function useFarmerReservations(offset: number = 0) {
     return () => {
       cancelled = true;
     };
-  }, [offset]); // ★ offset が変わるたびに再取得する
+  }, [offset, tick]); // ★ offset または tick が変わるたびに再取得する
+
+  const reload = () => setTick((t) => t + 1); // ★ 追加：外部から叩けるリロード関数
 
   /* ---------- 派生データ ---------- */
 
@@ -178,5 +184,6 @@ export function useFarmerReservations(offset: number = 0) {
     totalBySize,
     totalAmount,
     formatYen,
+    reload, // ★ 追加：リロード関数を返す
   };
 }

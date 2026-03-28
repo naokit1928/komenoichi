@@ -16,12 +16,11 @@ class FarmRecord:
 
 @dataclass
 class ReservationRecord:
-    # 旧 id → 新 reservation_id をそのまま id として保持
     id: int
     consumer_id: int
     farm_id: int
     pickup_slot_code: Optional[str]
-    pickup_display: Optional[str]          # ★ 追加
+    pickup_display: Optional[str]
     created_at: Optional[str]
     items_json: Optional[str]
     rice_subtotal: Optional[int]
@@ -29,11 +28,6 @@ class ReservationRecord:
 
 
 class ReservationExpandedRepository:
-    """
-    Export 用に必要な生データだけを取得する Repo。
-    表示文字列は DB.reservations.pickup_display を唯一の正として返す。
-    """
-
     def __init__(self, db_path: str = DB_PATH) -> None:
         self.db_path = db_path
 
@@ -85,7 +79,7 @@ class ReservationExpandedRepository:
                     consumer_id,
                     farm_id,
                     pickup_slot_code,
-                    pickup_display,        -- ★ 追加
+                    pickup_display,
                     created_at,
                     items_json,
                     rice_subtotal,
@@ -93,7 +87,7 @@ class ReservationExpandedRepository:
                 FROM reservations
                 WHERE farm_id = ?
                   AND pickup_slot_code = ?
-                  AND status = 'confirmed'
+                  AND status IN ('confirmed', 'no_show')
                 ORDER BY reservation_id ASC
                 """,
                 (farm_id, pickup_slot_code),
@@ -108,7 +102,7 @@ class ReservationExpandedRepository:
                     consumer_id=int(row["consumer_id"]),
                     farm_id=int(row["farm_id"]),
                     pickup_slot_code=row["pickup_slot_code"],
-                    pickup_display=row["pickup_display"],   # ★
+                    pickup_display=row["pickup_display"],
                     created_at=row["created_at"],
                     items_json=row["items_json"],
                     rice_subtotal=row["rice_subtotal"],

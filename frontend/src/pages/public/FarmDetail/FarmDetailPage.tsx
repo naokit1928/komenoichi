@@ -47,6 +47,10 @@ async function fetchIdentity(): Promise<{
 
 type ConsumerState = {
   is_logged_in: boolean;
+  penalty: {
+    status: "none" | "locked_requestable" | "locked_cooling" | "banned";
+    no_show_count: number;
+  };
   pending: {
     exists: boolean;
     reservation_id: number | null;
@@ -94,18 +98,23 @@ export default function FarmDetailPage() {
   }, [isPreview]);
 
   const [hasActive, setHasActive] = useState<boolean | null>(null);
+  const [penalty, setPenalty] = useState<ConsumerState["penalty"] | null>(null);
+  const [pardoning, setPardoning] = useState(false);
 
   useEffect(() => {
     if (isPreview || !isLoggedIn) {
       setHasActive(false);
+      setPenalty(null);
       return;
     }
     (async () => {
       try {
         const state = await fetchConsumerState();
         setHasActive(state.active.exists);
+        setPenalty(state.penalty); 
       } catch {
         setHasActive(false);
+        setPenalty(null);
       }
     })();
   }, [isLoggedIn, isPreview]);
@@ -210,6 +219,25 @@ export default function FarmDetailPage() {
   const pickupTextCTA = farm?.next_pickup_display
     ? `次回受け渡し ${farm.next_pickup_display}`
     : "受け渡し日時は未設定です";
+
+  // ★ 変更: 丁寧な確認ダイアログ（24時間→通常数日に変更）
+  const handlePardon = async () => {
+    if (!window.confirm("制限の解除を申請しますか？\n※システムの反映には通常数日かかる場合があります。")) return;
+    setPardoning(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/consumer/pardon`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("申請に失敗しました。");
+      const newState = await fetchConsumerState();
+      setPenalty(newState.penalty);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setPardoning(false);
+    }
+  };
 
   const handleNext = async () => {
     if (isPreview || !farm || isNextDisabled) return;
@@ -320,15 +348,84 @@ export default function FarmDetailPage() {
         </div>
       </section>
 
+      {/* ★ 変更: ペナルティUI（完全BAN時は無機質に、解除待機は「数日」に変更） */}
       {isAccepting ? (
-        <FarmDetailCTA
-          riceSubtotal={riceSubtotal}
-          pickupTextCTA={pickupTextCTA}
-          onNext={handleNext}
-          money={money}
-          disabled={isNextDisabled}
-          isOverLimit={isOverLimit}
-        />
+        penalty?.status === "banned" ? (
+          <div
+            style={{
+              position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+              background: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+              borderTop: "1px solid #e5e7eb",
+              padding: "16px 20px calc(16px + env(safe-area-inset-bottom))",
+              textAlign: "center", boxShadow: "0 -4px 20px rgba(0,0,0,0.05)",
+            }}
+          >
+            {/* ★ 赤色や怒りの表現を消し、無機質なグレーでシャットアウト */}
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#4b5563" }}>
+              現在、このアカウントからはご予約手続きを行うことができません。
+            </p>
+          </div>
+        ) : penalty?.status === "locked_cooling" ? (
+          <div
+            style={{
+              position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+              background: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+              borderTop: "1px solid #e5e7eb",
+              padding: "16px 20px calc(16px + env(safe-area-inset-bottom))",
+              textAlign: "center", boxShadow: "0 -4px 20px rgba(0,0,0,0.05)",
+            }}
+          >
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#4b5563" }}>
+              制限の解除申請を受け付けました。
+            </p>
+            {/* ★ 24時間ではなく「通常数日」に変更 */}
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>
+              システムの反映には通常数日かかります。<br/>恐れ入りますが、日を改めて再度ご予約をお試しください。
+            </p>
+          </div>
+        ) : penalty?.status === "locked_requestable" ? (
+          <div
+            style={{
+              position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+              background: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+              borderTop: "1px solid #fecaca",
+              padding: "12px 20px calc(12px + env(safe-area-inset-bottom))",
+              textAlign: "center", boxShadow: "0 -4px 20px rgba(0,0,0,0.05)",
+            }}
+          >
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#dc2626", lineHeight: 1.4 }}>
+              農家より複数回の無断キャンセルが報告されたため、現在一時的に予約が制限されています。
+            </p>
+            <p style={{ margin: "4px 0 10px", fontSize: 11, color: "#7f1d1d", lineHeight: 1.4 }}>
+              ※もし無断キャンセルに心当たりがない場合、または今後の確実なお受け取りをお約束いただける場合は、以下のボタンより制限の解除を申請してください。
+            </p>
+            <button
+              onClick={handlePardon}
+              disabled={pardoning}
+              style={{
+                width: "100%", maxWidth: 400, padding: "10px",
+                background: "#ffffff", color: "#dc2626", border: "1px solid #fca5a5",
+                borderRadius: 8, fontSize: 13, fontWeight: 700,
+                cursor: pardoning ? "not-allowed" : "pointer",
+                opacity: pardoning ? 0.6 : 1,
+              }}
+            >
+              {pardoning ? "処理中..." : "制限の解除を申請する"}
+            </button>
+          </div>
+        ) : (
+          <FarmDetailCTA
+            riceSubtotal={riceSubtotal}
+            pickupTextCTA={pickupTextCTA}
+            onNext={handleNext}
+            money={money}
+            disabled={isNextDisabled}
+            isOverLimit={isOverLimit}
+          />
+        )
       ) : (
         <div
           style={{

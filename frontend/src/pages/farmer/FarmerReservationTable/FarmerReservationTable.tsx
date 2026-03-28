@@ -1,3 +1,4 @@
+// frontend/src/pages/farmer/FarmerReservationTable/FarmerReservationTable.tsx
 import React, { useEffect, useState } from "react";
 import styles from "./FarmerReservationTable.module.css";
 import FarmerReservationNoticeModal from "./FarmerReservationNoticeModal";
@@ -7,6 +8,7 @@ import ReservationDetailModal from "./ReservationDetailModal";
 import ReservationHeader from "./ReservationHeader";
 
 const NOTICE_STORAGE_KEY = "farmer_reservation_notice_ack";
+const CHECKED_STORAGE_KEY = "farmer_local_checked_ids"; // ★ 追加：ローカル保存用キー
 
 type Props = {
   reservationId?: number;
@@ -16,6 +18,7 @@ type Props = {
 type EventMeta = {
   pickup_slot_code: string;
   pickup_display: string;
+  event_end_at?: string; 
 };
 
 type ReservationItem = {
@@ -31,6 +34,7 @@ type ReservationRow = {
   created_at: string;
   rice_subtotal: number | null;
   items: ReservationItem[];
+  status: string; 
 };
 
 function formatEventLabel(meta: EventMeta | null): string {
@@ -42,9 +46,32 @@ const FarmerReservationTable: React.FC<Props> = ({
 }) => {
   const [offset, setOffset] = useState<number>(0);
   
-  const { data, loading, error } = useFarmerReservations(offset);
+  const { data, loading, error, reload } = useFarmerReservations(offset);
   const [selectedRow, setSelectedRow] = useState<ReservationRow | null>(null);
   const [showNoticeModal, setShowNoticeModal] = useState<boolean>(false);
+
+  // ★ 追加：ローカルストレージで受渡完了（蛍光ペン）の状態を管理
+  const [checkedIds, setCheckedIds] = useState<number[]>(() => {
+    try {
+      const stored = localStorage.getItem(CHECKED_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleToggleCheck = (id: number, isChecked: boolean) => {
+    setCheckedIds((prev) => {
+      let next;
+      if (isChecked) {
+        next = Array.from(new Set([...prev, id]));
+      } else {
+        next = prev.filter((x) => x !== id);
+      }
+      localStorage.setItem(CHECKED_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (mode !== "farmer") return;
@@ -100,7 +127,6 @@ const FarmerReservationTable: React.FC<Props> = ({
 
   const totalAmount = data?.bundle_summary?.total_rice_subtotal ?? 0;
 
-  // ★ バグ修正：offsetに合わせて空文字の時のメッセージを動的に変更
   const headerSubtitleRaw = formatEventLabel(data?.event_meta || null);
   let displaySubtitle = headerSubtitleRaw || "予約データがありません";
 
@@ -149,7 +175,6 @@ const FarmerReservationTable: React.FC<Props> = ({
         )}
 
         {mode === "farmer" && (
-          // ★ key={offset} によって、タブ切り替え時にフェードインアニメーションが発火
           <section key={`table-section-${offset}`} className={`${styles.tableSection} ${styles.tableFadeIn}`}>
             {loading ? (
               <div className={styles.infoText}>読み込み中...</div>
@@ -166,6 +191,7 @@ const FarmerReservationTable: React.FC<Props> = ({
                 formatYen={formatYen}
                 onRowClick={handleRowClick}
                 offset={offset}
+                checkedIds={checkedIds} // ★ 追加
               />
             )}
           </section>
@@ -184,6 +210,10 @@ const FarmerReservationTable: React.FC<Props> = ({
           row={selectedRow}
           formatYen={formatYen}
           onClose={handleCloseDetailModal}
+          onReload={reload}
+          eventEndAt={data?.event_meta?.event_end_at} 
+          isChecked={checkedIds.includes(selectedRow.reservation_id)} // ★ 追加
+          onToggleCheck={(val) => handleToggleCheck(selectedRow.reservation_id, val)} // ★ 追加
         />
       )}
     </div>

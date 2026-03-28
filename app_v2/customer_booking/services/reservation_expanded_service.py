@@ -1,3 +1,4 @@
+# app_v2/customer_booking/services/reservation_expanded_service.py
 from __future__ import annotations
 
 import json
@@ -43,11 +44,7 @@ def _parse_db_datetime(value: str) -> datetime:
     return dt.astimezone(timezone.utc)
 
 def _resolve_slot_to_utc_event(base_utc: datetime, pickup_slot_code: str) -> Tuple[datetime, datetime]:
-    """
-    【ここだけがJSTの知識を持つ翻訳機】
-    基準時間(UTC) と ローカルルール(WED_19_20) を組み合わせて、
-    絶対時間である「イベント開始(UTC)」と「イベント終了(UTC)」を返す。
-    """
+    """基準時間(UTC) と ローカルルール(WED_19_20) を組み合わせて、絶対時間である「イベント開始(UTC)」と「イベント終了(UTC)」を返す。"""
     try:
         w_str, s_str, e_str = pickup_slot_code.split("_")
         weekday_index = _WEEKDAY_CODE_TO_INDEX[w_str.upper()]
@@ -55,26 +52,21 @@ def _resolve_slot_to_utc_event(base_utc: datetime, pickup_slot_code: str) -> Tup
     except Exception:
         raise ValueError(f"Invalid pickup_slot_code: {pickup_slot_code}")
 
-    # カレンダーの解釈だけJSTで行う（日本の水曜日はいつか？を特定するため）
     base_jst = base_utc.astimezone(JST)
     week_start_date = base_jst.date() - timedelta(days=base_jst.weekday())
     event_date = week_start_date + timedelta(days=weekday_index)
 
-    # 抽出した日付と時間を組み合わせて、すぐさまUTCに戻す
     event_start_jst = datetime.combine(event_date, time(hour=start_hour), tzinfo=JST)
     event_end_jst = datetime.combine(event_date, time(hour=end_hour), tzinfo=JST)
     
     return event_start_jst.astimezone(timezone.utc), event_end_jst.astimezone(timezone.utc)
 
 def _calc_event_for_export(now_utc: datetime, pickup_slot_code: str) -> Tuple[datetime, datetime]:
-    """
-    現在の「基準となる週」を決定する。（※pickup_lock_serviceからも呼ばれる）
-    トラブル対応のため、受け渡し終了時刻から12時間は「今週」としてキープする。
-    """
+    """現在の「基準となる週」を決定する。"""
     base_start_utc, base_end_utc = _resolve_slot_to_utc_event(now_utc, pickup_slot_code)
     
-    # ★ 終了時刻＋12時間を「切り替えの閾値」とする
-    rollover_threshold = base_end_utc + timedelta(hours=12)
+    # 終了時刻＋「1時間」を切り替えの閾値とする（1時間後に「先週」へ移動）
+    rollover_threshold = base_end_utc + timedelta(hours=1)
     
     if now_utc < rollover_threshold:
         return base_start_utc, base_end_utc
@@ -94,10 +86,6 @@ def _calc_event_for_booking(created_at_utc: datetime, pickup_slot_code: str) -> 
 # ============================================================
 
 def _generate_pickup_display_fallback(event_start_utc: datetime, event_end_utc: datetime) -> str:
-    """
-    予約が0件の場合のフォールバック用文字列生成。
-    UTC時刻をJSTに変換し、「M/D（W） HH:MM–HH:MM」の形式を作る。
-    """
     st_jst = event_start_utc.astimezone(JST)
     ed_jst = event_end_utc.astimezone(JST)
     wdays = ["月", "火", "水", "木", "金", "土", "日"]
@@ -136,8 +124,6 @@ class ReservationExpandedService:
         )
 
         now_utc = datetime.now(timezone.utc)
-        
-        # ★ 現在の基準週（12時間猶予付き）を計算し、そこにoffset（週数）を足し引きする
         current_start_utc, current_end_utc = _calc_event_for_export(now_utc, pickup_slot_code)
         export_start_utc = current_start_utc + timedelta(days=7 * offset)
         export_end_utc = current_end_utc + timedelta(days=7 * offset)
@@ -155,7 +141,6 @@ class ReservationExpandedService:
             except Exception:
                 continue
 
-            # 純粋なUTC同士での所属判定
             booking_start_utc, _ = _calc_event_for_booking(created_at_utc, pickup_slot_code)
             if booking_start_utc != export_start_utc:
                 continue
@@ -218,15 +203,17 @@ class ReservationExpandedService:
                 created_at=rec.created_at,
                 items=items,
                 rice_subtotal=rice_subtotal,
+                status=rec.status or "confirmed",
             ))
 
-        # ----------------------------------------------------
-        # 画面タイトルの決定
-        # ----------------------------------------------------
         fallback_display = _generate_pickup_display_fallback(export_start_utc, export_end_utc)
 
         if not rows:
-            event_meta = ExportEventMetaDTO(pickup_slot_code=pickup_slot_code, pickup_display=fallback_display)
+            event_meta = ExportEventMetaDTO(
+                pickup_slot_code=pickup_slot_code, 
+                pickup_display=fallback_display,
+                event_end_at=export_end_utc.isoformat()
+            )
             return ExportReservationsResponseDTO(
                 ok=True, event_meta=event_meta, rows=[],
                 bundle_summary=ExportBundleSummaryDTO(items=[], total_rice_subtotal=0),
@@ -240,7 +227,11 @@ class ReservationExpandedService:
         ]
         
         pickup_display = valid_pickup_displays[0] if valid_pickup_displays else fallback_display
-        event_meta = ExportEventMetaDTO(pickup_slot_code=pickup_slot_code, pickup_display=pickup_display)
+        event_meta = ExportEventMetaDTO(
+            pickup_slot_code=pickup_slot_code, 
+            pickup_display=pickup_display,
+            event_end_at=export_end_utc.isoformat()
+        )
 
         return ExportReservationsResponseDTO(
             ok=True, event_meta=event_meta, rows=rows,

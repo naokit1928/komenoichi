@@ -2,7 +2,7 @@
 
 type QtyByKg = { 5: number; 10: number; 25: number };
 
-export const DEFAULT_MAX_TOTAL_KG = 40;
+export const DEFAULT_MAX_TOTAL_KG = 30;
 
 /**
  * 合計kgを計算

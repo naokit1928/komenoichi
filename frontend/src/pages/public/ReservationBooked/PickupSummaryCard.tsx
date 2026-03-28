@@ -50,7 +50,7 @@ const PickupSummaryCard: React.FC<Props> = ({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "#4b3e2a", // ★ 緑色から濃い茶色へ
+                background: "#111827", // ★ 黒に変更
                 color: "#ffffff",
                 fontWeight: 600,
                 fontSize: 13,

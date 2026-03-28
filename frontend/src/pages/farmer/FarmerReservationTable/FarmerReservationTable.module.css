@@ -541,6 +541,46 @@
 }
 
 
+/* ===== 受渡完了・ノーショーの行スタイル ===== */
+.rowCompleted {
+  background-color: #f8fafc !important;
+}
+.rowCompleted td {
+  opacity: 0.5;
+}
+
+.rowNoShow {
+  background-color: #fef2f2 !important;
+}
+.rowNoShow td {
+  color: #991b1b !important;
+  opacity: 0.7;
+}
+
+/* 受渡番号の横につける小さなバッジ */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-weight: 600;
+  letter-spacing: normal;
+  font-family: sans-serif;
+}
+.badgeCompleted {
+  background: #111827;
+  color: #ffffff;
+}
+.badgeNoShow {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+
 /* ===========================
    印刷用スタイル (@media print)
    =========================== */

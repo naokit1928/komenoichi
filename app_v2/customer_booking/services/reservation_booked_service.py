@@ -95,9 +95,9 @@ class ReservationBookedService:
                farm=dict(farm_row),
             )
 
-            # ★ 修正: キャンセル期限を「受け渡し終了時刻（event_end_at）」に変更
+            # ★ 修正: キャンセル期限を「受け渡し開始時刻（event_start_at）」に変更
             now_utc = datetime.now(tz=timezone.utc)
-            cancel_deadline = event_end_at
+            cancel_deadline = event_start_at
             cancel_token_exp = int(cancel_deadline.timestamp())
 
             ctx = ReservationContextDTO(

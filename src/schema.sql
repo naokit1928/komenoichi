@@ -11,7 +11,8 @@ CREATE TABLE consumers (
     created_at TEXT,
     stripe_customer_id TEXT,
     registration_status TEXT,
-    email TEXT
+    email TEXT,
+    no_show_pardon INTEGER DEFAULT 0 -- ★ 追加: ペナルティの自己解除用タイムスタンプ
 );
 
 -- =========================================================

@@ -1,3 +1,4 @@
+// frontend/src/pages/farmer/FarmerReservationTable/FarmerReservationNoticeModal.tsx
 import React from "react";
 import styles from "./FarmerReservationTable.module.css";
 
@@ -6,9 +7,7 @@ type FarmerReservationNoticeModalProps = {
   onClose: () => void;
 };
 
-const FarmerReservationNoticeModal: React.FC<
-  FarmerReservationNoticeModalProps
-> = ({ isOpen, onClose }) => {
+const FarmerReservationNoticeModal: React.FC<FarmerReservationNoticeModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleOverlayClick = () => onClose();
@@ -49,6 +48,7 @@ const FarmerReservationNoticeModal: React.FC<
 
           <div className={styles.noticeScrollArea}>
             <div className={styles.ruleList}>
+
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
                   <span className={styles.ruleIcon}>①</span>
@@ -72,20 +72,20 @@ const FarmerReservationNoticeModal: React.FC<
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
                   <span className={styles.ruleIcon}>③</span>
-                  一部だけ事前に精米・袋詰めしておくことを推奨します
+                  お米はすべて事前に精米・袋詰めしておいてください
                 </div>
                 <p className={styles.ruleDesc}>
-                  予約者には「最大10分ほどの待ち時間があり得ます」と事前に案内しています。待ち時間が長引きすぎないよう、一部のお米だけ事前に準備しておくことをおすすめします。
+                  予約者をお待たせしないため、受け渡し日までにすべての予約分を事前に精米・袋詰めしておくことを推奨します。無断キャンセルが発生した場合でも、精米済みのお米は<b>翌週の販売に回すことができます</b>（次のルールをご確認ください）。
                 </p>
               </div>
 
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
                   <span className={styles.ruleIcon}>④</span>
-                  全ての量を事前に準備しておくことは推奨しません
+                  余った白米は翌週に回せます（再来週への繰り越しは禁止）
                 </div>
                 <p className={styles.ruleDesc}>
-                  無断キャンセルのリスクもあるため、すべてのお米を事前に精米しておくことは推奨しません。どこまで事前準備するかは、各農家さんのご判断にお任せしています。
+                  無断キャンセルにより精米済みのお米がやむを得ず余った場合、冷蔵庫または冷暗所で保管のうえ、<b>翌週の販売に回すことができます</b>。ただし、こめのいちで販売できるのは<b>精米後8日以内</b>のお米に限ります。再来週以降への繰り越しは品質上の理由から<b>固くお断りしています</b>。翌週も売れなかった分はご自身でご消費ください。
                 </p>
               </div>
 
@@ -98,10 +98,10 @@ const FarmerReservationNoticeModal: React.FC<
                   運営は品質に関するクレームに一切関与いたしません。なお、予約者には「返品・交換の申し出は受け渡し時にその場で行うこと」と規約で定めています。受け渡し日以降の返品対応は原則不要ですが、実際の対応は各農家さんのご判断にお任せします。
                 </p>
               </div>
+
             </div>
           </div>
 
-          {/* フッター：チェックボックスを廃止し、中央揃えのボタンのみに */}
           <div className={styles.noticeFooterRow} style={{ justifyContent: "center", marginTop: "16px" }}>
             <button
               type="button"

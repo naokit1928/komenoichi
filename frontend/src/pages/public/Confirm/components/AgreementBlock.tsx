@@ -1,3 +1,4 @@
+// frontend/src/pages/public/ReservationBooked/components/AgreementBlock.tsx
 import React, { useState, useEffect } from "react";
 import LawPage from "../../Legal/LawPage";
 import TermsPage from "../../Legal/TermsPage";
@@ -36,11 +37,12 @@ export function AgreementBlock({ agreed, onChange }: Props) {
   return (
     <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>
 
-      {/* ★ 変更点: marginBottom を 20 から 32 に広げ、下のチェックボックスとの間隔を空けました */}
-      <div style={{ marginBottom: 32, padding: "0 4px" }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: C.ink, margin: "0 0 8px" }}>
-          ご予約前のご確認
+      {/* ★ 軽量化した警告メッセージ */}
+      <div style={{ marginBottom: 32 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: C.ink, margin: "0 0 10px" }}>
+          ご予約に関する大切なお願い
         </p>
+        
         <ul style={{
           margin: 0,
           paddingLeft: 20,
@@ -51,9 +53,16 @@ export function AgreementBlock({ agreed, onChange }: Props) {
           flexDirection: "column",
           gap: 6,
         }}>
+          {/* ★ 軽量化したメッセージを箇条書きの最初に配置 */}
+          <li>農家さんが予約に合わせて精米します。確実にお受け取りできる日時であることを確認しご予約ください。。</li>
           <li>システム利用料（300円）はキャンセル時も返金不可となります。</li>
-          <li>品質不良や返品のご相談は、受け渡し当日その場で農家さんへ直接お伝えください。</li>
+          <li>品質不良や返品のご相談は,受け渡し当日その場で農家さんへ直接お伝えください。</li>
         </ul>
+
+        {/* ★ ペナルティ注記を箇条書きの下に,目立たないグレーで配置 */}
+        <p style={{ marginTop: 10, fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
+          ※過度な回数のキャンセルや無断キャンセルをされた場合,以後のご予約に制限を加える場合がございます。
+        </p>
       </div>
 
       {/* チェックボックス：カード型 */}

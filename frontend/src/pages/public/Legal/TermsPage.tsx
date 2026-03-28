@@ -1,3 +1,4 @@
+// frontend/src/pages/legal/TermsPage.tsx
 import React from "react";
 import { useSearchParams } from "react-router-dom";
 import Footer from "@/components/Footer";
@@ -31,7 +32,8 @@ export default function TermsPage({ isModal = false }: { isModal?: boolean }) {
       <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>第3条（キャンセルと受け取り義務）</h2>
       <p style={{ marginBottom: 16 }}>
         1. ユーザーは、設定された受け渡し開始時刻までであれば、システム上から予約をキャンセルすることができます。ただし、予約完了後（事前決済後）は、いかなる理由によるキャンセルの場合であっても、事前決済されたシステム利用料の返金は一切行われません。<br />
-        2. ユーザーは, 指定された日時・場所に赴き、商品を受け取り代金を支払う義務を負います。現地でお支払いいただく農作物の代金についてはキャンセル料は発生いたしませんが、無断キャンセル等を行った場合、今後の本サービスの利用が制限されることがあります。
+        {/* ★ ここをアップデートしました */}
+        2. ユーザーは、指定された日時・場所に赴き、商品を受け取り代金を支払う義務を負います。現地でお支払いいただく農作物の代金についてはキャンセル料は発生いたしませんが、過度な回数のキャンセルや、連絡なしの無断キャンセル等が行われた場合、以後の本サービスの利用（アカウントの利用や新規ご予約）が制限されることがあります。
       </p>
 
       <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>第4条（免責事項）</h2>

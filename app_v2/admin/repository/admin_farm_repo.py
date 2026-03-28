@@ -58,7 +58,8 @@ class AdminFarmRepository:
                 MIN(r.created_at) AS first_reservation_at,
                 
                 COALESCE(SUM(CASE WHEN r.status IN ('CONFIRMED', 'confirmed') AND r.event_start_at >= datetime('now', '-6 month') THEN 1 ELSE 0 END), 0) AS total_confirmed_6m,
-                COALESCE(SUM(CASE WHEN r.status IN ('CANCELLED', 'cancelled') AND r.event_start_at >= datetime('now', '-6 month') THEN 1 ELSE 0 END), 0) AS total_cancelled_6m,
+                -- ★ 修正: no_show もキャンセル件数として合算する
+                COALESCE(SUM(CASE WHEN r.status IN ('CANCELLED', 'cancelled', 'NO_SHOW', 'no_show') AND r.event_start_at >= datetime('now', '-6 month') THEN 1 ELSE 0 END), 0) AS total_cancelled_6m,
                 COALESCE(SUM(CASE WHEN r.status IN ('CONFIRMED', 'confirmed') AND r.event_start_at >= datetime('now', '-6 month') THEN r.rice_subtotal ELSE 0 END), 0) AS total_sales_6m
             FROM farms AS f
             LEFT JOIN reservations AS r ON f.farm_id = r.farm_id
@@ -70,7 +71,7 @@ class AdminFarmRepository:
         farms = [dict(row) for row in cur.fetchall()]
 
         # =========================================================
-        # ★ 追加: 正味稼働時間（Net Active Hours）の計算ロジック
+        # 正味稼働時間（Net Active Hours）の計算ロジック
         # =========================================================
         log_sql = """
             SELECT farm_id, is_accepting, created_at
