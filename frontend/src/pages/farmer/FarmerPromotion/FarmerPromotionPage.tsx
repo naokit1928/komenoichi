@@ -20,11 +20,18 @@ export default function FarmerPromotionPage() {
 
   if (!farmId) return <div style={{ padding: 24 }}>読み込み中...</div>;
 
-  // ★変更点：環境変数があればそれを優先、なければ現在のドメイン（localhost, komet, komenoichi等）を自動取得
   const baseUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
   const farmUrl = `${baseUrl}/farms/${farmId}`;
   
   const cards = Array.from({ length: 10 });
+
+  // ★ iOS Safari で印刷ボタンが効かないバグの対策
+  const handlePrint = () => {
+    // 0.05秒だけ遅延させることで、iOSのイベントブロックを回避して確実にダイアログを出す
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F9FAFB", paddingBottom: 80 }}>
@@ -43,67 +50,85 @@ export default function FarmerPromotionPage() {
           position: relative;
         }
 
+        /* ★ iOS Safari 縮小ズレ＆重なりバグ対策 */
         .sheet-scale-wrapper {
           transform-origin: top center;
-          transform: scale(0.6); 
-          margin-bottom: calc(297mm * 0.6 - 297mm); 
+          /* translateZ(0) でハードウェアアクセラレーションを強制し、描画バグを防ぐ */
+          transform: scale(0.6) translateZ(0); 
+          -webkit-transform: scale(0.6) translateZ(0);
+          /* calc(mm) の計算バグを防ぐため、ピクセルでネガティブマージンを直指定 */
+          margin-bottom: -449px; 
         }
 
         @media (max-width: 768px) {
-          .sheet-scale-wrapper { transform: scale(0.42); margin-bottom: calc(297mm * 0.42 - 297mm); }
+          .sheet-scale-wrapper { 
+            transform: scale(0.42) translateZ(0); 
+            -webkit-transform: scale(0.42) translateZ(0);
+            margin-bottom: -651px; 
+          }
         }
         @media (max-width: 480px) {
-          .sheet-scale-wrapper { transform: scale(0.33); margin-bottom: calc(297mm * 0.33 - 297mm); }
+          .sheet-scale-wrapper { 
+            transform: scale(0.33) translateZ(0); 
+            -webkit-transform: scale(0.33) translateZ(0);
+            margin-bottom: -752px; 
+          }
         }
 
-        .sheet-preview { background: #fff; width: 210mm; height: 297mm; box-shadow: 0 12px 32px rgba(0,0,0,0.15); position: relative; }
+        .sheet-preview { 
+          background: #fff; 
+          width: 210mm; 
+          height: 297mm; 
+          box-shadow: 0 12px 32px rgba(0,0,0,0.15); 
+          position: relative; 
+          /* ★ 超重要：iOS Safariの「文字サイズ勝手に肥大化機能」を強制無効化 */
+          -webkit-text-size-adjust: none;
+          text-size-adjust: none;
+        }
         
         .print-grid {
           display: grid; grid-template-columns: 91mm 91mm; grid-template-rows: repeat(5, 55mm);
           padding: 11mm 14mm; box-sizing: border-box; width: 210mm; height: 297mm;
         }
         
-        /* プレビューのクリック領域 */
-        .click-wrapper {
-          cursor: pointer;
-        }
-        
+        .click-wrapper { cursor: pointer; }
         .sheet-preview .label-card { border: 1px dashed #cbd5e1; }
 
         /* ── モーダル（拡大表示）のスタイル ── */
         .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
           background-color: rgba(0, 0, 0, 0.75);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 1000;
-          cursor: pointer;
-          backdrop-filter: blur(4px);
+          display: flex; justify-content: center; align-items: center;
+          z-index: 1000; cursor: pointer; backdrop-filter: blur(4px);
         }
 
         .modal-scale-wrapper {
-          box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-          border-radius: 2px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 2px;
           transform-origin: center center;
-          transform: scale(1);
+          transform: scale(1) translateZ(0);
+          -webkit-transform: scale(1) translateZ(0);
+          -webkit-text-size-adjust: none;
+          text-size-adjust: none;
         }
         
-        @media (max-width: 400px) {
-          .modal-scale-wrapper { transform: scale(0.9); }
-        }
-        @media (max-width: 360px) {
-          .modal-scale-wrapper { transform: scale(0.8); }
-        }
-        @media (max-width: 320px) {
-          .modal-scale-wrapper { transform: scale(0.7); }
-        }
+        @media (max-width: 400px) { .modal-scale-wrapper { transform: scale(0.9) translateZ(0); } }
+        @media (max-width: 360px) { .modal-scale-wrapper { transform: scale(0.8) translateZ(0); } }
+        @media (max-width: 320px) { .modal-scale-wrapper { transform: scale(0.7) translateZ(0); } }
 
-        @media screen { .print-only { display: none !important; } }
+        /* ★ iOS Safari 画面上での裏写り（2重レンダリング）を完全に防ぐ */
+        @media screen { 
+          .print-only { 
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+          } 
+        }
         
         /* 🖨️ 印刷時のスタイル */
         @media print {
@@ -117,31 +142,25 @@ export default function FarmerPromotionPage() {
             padding: 0 !important; background: #fff !important; overflow: hidden !important; 
           }
           .no-print { display: none !important; }
-          nav, footer, div[style*="fixed"], div[style*="sticky"] { display: none !important; }
+          /* 印刷時のみ実体化させる */
           .print-only { 
-            display: block !important; position: absolute !important; top: 0 !important; left: 0 !important;
+            position: relative !important; 
             width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important;
+            overflow: visible !important; clip: auto !important; white-space: normal !important;
+            display: block !important;
           }
           .label-card { border: none !important; }
         }
 
         /* 印刷ボタンのスタイル */
         .print-btn {
-          width: 100%;
-          padding: 18px 16px;
-          background: ${C.ink};
-          color: #fff;
-          border: none;
-          border-radius: 16px;
-          font-size: 18px;
-          font-weight: 700;
-          cursor: pointer;
-          box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+          width: 100%; padding: 18px 16px; background: ${C.ink}; color: #fff;
+          border: none; border-radius: 16px; font-size: 18px; font-weight: 700;
+          cursor: pointer; box-shadow: 0 8px 16px rgba(0,0,0,0.1);
           transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
         }
         .print-btn:active {
-          transform: scale(0.98);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          transform: scale(0.98); box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
       `}</style>
 
@@ -152,11 +171,9 @@ export default function FarmerPromotionPage() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
         </div>
-        
         <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: "#111827", flex: 1, textAlign: "center" }}>
           販促ツール印刷
         </h1>
-        
         <div style={{ width: 40 }} />
       </header>
 
@@ -188,7 +205,6 @@ export default function FarmerPromotionPage() {
             {printType === "label" ? (
               "ご自身のお米予約ページへ案内するためのQRシールです。直売所に出す野菜の袋に貼ったり、チラシや名刺に添えたりと、使い方は自由です。お好きなアイデアで直販をアピールしてください。"
             ) : (
-              // ★変更点：ポスターの文言を校正（案A）
               "貼っておくだけで、通りがかった人からスマホでお米の予約を受け付けられるポスターです。ご自宅や畑の周辺はもちろん、ご自身の直販イベントなど、さまざまな場所や場面で自由にご活用いただけます。"
             )}
           </div>
@@ -227,7 +243,8 @@ export default function FarmerPromotionPage() {
         {/* 3. アクション＆インフォメーションエリア */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           
-          <button onClick={() => window.print()} className="print-btn">
+          {/* ★ 修正した関数を呼び出すように変更 */}
+          <button type="button" onClick={handlePrint} className="print-btn">
             この{printType === "label" ? "シート" : "ポスター"}を印刷する
           </button>
 
@@ -267,7 +284,7 @@ export default function FarmerPromotionPage() {
 
       </div>
 
-      {/* ── 印刷用データ（画面上では display: none になる） ── */}
+      {/* ── 印刷用データ（画面上では完全に非表示） ── */}
       <div className="print-only">
         {printType === "label" ? (
           <div className="print-grid">
