@@ -26,8 +26,8 @@ export default function FarmerPromotionPage() {
   const cards = Array.from({ length: 10 });
 
   return (
-    {/* ★ 修正：印刷時にスタイルを上書きできるよう、page-wrapper クラスを付与 */}
     <div className="page-wrapper" style={{ minHeight: "100vh", backgroundColor: "#F9FAFB", paddingBottom: 80 }}>
+      {/* ★ 修正：印刷時にスタイルを上書きできるよう、直上のdivに page-wrapper クラスを付与 */}
       <style>{`
         /* ── 画面表示用の縮小マジック ── */
         .preview-wrapper { 
