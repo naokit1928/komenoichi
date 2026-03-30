@@ -24,10 +24,10 @@ export default function PromotionCardDesign({ farmUrl, farmId }: PromotionCardDe
       }}
     >
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: "10px", paddingRight: "2mm" }}>
-        <div style={{ fontSize: "15px", fontWeight: 800, color: C.ink, lineHeight: 1.35, letterSpacing: "0.02em" }}>
+        <div style={{ fontSize: "15px", fontWeight: 800, color: C.ink, lineHeight: 1.35, letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
           家でもお米を<br />売っています
         </div>
-        <div style={{ fontSize: "11px", fontWeight: 700, color: C.ink2, lineHeight: 1.45 }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.ink2, lineHeight: 1.45, whiteSpace: "nowrap" }}>
           新鮮で、少しお得です。
         </div>
       </div>
@@ -35,12 +35,16 @@ export default function PromotionCardDesign({ farmUrl, farmId }: PromotionCardDe
         <div style={{ padding: "6px", border: `1px solid ${C.border}`, borderRadius: "8px", background: "#fff" }}>
           <QRCodeSVG value={farmUrl} size={68} level="M" />
         </div>
-        <div style={{ fontSize: "10px", fontWeight: 800, color: C.ink, letterSpacing: "0.02em", display: "flex", alignItems: "center", gap: "2px" }}>
+        <div style={{ fontSize: "10px", fontWeight: 800, color: C.ink, letterSpacing: "0.02em", display: "flex", alignItems: "center", gap: "2px", whiteSpace: "nowrap" }}>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path>
           </svg>
           スマホで予約・注文
         </div>
+      </div>
+      {/* ★ ご要望の通り、右下にIDを再付与 */}
+      <div style={{ position: "absolute", bottom: "4mm", right: "4mm", fontSize: "8px", color: "#9CA3AF" }}>
+        ID: {farmId}
       </div>
     </div>
   );

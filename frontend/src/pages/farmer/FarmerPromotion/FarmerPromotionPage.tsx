@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import PromotionCardDesign from "./PromotionCardDesign";
 import PromotionPosterDesign from "./PromotionPosterDesign";
@@ -17,6 +17,21 @@ export default function FarmerPromotionPage() {
 
   const [printType, setPrintType] = useState<"label" | "poster">("label");
   const [showCardModal, setShowCardModal] = useState(false);
+
+  // ★ iOS Safariの印刷ブロックを回避するためのネイティブイベント参照
+  const printBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const btn = printBtnRef.current;
+    if (!btn) return;
+    const handlePrint = (e: Event) => {
+      e.preventDefault();
+      window.print();
+    };
+    // Reactの合成イベントを避け、直接ブラウザのクリック処理として登録
+    btn.addEventListener("click", handlePrint);
+    return () => btn.removeEventListener("click", handlePrint);
+  }, [printType]);
 
   if (!farmId) return <div style={{ padding: 24 }}>読み込み中...</div>;
 
@@ -52,7 +67,6 @@ export default function FarmerPromotionPage() {
         .sheet-preview { 
           background: #fff; width: 210mm; height: 297mm; box-shadow: 0 12px 32px rgba(0,0,0,0.15); 
           position: relative; 
-          /* ★Safariの文字2重バグを防ぐおまじない */
           -webkit-transform-style: preserve-3d;
           -webkit-backface-visibility: hidden;
         }
@@ -75,12 +89,8 @@ export default function FarmerPromotionPage() {
         }
 
         .modal-content-box {
-          background-color: #fff;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-          /* ★スライド（横スクロール）させないための設定 */
-          max-width: 100%;
-          overflow: hidden;
-          display: flex; justify-content: center; align-items: center;
+          background-color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          max-width: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center;
         }
 
         .modal-scale { transform-origin: center; }
@@ -92,6 +102,7 @@ export default function FarmerPromotionPage() {
         /* 🖨️ 印刷時のスタイル */
         @media print {
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          /* ★ 余白を完全にゼロにし、高さを厳密にコントロール */
           @page { size: A4 portrait; margin: 0 !important; }
           body, html, #root { 
             width: 210mm !important; height: 297mm !important; margin: 0 !important; 
@@ -100,8 +111,10 @@ export default function FarmerPromotionPage() {
           .no-print { display: none !important; }
           .print-only { 
             display: block !important; position: absolute !important; top: 0 !important; left: 0 !important;
-            width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important;
+            /* ★ 1mmだけ短くして、2ページ目（白紙）が生成されるのを防ぐ */
+            width: 210mm !important; height: 296mm !important; margin: 0 !important; padding: 0 !important;
             page-break-inside: avoid !important; page-break-after: avoid !important; break-inside: avoid !important;
+            overflow: hidden !important;
           }
           .label-card { border: none !important; }
         }
@@ -188,8 +201,8 @@ export default function FarmerPromotionPage() {
         {/* アクション */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           
-          {/* ★ onClick={window.print} と直接渡すことでSafariの警告ブロックを回避 */}
-          <button type="button" onClick={window.print} className="print-btn">
+          {/* ★ onClickではなく、useRef経由でネイティブイベントを発火させる */}
+          <button ref={printBtnRef} type="button" className="print-btn">
             この{printType === "label" ? "シート" : "ポスター"}を印刷する
           </button>
 
