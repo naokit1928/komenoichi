@@ -26,7 +26,8 @@ export default function FarmerPromotionPage() {
   const cards = Array.from({ length: 10 });
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#F9FAFB", paddingBottom: 80 }}>
+    {/* ★ 修正：印刷時にスタイルを上書きできるよう、page-wrapper クラスを付与 */}
+    <div className="page-wrapper" style={{ minHeight: "100vh", backgroundColor: "#F9FAFB", paddingBottom: 80 }}>
       <style>{`
         /* ── 画面表示用の縮小マジック ── */
         .preview-wrapper { 
@@ -65,7 +66,7 @@ export default function FarmerPromotionPage() {
         .sheet-preview { 
           background: #fff; width: 210mm; height: 297mm; box-shadow: 0 12px 32px rgba(0,0,0,0.15); 
           position: relative; 
-          -webkit-font-smoothing: antialiased;
+          -webkit-text-size-adjust: none; text-size-adjust: none;
         }
         
         .print-grid {
@@ -87,6 +88,7 @@ export default function FarmerPromotionPage() {
         .modal-scale-wrapper {
           box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 2px;
           transform-origin: center center; transform: scale(1);
+          -webkit-text-size-adjust: none; text-size-adjust: none;
         }
         
         @media (max-width: 400px) { .modal-scale-wrapper { transform: scale(0.9); } }
@@ -97,44 +99,42 @@ export default function FarmerPromotionPage() {
           .print-only { display: none !important; } 
         }
         
-        /* 🖨️ 印刷時のスタイル（Safari 余白・日付・2ページ目撲滅コード） */
+        /* 🖨️ 印刷時のスタイル（Safari 完璧対応版） */
         @media print {
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* 余白を完全にゼロにして、OSの日付やURLを消す */
-          @page { size: A4 portrait; margin: 0 !important; }
           
-          /* 1ページ（100%）に完全に固定し、スクロールを殺す */
-          body, html, #root { 
-            width: 100% !important; height: 100% !important; 
-            margin: 0 !important; padding: 0 !important; 
-            background: #fff !important; overflow: hidden !important; 
+          /* ★ 修正1：sizeプロパティを削除。これでSafariがエラーを起こさず、ヘッダー（URL等）を確実に消せます */
+          @page { 
+            margin: 0 !important; 
           }
+          
+          body, html, #root { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: #fff !important; 
+          }
+          
           .no-print { display: none !important; }
 
+          /* ★ 修正2：インラインの「グレー背景」と「余白」を印刷時のみ白・ゼロに強制リセット */
+          .page-wrapper {
+            background-color: #ffffff !important;
+            padding: 0 !important;
+            min-height: 0 !important; /* 100vhを無効化して白紙ページを防止 */
+          }
+
+          /* ★ 修正3：絶対配置(absolute)をやめ、自然な配置に戻すことで2ページ目を作らせない */
           .print-only { 
             display: block !important; 
-            position: absolute !important; 
-            top: 0 !important; left: 0 !important;
-            width: 100% !important; height: 100% !important; 
-            margin: 0 !important; padding: 0 !important;
-            /* 1ピクセルでもはみ出たら非表示にし、2ページ目を作らせない */
-            overflow: hidden !important;
-            page-break-inside: avoid !important;
+            position: relative !important; 
+            margin: 0 !important; 
+            padding: 0 !important;
           }
 
-          /* ポスターは用紙サイズ（100vh/100vw）にピッタリ合わせる */
-          .print-poster-override > div {
-             width: 100vw !important;
-             height: 100vh !important;
-             max-width: 100% !important;
-             max-height: 100% !important;
-             box-sizing: border-box !important;
-          }
-
-          /* ラベルは配置ズレを防ぐためサイズを維持するが、はみ出しはカット */
+          /* ラベルは配置ズレを防ぐため、絶対サイズ（210mm x 297mm）を維持する */
           .print-label-override {
              width: 210mm !important;
              height: 297mm !important;
@@ -283,9 +283,7 @@ export default function FarmerPromotionPage() {
             ))}
           </div>
         ) : (
-          <div className="print-poster-override">
-            <PromotionPosterDesign farmUrl={farmUrl} farmId={farmId} />
-          </div>
+          <PromotionPosterDesign farmUrl={farmUrl} farmId={farmId} />
         )}
       </div>
 
