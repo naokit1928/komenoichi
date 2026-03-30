@@ -101,22 +101,22 @@ export default function FarmerMenu() {
         </div>
       </div>
 
-      {/* ── ★追加：Airbnb風の売上・履歴カード ── */}
-      <div style={{ marginBottom: 40 }}>
+      {/* ── メイン機能カード群 ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 40 }}>
+        {/* 売上・履歴カード */}
         <Link
-          to="/farmer/sales" // ※後で作るページのパス
+          to="/farmer/sales"
           style={{
             display: "block",
             backgroundColor: "#ffffff",
             borderRadius: 16,
-            padding: "24px 20px",
+            padding: "20px",
             textDecoration: "none",
             color: C.ink,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.06)", // ふわっとした影
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
             border: `1px solid ${C.border}`,
             transition: "transform 0.1s ease-out, box-shadow 0.1s ease-out",
           }}
-          // クリック時の押し込みアニメーション
           onMouseDown={(e) => {
             e.currentTarget.style.transform = "scale(0.98)";
             e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.04)";
@@ -130,12 +130,58 @@ export default function FarmerMenu() {
             e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.06)";
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>売上・予約履歴</span>
+          <div style={{ fontSize: 16, fontWeight: 600, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {/* モノクロ グラフアイコン */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="20" x2="12" y2="10"></line>
+                <line x1="18" y1="20" x2="18" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="16"></line>
+              </svg>
+              <span>売上・予約履歴</span>
+            </div>
             <span style={{ color: C.ink3, fontSize: 20 }}>›</span>
           </div>
-          <div style={{ fontSize: 13, color: C.ink3, lineHeight: 1.5 }}>
-            過去の販売データや帳簿付けのための<br />売上履歴はこちらから確認できます。
+        </Link>
+
+        {/* 販促ツールの印刷カード */}
+        <Link
+          to="/farmer/promotion"
+          style={{
+            display: "block",
+            backgroundColor: "#ffffff",
+            borderRadius: 16,
+            padding: "20px",
+            textDecoration: "none",
+            color: C.ink,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+            border: `1px solid ${C.border}`,
+            transition: "transform 0.1s ease-out, box-shadow 0.1s ease-out",
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = "scale(0.98)";
+            e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.04)";
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.06)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.06)";
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 600, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {/* モノクロ プリンターアイコン */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              <span>販促ツールの印刷</span>
+            </div>
+            <span style={{ color: C.ink3, fontSize: 20 }}>›</span>
           </div>
         </Link>
       </div>

@@ -20,6 +20,7 @@
     "@uppy/core": "^5.1.1",
     "@uppy/xhr-upload": "^5.0.2",
     "browser-image-compression": "^2.0.2",
+    "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-easy-crop": "^5.5.3",

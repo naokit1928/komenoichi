@@ -28,9 +28,11 @@ const FarmerMenu = React.lazy(
 const FarmerRegistrationPage = React.lazy(
   () => import("./pages/farmer/FarmerRegistration/FarmerRegistrationPage")
 );
-// ★ 新しく追加：売上・予約履歴ページ
 const FarmerSalesPage = React.lazy(
   () => import("./pages/farmer/FarmerSalesPage")
+);
+const FarmerPromotionPage = React.lazy(
+  () => import("./pages/farmer/FarmerPromotion/FarmerPromotionPage")
 );
 
 const FarmsListPage = React.lazy(
@@ -199,8 +201,8 @@ export default function AppRoutes() {
               <Route path="settings" element={<FarmerSettingsPage />} />
               <Route path="pickup-settings" element={<FarmerPickupSettingsPage />} />
               <Route path="menu" element={<FarmerMenu />} />
-              {/* ★ 新しく追加 */}
               <Route path="sales" element={<FarmerSalesPage />} />
+              <Route path="promotion" element={<FarmerPromotionPage />} />
             </Route>
           </Route>
 
@@ -211,7 +213,6 @@ export default function AppRoutes() {
             <Route path="reservations/weeks" element={<AdminReservationWeeksPage />} />
             <Route path="reservations/event" element={<AdminReservationEventDetailPage />} />
           </Route>
-
 
           <Route
             path="*"

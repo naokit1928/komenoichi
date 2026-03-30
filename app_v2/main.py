@@ -182,6 +182,8 @@ from app_v2.admin.api.admin_farm_api import (
     router as admin_farm_router,
 )
 
+from app_v2.admin.api.admin_consumer_api import router as admin_consumer_router
+
 # ============================
 # Router Registration
 # ============================
@@ -230,6 +232,7 @@ app.include_router(stripe_webhook_router)
 # Feedback / Admin / Dev
 app.include_router(admin_reservations_router)
 app.include_router(admin_farm_router)
+app.include_router(admin_consumer_router)
 
 app.include_router(consumer_delete_router, prefix="/api")
 app.include_router(farmer_delete_router, prefix="/api")
