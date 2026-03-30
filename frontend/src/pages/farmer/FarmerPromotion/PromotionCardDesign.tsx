@@ -42,9 +42,10 @@ export default function PromotionCardDesign({ farmUrl, farmId }: PromotionCardDe
           スマホで予約・注文
         </div>
       </div>
-      {/* ★ ご要望の通り、右下にIDを再付与 */}
+      
+      {/* ★ 「ID:」を削除し、運営（あなた）だけが分かるステルス番号として配置 */}
       <div style={{ position: "absolute", bottom: "4mm", right: "4mm", fontSize: "8px", color: "#9CA3AF" }}>
-        ID: {farmId}
+        {farmId}
       </div>
     </div>
   );
