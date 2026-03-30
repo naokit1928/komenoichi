@@ -25,14 +25,6 @@ export default function FarmerPromotionPage() {
   
   const cards = Array.from({ length: 10 });
 
-  // ★ iOS Safari で印刷ボタンが効かないバグの対策
-  const handlePrint = () => {
-    // 0.05秒だけ遅延させることで、iOSのイベントブロックを回避して確実にダイアログを出す
-    setTimeout(() => {
-      window.print();
-    }, 50);
-  };
-
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F9FAFB", paddingBottom: 80 }}>
       <style>{`
@@ -50,40 +42,32 @@ export default function FarmerPromotionPage() {
           position: relative;
         }
 
-        /* ★ iOS Safari 縮小ズレ＆重なりバグ対策 */
         .sheet-scale-wrapper {
           transform-origin: top center;
-          /* translateZ(0) でハードウェアアクセラレーションを強制し、描画バグを防ぐ */
-          transform: scale(0.6) translateZ(0); 
-          -webkit-transform: scale(0.6) translateZ(0);
-          /* calc(mm) の計算バグを防ぐため、ピクセルでネガティブマージンを直指定 */
-          margin-bottom: -449px; 
+          transform: scale(0.6); 
+          /* iPad等のSafari用にプレフィックスを追加 */
+          -webkit-transform: scale(0.6);
+          margin-bottom: calc(297mm * 0.6 - 297mm); 
         }
 
         @media (max-width: 768px) {
           .sheet-scale-wrapper { 
-            transform: scale(0.42) translateZ(0); 
-            -webkit-transform: scale(0.42) translateZ(0);
-            margin-bottom: -651px; 
+            transform: scale(0.42); -webkit-transform: scale(0.42); 
+            margin-bottom: calc(297mm * 0.42 - 297mm); 
           }
         }
         @media (max-width: 480px) {
           .sheet-scale-wrapper { 
-            transform: scale(0.33) translateZ(0); 
-            -webkit-transform: scale(0.33) translateZ(0);
-            margin-bottom: -752px; 
+            transform: scale(0.33); -webkit-transform: scale(0.33); 
+            margin-bottom: calc(297mm * 0.33 - 297mm); 
           }
         }
 
         .sheet-preview { 
-          background: #fff; 
-          width: 210mm; 
-          height: 297mm; 
-          box-shadow: 0 12px 32px rgba(0,0,0,0.15); 
+          background: #fff; width: 210mm; height: 297mm; box-shadow: 0 12px 32px rgba(0,0,0,0.15); 
           position: relative; 
-          /* ★ 超重要：iOS Safariの「文字サイズ勝手に肥大化機能」を強制無効化 */
-          -webkit-text-size-adjust: none;
-          text-size-adjust: none;
+          /* iOS Safariの文字拡大おせっかい機能をオフに */
+          -webkit-text-size-adjust: none; text-size-adjust: none;
         }
         
         .print-grid {
@@ -104,50 +88,42 @@ export default function FarmerPromotionPage() {
 
         .modal-scale-wrapper {
           box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 2px;
-          transform-origin: center center;
-          transform: scale(1) translateZ(0);
-          -webkit-transform: scale(1) translateZ(0);
-          -webkit-text-size-adjust: none;
-          text-size-adjust: none;
+          transform-origin: center center; transform: scale(1);
+          -webkit-text-size-adjust: none; text-size-adjust: none;
         }
         
-        @media (max-width: 400px) { .modal-scale-wrapper { transform: scale(0.9) translateZ(0); } }
-        @media (max-width: 360px) { .modal-scale-wrapper { transform: scale(0.8) translateZ(0); } }
-        @media (max-width: 320px) { .modal-scale-wrapper { transform: scale(0.7) translateZ(0); } }
+        @media (max-width: 400px) { .modal-scale-wrapper { transform: scale(0.9); } }
+        @media (max-width: 360px) { .modal-scale-wrapper { transform: scale(0.8); } }
+        @media (max-width: 320px) { .modal-scale-wrapper { transform: scale(0.7); } }
 
-        /* ★ iOS Safari 画面上での裏写り（2重レンダリング）を完全に防ぐ */
+        /* ★ 王道の隠し方に戻す（文字が2重になるバグの根本原因を解消） */
         @media screen { 
-          .print-only { 
-            position: absolute !important;
-            width: 1px !important;
-            height: 1px !important;
-            padding: 0 !important;
-            margin: -1px !important;
-            overflow: hidden !important;
-            clip: rect(0, 0, 0, 0) !important;
-            white-space: nowrap !important;
-            border: 0 !important;
-          } 
+          .print-only { display: none !important; } 
         }
         
-        /* 🖨️ 印刷時のスタイル */
+        /* 🖨️ 印刷時のスタイル（2ページに分割されるiPadバグを防止） */
         @media print {
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          @page { size: A4; margin: 0 !important; }
+          @page { size: A4 portrait; margin: 0 !important; }
           body, html, #root { 
             width: 210mm !important; height: 297mm !important; margin: 0 !important; 
             padding: 0 !important; background: #fff !important; overflow: hidden !important; 
           }
           .no-print { display: none !important; }
-          /* 印刷時のみ実体化させる */
           .print-only { 
-            position: relative !important; 
-            width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important;
-            overflow: visible !important; clip: auto !important; white-space: normal !important;
-            display: block !important;
+            display: block !important; 
+            position: absolute !important; 
+            top: 0 !important; left: 0 !important;
+            width: 210mm !important; height: 297mm !important; 
+            margin: 0 !important; padding: 0 !important;
+            overflow: hidden !important;
+            /* 強制的に1ページに収める */
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-inside: avoid !important;
           }
           .label-card { border: none !important; }
         }
@@ -243,8 +219,8 @@ export default function FarmerPromotionPage() {
         {/* 3. アクション＆インフォメーションエリア */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           
-          {/* ★ 修正した関数を呼び出すように変更 */}
-          <button type="button" onClick={handlePrint} className="print-btn">
+          {/* ★ 遅延処理を削除し、直接 window.print() を呼び出す（Safariのセキュリティブロック回避） */}
+          <button type="button" onClick={() => window.print()} className="print-btn">
             この{printType === "label" ? "シート" : "ポスター"}を印刷する
           </button>
 
@@ -284,7 +260,7 @@ export default function FarmerPromotionPage() {
 
       </div>
 
-      {/* ── 印刷用データ（画面上では完全に非表示） ── */}
+      {/* ── 印刷用データ ── */}
       <div className="print-only">
         {printType === "label" ? (
           <div className="print-grid">
