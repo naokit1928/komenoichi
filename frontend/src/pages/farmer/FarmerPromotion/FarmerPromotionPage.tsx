@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import PromotionCardDesign from "./PromotionCardDesign";
 import PromotionPosterDesign from "./PromotionPosterDesign";
@@ -18,21 +18,6 @@ export default function FarmerPromotionPage() {
   const [printType, setPrintType] = useState<"label" | "poster">("label");
   const [showCardModal, setShowCardModal] = useState(false);
 
-  // ★ iOS Safariの印刷ブロックを回避するためのネイティブイベント参照
-  const printBtnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const btn = printBtnRef.current;
-    if (!btn) return;
-    const handlePrint = (e: Event) => {
-      e.preventDefault();
-      window.print();
-    };
-    // Reactの合成イベントを避け、直接ブラウザのクリック処理として登録
-    btn.addEventListener("click", handlePrint);
-    return () => btn.removeEventListener("click", handlePrint);
-  }, [printType]);
-
   if (!farmId) return <div style={{ padding: 24 }}>読み込み中...</div>;
 
   const baseUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
@@ -47,28 +32,40 @@ export default function FarmerPromotionPage() {
         .preview-wrapper { 
           background: #E5E7EB; 
           padding: 32px 16px 20px 16px;
-          display: flex; flex-direction: column; align-items: center; justify-content: center; 
-          border-radius: 12px; overflow: hidden; margin-bottom: 24px; position: relative;
+          display: flex; 
+          flex-direction: column;
+          align-items: center; 
+          justify-content: center; 
+          border-radius: 12px;
+          overflow: hidden; 
+          margin-bottom: 24px;
+          position: relative;
         }
 
         .sheet-scale-wrapper {
           transform-origin: top center;
           transform: scale(0.6); 
+          -webkit-transform: scale(0.6);
           margin-bottom: calc(297mm * 0.6 - 297mm); 
         }
 
         @media (max-width: 768px) {
-          .sheet-scale-wrapper { transform: scale(0.42); margin-bottom: calc(297mm * 0.42 - 297mm); }
+          .sheet-scale-wrapper { 
+            transform: scale(0.42); -webkit-transform: scale(0.42); 
+            margin-bottom: calc(297mm * 0.42 - 297mm); 
+          }
         }
         @media (max-width: 480px) {
-          .sheet-scale-wrapper { transform: scale(0.33); margin-bottom: calc(297mm * 0.33 - 297mm); }
+          .sheet-scale-wrapper { 
+            transform: scale(0.33); -webkit-transform: scale(0.33); 
+            margin-bottom: calc(297mm * 0.33 - 297mm); 
+          }
         }
 
         .sheet-preview { 
           background: #fff; width: 210mm; height: 297mm; box-shadow: 0 12px 32px rgba(0,0,0,0.15); 
           position: relative; 
-          -webkit-transform-style: preserve-3d;
-          -webkit-backface-visibility: hidden;
+          -webkit-font-smoothing: antialiased;
         }
         
         .print-grid {
@@ -81,40 +78,67 @@ export default function FarmerPromotionPage() {
 
         /* ── モーダル（拡大表示）のスタイル ── */
         .modal-overlay {
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
           background-color: rgba(0, 0, 0, 0.75);
           display: flex; justify-content: center; align-items: center;
           z-index: 1000; cursor: pointer; backdrop-filter: blur(4px);
-          padding: 16px; box-sizing: border-box;
         }
 
-        .modal-content-box {
-          background-color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-          max-width: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center;
+        .modal-scale-wrapper {
+          box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 2px;
+          transform-origin: center center; transform: scale(1);
         }
-
-        .modal-scale { transform-origin: center; }
-        @media (max-width: 400px) { .modal-scale { transform: scale(0.85); } }
-        @media (max-width: 320px) { .modal-scale { transform: scale(0.75); } }
-
-        @media screen { .print-only { display: none !important; } }
         
-        /* 🖨️ 印刷時のスタイル */
+        @media (max-width: 400px) { .modal-scale-wrapper { transform: scale(0.9); } }
+        @media (max-width: 360px) { .modal-scale-wrapper { transform: scale(0.8); } }
+        @media (max-width: 320px) { .modal-scale-wrapper { transform: scale(0.7); } }
+
+        @media screen { 
+          .print-only { display: none !important; } 
+        }
+        
+        /* 🖨️ 印刷時のスタイル（Safari 余白・日付・2ページ目撲滅コード） */
         @media print {
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          /* ★ 余白を完全にゼロにし、高さを厳密にコントロール */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* 余白を完全にゼロにして、OSの日付やURLを消す */
           @page { size: A4 portrait; margin: 0 !important; }
+          
+          /* 1ページ（100%）に完全に固定し、スクロールを殺す */
           body, html, #root { 
-            width: 210mm !important; height: 297mm !important; margin: 0 !important; 
-            padding: 0 !important; background: #fff !important; overflow: hidden !important; 
+            width: 100% !important; height: 100% !important; 
+            margin: 0 !important; padding: 0 !important; 
+            background: #fff !important; overflow: hidden !important; 
           }
           .no-print { display: none !important; }
+
           .print-only { 
-            display: block !important; position: absolute !important; top: 0 !important; left: 0 !important;
-            /* ★ 1mmだけ短くして、2ページ目（白紙）が生成されるのを防ぐ */
-            width: 210mm !important; height: 296mm !important; margin: 0 !important; padding: 0 !important;
-            page-break-inside: avoid !important; page-break-after: avoid !important; break-inside: avoid !important;
+            display: block !important; 
+            position: absolute !important; 
+            top: 0 !important; left: 0 !important;
+            width: 100% !important; height: 100% !important; 
+            margin: 0 !important; padding: 0 !important;
+            /* 1ピクセルでもはみ出たら非表示にし、2ページ目を作らせない */
             overflow: hidden !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* ポスターは用紙サイズ（100vh/100vw）にピッタリ合わせる */
+          .print-poster-override > div {
+             width: 100vw !important;
+             height: 100vh !important;
+             max-width: 100% !important;
+             max-height: 100% !important;
+             box-sizing: border-box !important;
+          }
+
+          /* ラベルは配置ズレを防ぐためサイズを維持するが、はみ出しはカット */
+          .print-label-override {
+             width: 210mm !important;
+             height: 297mm !important;
+             overflow: hidden !important;
           }
           .label-card { border: none !important; }
         }
@@ -124,8 +148,11 @@ export default function FarmerPromotionPage() {
           width: 100%; padding: 18px 16px; background: ${C.ink}; color: #fff;
           border: none; border-radius: 16px; font-size: 18px; font-weight: 700;
           cursor: pointer; box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+          transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
         }
-        .print-btn:active { transform: scale(0.98); }
+        .print-btn:active {
+          transform: scale(0.98); box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
       `}</style>
 
       {/* ── ヘッダー ── */}
@@ -144,17 +171,23 @@ export default function FarmerPromotionPage() {
       {/* ── コンテンツ領域 ── */}
       <div className="no-print" style={{ padding: "24px 16px", maxWidth: 800, margin: "0 auto" }}>
         
-        {/* タブ */}
+        {/* 0. タブ切り替え */}
         <div style={{ display: "flex", gap: "8px", marginBottom: "24px", background: C.border, padding: "4px", borderRadius: "12px" }}>
-          <button onClick={() => setPrintType("label")} style={{ flex: 1, padding: "12px", border: "none", borderRadius: "8px", fontSize: "15px", fontWeight: 700, cursor: "pointer", transition: "0.2s", background: printType === "label" ? "#fff" : "transparent", color: printType === "label" ? C.ink : C.ink3, boxShadow: printType === "label" ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}>
+          <button 
+            onClick={() => setPrintType("label")}
+            style={{ flex: 1, padding: "12px", border: "none", borderRadius: "8px", fontSize: "15px", fontWeight: 700, cursor: "pointer", transition: "0.2s", background: printType === "label" ? "#fff" : "transparent", color: printType === "label" ? C.ink : C.ink3, boxShadow: printType === "label" ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}
+          >
             10面ラベルシール
           </button>
-          <button onClick={() => setPrintType("poster")} style={{ flex: 1, padding: "12px", border: "none", borderRadius: "8px", fontSize: "15px", fontWeight: 700, cursor: "pointer", transition: "0.2s", background: printType === "poster" ? "#fff" : "transparent", color: printType === "poster" ? C.ink : C.ink3, boxShadow: printType === "poster" ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}>
+          <button 
+            onClick={() => setPrintType("poster")}
+            style={{ flex: 1, padding: "12px", border: "none", borderRadius: "8px", fontSize: "15px", fontWeight: 700, cursor: "pointer", transition: "0.2s", background: printType === "poster" ? "#fff" : "transparent", color: printType === "poster" ? C.ink : C.ink3, boxShadow: printType === "poster" ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}
+          >
             A4/A3 ポスター
           </button>
         </div>
 
-        {/* 用途説明 */}
+        {/* 1. 用途説明 */}
         <div style={{ marginBottom: 24, padding: "0 4px" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 8 }}>
             {printType === "label" ? "出品物に貼るQRシール" : "掲示用ポスター"}
@@ -168,7 +201,7 @@ export default function FarmerPromotionPage() {
           </div>
         </div>
 
-        {/* プレビュー */}
+        {/* 2. プレビュー領域 */}
         {printType === "label" ? (
           <div className="preview-wrapper">
             <div className="click-wrapper" onClick={() => setShowCardModal(true)}>
@@ -198,15 +231,15 @@ export default function FarmerPromotionPage() {
           </div>
         )}
 
-        {/* アクション */}
+        {/* 3. アクション＆インフォメーションエリア */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           
-          {/* ★ onClickではなく、useRef経由でネイティブイベントを発火させる */}
-          <button ref={printBtnRef} type="button" className="print-btn">
+          <button type="button" onClick={() => window.print()} className="print-btn">
             この{printType === "label" ? "シート" : "ポスター"}を印刷する
           </button>
 
           <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
+            
             {printType === "label" && (
               <div style={{ marginBottom: 16, padding: "16px", background: C.bgPale, borderRadius: 12, fontSize: 13, color: C.ink2, lineHeight: 1.6, border: `1px solid ${C.border}` }}>
                 <strong style={{ color: C.ink, display: "block", marginBottom: 8 }}>【印刷のご注意】</strong>
@@ -238,28 +271,29 @@ export default function FarmerPromotionPage() {
             </div>
           </div>
         </div>
+
       </div>
 
       {/* ── 印刷用データ ── */}
       <div className="print-only">
         {printType === "label" ? (
-          <div className="print-grid">
+          <div className="print-grid print-label-override">
             {cards.map((_, i) => (
               <PromotionCardDesign key={`print-${i}`} farmUrl={farmUrl} farmId={farmId} />
             ))}
           </div>
         ) : (
-          <PromotionPosterDesign farmUrl={farmUrl} farmId={farmId} />
+          <div className="print-poster-override">
+            <PromotionPosterDesign farmUrl={farmUrl} farmId={farmId} />
+          </div>
         )}
       </div>
 
       {/* ── ラベル用 拡大モーダル ── */}
       {showCardModal && (
         <div className="modal-overlay no-print" onClick={() => setShowCardModal(false)}>
-          <div className="modal-content-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-scale">
-              <PromotionCardDesign farmUrl={farmUrl} farmId={farmId} />
-            </div>
+          <div className="modal-scale-wrapper">
+            <PromotionCardDesign farmUrl={farmUrl} farmId={farmId} />
           </div>
         </div>
       )}
