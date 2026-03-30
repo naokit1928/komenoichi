@@ -20,7 +20,10 @@ export default function FarmerPromotionPage() {
 
   if (!farmId) return <div style={{ padding: 24 }}>読み込み中...</div>;
 
-  const farmUrl = `https://komenoichi.jp/farms/${farmId}`;
+  // ★変更点：環境変数があればそれを優先、なければ現在のドメイン（localhost, komet, komenoichi等）を自動取得
+  const baseUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+  const farmUrl = `${baseUrl}/farms/${farmId}`;
+  
   const cards = Array.from({ length: 10 });
 
   return (
@@ -60,7 +63,7 @@ export default function FarmerPromotionPage() {
           padding: 11mm 14mm; box-sizing: border-box; width: 210mm; height: 297mm;
         }
         
-        /* プレビューのクリック領域（拡大鏡エフェクトはなし） */
+        /* プレビューのクリック領域 */
         .click-wrapper {
           cursor: pointer;
         }
@@ -83,7 +86,6 @@ export default function FarmerPromotionPage() {
           backdrop-filter: blur(4px);
         }
 
-        /* スクロールバーを出さず、画面に綺麗に収めるためのラッパー */
         .modal-scale-wrapper {
           box-shadow: 0 20px 60px rgba(0,0,0,0.4);
           border-radius: 2px;
@@ -91,7 +93,6 @@ export default function FarmerPromotionPage() {
           transform: scale(1);
         }
         
-        /* スマホ等の画面幅に合わせてカードを綺麗に縮小する */
         @media (max-width: 400px) {
           .modal-scale-wrapper { transform: scale(0.9); }
         }
@@ -187,6 +188,7 @@ export default function FarmerPromotionPage() {
             {printType === "label" ? (
               "ご自身のお米予約ページへ案内するためのQRシールです。直売所に出す野菜の袋に貼ったり、チラシや名刺に添えたりと、使い方は自由です。お好きなアイデアで直販をアピールしてください。"
             ) : (
+              // ★変更点：ポスターの文言を校正（案A）
               "貼っておくだけで、通りがかった人からスマホでお米の予約を受け付けられるポスターです。ご自宅や畑の周辺はもちろん、ご自身の直販イベントなど、さまざまな場所や場面で自由にご活用いただけます。"
             )}
           </div>
@@ -236,7 +238,6 @@ export default function FarmerPromotionPage() {
                 <strong style={{ color: C.ink, display: "block", marginBottom: 8 }}>【印刷のご注意】</strong>
                 <div>
                   市販のA4・10面ラベルシール「エーワン 72110」をご用意いただき、<b style={{ color: C.ink }}>ご自宅のプリンター</b>で印刷してください。<br />
-                  {/* ★赤色を外し、標準の黒（太字）でスッキリと表現 */}
                   <div style={{ color: C.ink, fontWeight: 700, marginTop: 6 }}>
                     ※コンビニのコピー機はシール紙の持ち込みが禁止されています。機械の故障の原因となるため、絶対に行わないでください。
                   </div>
@@ -279,7 +280,7 @@ export default function FarmerPromotionPage() {
         )}
       </div>
 
-      {/* ── 拡大モーダル（スクロールバーが出ないよう完全修正） ── */}
+      {/* ── ラベル用 拡大モーダル ── */}
       {showCardModal && (
         <div className="modal-overlay no-print" onClick={() => setShowCardModal(false)}>
           <div className="modal-scale-wrapper">
