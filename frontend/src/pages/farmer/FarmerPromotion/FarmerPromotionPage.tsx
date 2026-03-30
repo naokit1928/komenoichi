@@ -106,8 +106,9 @@ export default function FarmerPromotionPage() {
             print-color-adjust: exact !important;
           }
           
-          /* ★ 修正1：sizeプロパティを削除。これでSafariがエラーを起こさず、ヘッダー（URL等）を確実に消せます */
+          /* Safari は size 指定がないと余白を自動付与する。必ず A4 を明示する */
           @page { 
+            size: A4 portrait !important;
             margin: 0 !important; 
           }
           
@@ -258,6 +259,10 @@ export default function FarmerPromotionPage() {
                 <div style={{ marginBottom: 8 }}>
                   <b style={{ color: C.ink }}>コンビニ印刷（A3対応・水濡れに強い）がおすすめ：</b><br />
                   上の「印刷する」ボタンを押し、<b style={{ color: C.ink }}>送信先を「PDFとして保存」</b>にしてスマホ等に保存してから、各コンビニの印刷アプリをご利用ください。
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <b style={{ color: C.ink }}>Safariで印刷する場合：</b><br />
+                  印刷ダイアログの左下にある<b style={{ color: C.ink }}>「詳細を表示」</b>をクリックし、<b style={{ color: C.ink }}>「ヘッダーとフッターを印刷」のチェックを外して</b>ください。URLや日付の印字を防げます。
                 </div>
                 <div>
                   <b style={{ color: C.ink }}>屋外に貼る場合：</b><br />
