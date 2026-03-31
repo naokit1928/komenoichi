@@ -136,7 +136,7 @@ export default function ReservationsPage() {
           onClick={() => setActiveTab("upcoming")}
           style={{
             flex: 1, padding: "10px 0", borderRadius: 9999, border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
-            backgroundColor: activeTab === "upcoming" ? C.ink2 : "transparent", color: activeTab === "upcoming" ? "#fff" : C.ink3,
+            backgroundColor: activeTab === "upcoming" ? C.ink : "transparent", color: activeTab === "upcoming" ? "#fff" : C.ink3,
           }}
         >
           予約中
@@ -145,7 +145,7 @@ export default function ReservationsPage() {
           onClick={() => setActiveTab("past")}
           style={{
             flex: 1, padding: "10px 0", borderRadius: 9999, border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
-            backgroundColor: activeTab === "past" ? C.ink2 : "transparent", color: activeTab === "past" ? "#fff" : C.ink3,
+            backgroundColor: activeTab === "past" ? C.ink : "transparent", color: activeTab === "past" ? "#fff" : C.ink3,
           }}
         >
           過去の履歴
@@ -163,11 +163,11 @@ export default function ReservationsPage() {
                     onClick={() => navigate(`/reservation/booked?reservation_id=${upcomingItem.reservation_id}`)}
                     style={{ backgroundColor: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
                   >
-                    <div style={{ display: "inline-block", backgroundColor: C.bgPale, color: C.ink2, fontSize: 11, fontWeight: 600, padding: "4px 8px", borderRadius: 9999, marginBottom: 12 }}>受け取り待ち</div>
+                    <div style={{ display: "inline-block", backgroundColor: C.bgPale, color: C.ink, fontSize: 11, fontWeight: 600, padding: "4px 8px", borderRadius: 9999, marginBottom: 12 }}>受け取り待ち</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginBottom: 8 }}>{formatFarmName(upcomingItem)}</div>
                     <div style={{ fontSize: 14, color: C.ink, marginBottom: 4, fontWeight: 700 }}>予約日時: {upcomingItem.pickup_display}</div>
                     <div style={{ fontSize: 14, color: C.ink }}>お米代合計: {upcomingItem.total_amount.toLocaleString()}円（現金）</div>
-                    <div style={{ marginTop: 16, padding: "12px 0", backgroundColor: C.bgPale, borderRadius: 8, color: C.ink2, fontSize: 13, fontWeight: 700, textAlign: "center" }}>
+                    <div style={{ marginTop: 16, padding: "12px 0", backgroundColor: C.bgPale, borderRadius: 8, color: C.ink, fontSize: 13, fontWeight: 700, textAlign: "center" }}>
                       予約詳細を見る ＞
                     </div>
                   </div>
@@ -198,14 +198,14 @@ export default function ReservationsPage() {
                       <div style={{
                         fontSize: 11, fontWeight: 600, padding: "4px 8px", borderRadius: 9999,
                         backgroundColor: res.status_category === "completed" ? C.bgPale : "#fef2f2",
-                        color: res.status_category === "completed" ? C.ink2 : "#b91c1c",
+                        color: res.status_category === "completed" ? C.ink : "#b91c1c",
                         border: res.status_category === "canceled" ? "1px solid #fee2e2" : "none",
                       }}>
                         {res.status_category === "completed" ? "お取引終了" : "キャンセル"}
                       </div>
                     </div>
                     {res.status_category === "completed" && (
-                      <button onClick={() => navigate(`/farms/${res.farm_id}`)} style={{ width: "100%", padding: "10px 0", borderRadius: 9999, backgroundColor: "#fff", color: C.ink2, border: `1px solid ${C.border}`, fontWeight: 600, fontSize: 13, cursor: "pointer", marginTop: 8 }}>
+                      <button onClick={() => navigate(`/farms/${res.farm_id}`)} style={{ width: "100%", padding: "10px 0", borderRadius: 9999, backgroundColor: "#fff", color: C.ink, border: `1px solid ${C.border}`, fontWeight: 600, fontSize: 13, cursor: "pointer", marginTop: 8 }}>
                         もう一度この農家を見る
                       </button>
                     )}

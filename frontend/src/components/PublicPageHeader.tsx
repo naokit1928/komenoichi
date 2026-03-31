@@ -40,26 +40,42 @@ export function PublicPageHeader({ title }: Props) {
           style={{ flexShrink: 0 }}
         />
 
+        {/* D2: 赤「こ」を少し下げたバージョン */}
         <div style={{
           display: "flex",
           flexDirection: "column",
           lineHeight: 1,
-          alignItems: "center", // ← flex-start から center に変更
+          alignItems: "center",
         }}>
+          <div style={{ display: "flex", alignItems: "flex-end" }}>
+            <span style={{
+              fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif",
+              fontSize: 22,
+              fontWeight: 400,
+              letterSpacing: 0,
+              color: "#C62828",
+              position: "relative",
+              top: 1,
+            }}>
+              こ
+            </span>
+            <span style={{
+              fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif",
+              fontSize: 18,
+              fontWeight: 400,
+              letterSpacing: "0.22em",
+              color: "#1a1108",
+              paddingLeft: "0.05em",
+            }}>
+              めのいち
+            </span>
+          </div>
           <span style={{
-            fontSize: 17,
-            fontWeight: 400,
-            letterSpacing: "0.18em", // ← 少し広めに
-            color: "#1a1108",
-          }}>
-            こめのいち
-          </span>
-          <span style={{
-            fontSize: 10, // ← 9 → 10 に少し大きく
-            letterSpacing: "0.18em", // ← こめのいちと揃える
+            fontSize: 10,
+            letterSpacing: "0.18em",
             color: "#7a6c58",
-            fontWeight: 400, // ← 300（細すぎ）→ 400 に
-            marginTop: 4,
+            fontWeight: 400,
+            marginTop: 5,
           }}>
             KOME NO ICHI
           </span>

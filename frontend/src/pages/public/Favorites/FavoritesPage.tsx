@@ -168,7 +168,7 @@ export default function FavoritesPage() {
           </div>
           <button
             onClick={() => navigate("/farms")}
-            style={{ padding: "12px 32px", borderRadius: 9999, backgroundColor: C.ink2, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer" }}
+            style={{ padding: "12px 32px", borderRadius: 9999, backgroundColor: C.ink, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer" }}
           >
             農家を探す
           </button>
