@@ -80,7 +80,54 @@ export default function FarmerMenu() {
   const canDelete = check1 && check2 && confirmText === "退会する";
 
   return (
-    <div style={{ padding: "24px 16px 120px", maxWidth: 640, margin: "0 auto" }}>
+    <div style={{ padding: "24px 16px 120px", maxWidth: 640, margin: "0 auto", position: "relative" }}>
+      <style>{`
+        .mode-switch-btn {
+          position: fixed;
+          bottom: calc(72px + env(safe-area-inset-bottom) + 20px);
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 800;
+          background-color: #222222;
+          color: #ffffff;
+          border: none;
+          border-radius: 9999px;
+          padding: 14px 24px;
+          font-size: 14px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          box-shadow: 0 6px 16px rgba(0,0,0,0.2), 0 0 2px rgba(0,0,0,0.1);
+          white-space: nowrap;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+        .mode-switch-btn:active {
+          transform: translateX(-50%) scale(0.96);
+        }
+        .mode-switch-btn svg {
+          width: 18px;
+          height: 18px;
+          transition: width 0.2s ease, height 0.2s ease;
+        }
+
+        /* iPad・タブレット以上の画面向け（地図ボタンと同じサイズ感） */
+        @media (min-width: 768px) {
+          .mode-switch-btn {
+            padding: 16px 28px;
+            font-size: 16px;
+            gap: 10px;
+            bottom: calc(72px + env(safe-area-inset-bottom) + 24px); 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+          }
+          .mode-switch-btn svg {
+            width: 18px;
+            height: 18px;
+          }
+        }
+      `}</style>
 
       {/* ── タイトルとアバター ── */}
       <h1 style={{ fontSize: 26, fontWeight: 700, color: C.ink, marginBottom: 24, marginTop: 8 }}>
@@ -240,34 +287,10 @@ export default function FarmerMenu() {
 
       {/* ── 予約者モードへ FAB ── */}
       <button
+        className="mode-switch-btn"
         onClick={() => triggerModeTransition(setTransitionActive, navigate, "/farms")}
-        style={{
-          position: "fixed",
-          bottom: "calc(72px + env(safe-area-inset-bottom) + 20px)",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 800,
-          backgroundColor: "#222222",
-          color: "#ffffff",
-          border: "none",
-          borderRadius: 9999,
-          padding: "14px 24px",
-          fontSize: 14,
-          fontWeight: 600,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          cursor: "pointer",
-          boxShadow: "0 6px 16px rgba(0,0,0,0.2), 0 0 2px rgba(0,0,0,0.1)",
-          whiteSpace: "nowrap",
-          transition: "transform 0.1s ease",
-          fontFamily: "inherit",
-        }}
-        onMouseDown={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(0.96)"}
-        onMouseUp={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(1)"}
-        onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(1)"}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7 10v12" /><path d="M11 18l-4 4-4-4" /><path d="M17 14V2" /><path d="M21 6l-4-4-4 4" />
         </svg>
         予約者モードへ
@@ -275,8 +298,14 @@ export default function FarmerMenu() {
 
       {/* ── ログアウト確認モーダル ── */}
       {showLogoutModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-          <div style={{ backgroundColor: "#fff", borderRadius: 16, padding: 24, width: "90%", maxWidth: 360, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+        <div 
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}
+          onClick={() => setShowLogoutModal(false)} // ★ 外側クリックで閉じる
+        >
+          <div 
+            style={{ backgroundColor: "#fff", borderRadius: 16, padding: 24, width: "90%", maxWidth: 360, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}
+            onClick={(e) => e.stopPropagation()} // ★ 内側クリックでは閉じない
+          >
             <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginBottom: 24, textAlign: "center" }}>
               本当にログアウトしてもよろしいですか？
             </div>
@@ -290,8 +319,14 @@ export default function FarmerMenu() {
 
       {/* ── 退会確認モーダル ── */}
       {showDeleteModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-          <div style={{ backgroundColor: "#fff", borderRadius: 16, padding: 24, width: "90%", maxWidth: 440, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+        <div 
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}
+          onClick={resetDeleteModal} // ★ 外側クリックで閉じる
+        >
+          <div 
+            style={{ backgroundColor: "#fff", borderRadius: 16, padding: 24, width: "90%", maxWidth: 440, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}
+            onClick={(e) => e.stopPropagation()} // ★ 内側クリックでは閉じない
+          >
             <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 12 }}>アカウントの削除（取り消し不可）</div>
             <div style={{ fontSize: 14, color: C.ink2, lineHeight: 1.6, marginBottom: 20 }}>
               <span style={{ fontWeight: 600, color: C.ink, display: "block", marginBottom: 12 }}>※今後の予約が残っている場合は退会できません。</span>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "@/config/api";
 import { PublicBottomBar } from "@/components/PublicBottomBar";
 import { LoginBottomSheet } from "@/components/LoginBottomSheet";
@@ -20,7 +20,7 @@ type ConsumerIdentity = {
   email: string | null;
   is_farmer?: boolean;
   own_farm_id?: number | null;
-  is_admin?: boolean; // ★ 追加: 管理者フラグ
+  is_admin?: boolean;
 };
 
 export default function AccountSettingsPage() {
@@ -67,12 +67,83 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const handleDeleteAccount = async () => { /* 省略（そのまま） */ };
-  const resetDeleteModal = () => { /* 省略（そのまま） */ };
+  // ★ 省略していた退会処理を復元
+  const handleDeleteAccount = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/consumers/me/delete`, { method: "POST", credentials: "include" });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setDeleteError(errData.detail || "退会処理に失敗しました。");
+        setIsDeleting(false);
+        return;
+      }
+      navigate("/farms", { replace: true });
+    } catch {
+      setDeleteError("通信エラーが発生しました。");
+      setIsDeleting(false);
+    }
+  };
+
+  // ★ 省略していたキャンセル処理を復元
+  const resetDeleteModal = () => {
+    setShowDeleteModal(false);
+    setCheck1(false);
+    setCheck2(false);
+    setConfirmText("");
+    setDeleteError(null);
+  };
+
   const canDelete = check1 && check2 && confirmText === "退会する";
 
   const renderLayout = (child: React.ReactNode) => (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: C.bgBase, overflowX: "hidden" }}>
+      <style>{`
+        .mode-switch-btn {
+          position: fixed;
+          bottom: calc(64px + env(safe-area-inset-bottom) + 20px);
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 800;
+          background-color: #222222;
+          color: #ffffff;
+          border: none;
+          border-radius: 9999px;
+          padding: 14px 24px;
+          font-size: 14px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          box-shadow: 0 6px 16px rgba(0,0,0,0.2), 0 0 2px rgba(0,0,0,0.1);
+          white-space: nowrap;
+          transition: all 0.2s ease;
+        }
+        .mode-switch-btn:active {
+          transform: translateX(-50%) scale(0.96);
+        }
+        .mode-switch-btn svg {
+          width: 18px;
+          height: 18px;
+          transition: width 0.2s ease, height 0.2s ease;
+        }
+        @media (min-width: 768px) {
+          .mode-switch-btn {
+            padding: 16px 28px;
+            font-size: 16px;
+            gap: 10px;
+            bottom: calc(64px + env(safe-area-inset-bottom) + 24px); 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+          }
+          .mode-switch-btn svg {
+            width: 18px;
+            height: 18px;
+          }
+        }
+      `}</style>
       <div style={{ flexGrow: 1, padding: "24px 16px 180px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
         {child}
       </div>
@@ -82,162 +153,70 @@ export default function AccountSettingsPage() {
 
   if (loading) return renderLayout(<div style={{ textAlign: "center", padding: "40px 0", color: C.ink3, fontWeight: 600 }}>読み込み中…</div>);
 
-  // ==========================================
-  // 未ログイン時
-  // ==========================================
   if (!identity || !identity.is_logged_in) {
     return renderLayout(
       <>
-        <h1 style={{ fontSize: 24, fontWeight: 600, color: C.ink, marginBottom: 8, marginTop: 16 }}>
-          アカウント
-        </h1>
-        <p style={{ fontSize: 15, color: C.ink3, marginBottom: 32 }}>
-          ログインして、お米の予約や履歴の確認をしましょう
-        </p>
-
+        <h1 style={{ fontSize: 24, fontWeight: 600, color: C.ink, marginBottom: 8, marginTop: 16 }}>アカウント</h1>
+        <p style={{ fontSize: 15, color: C.ink3, marginBottom: 32 }}>ログインして、お米の予約や履歴の確認をしましょう</p>
         <button
           onClick={() => setShowAuthModal(true)}
-          style={{
-            width: "100%", padding: "14px 0", borderRadius: 8,
-            backgroundColor: C.ink, color: "#fff",
-            fontSize: 16, fontWeight: 600, border: "none", cursor: "pointer",
-            marginBottom: 48, transition: "transform 0.1s ease",
-          }}
+          style={{ width: "100%", padding: "14px 0", borderRadius: 8, backgroundColor: C.ink, color: "#fff", fontSize: 16, fontWeight: 600, border: "none", cursor: "pointer", marginBottom: 48, transition: "transform 0.1s ease" }}
           onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.98)"}
           onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
         >
           ログインまたは登録
         </button>
-
         <div>
           <div style={{ backgroundColor: "#fff", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
-            <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
-              <span style={{ fontSize: 16, fontWeight: 400 }}>特定商取引法に基づく表記</span><span style={{ color: C.ink, fontSize: 18 }}>›</span>
-            </a>
-            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
-              <span style={{ fontSize: 16, fontWeight: 400 }}>利用規約</span><span style={{ color: C.ink, fontSize: 18 }}>›</span>
-            </a>
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
-              <span style={{ fontSize: 16, fontWeight: 400 }}>プライバシーポリシー</span><span style={{ color: C.ink, fontSize: 18 }}>›</span>
-            </a>
+            <Link to="/law" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}><span style={{ fontSize: 16, fontWeight: 400 }}>特定商取引法に基づく表記</span><span style={{ color: C.ink, fontSize: 18 }}>›</span></Link>
+            <Link to="/terms" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}><span style={{ fontSize: 16, fontWeight: 400 }}>利用規約</span><span style={{ color: C.ink, fontSize: 18 }}>›</span></Link>
+            <Link to="/privacy" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}><span style={{ fontSize: 16, fontWeight: 400 }}>プライバシーポリシー</span><span style={{ color: C.ink, fontSize: 18 }}>›</span></Link>
           </div>
         </div>
-
-        <LoginBottomSheet 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-          redirectPath="/farms" 
-        />
+        <LoginBottomSheet isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} redirectPath="/farms" />
       </>
     );
   }
 
-  // ==========================================
-  // ログイン時
-  // ==========================================
   return renderLayout(
     <>
-      <h1 style={{ fontSize: 24, fontWeight: 600, color: C.ink, marginBottom: 24, marginTop: 16 }}>
-        アカウント
-      </h1>
-
+      <h1 style={{ fontSize: 24, fontWeight: 600, color: C.ink, marginBottom: 24, marginTop: 16 }}>アカウント</h1>
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 40 }}>
-        <div style={{ width: 64, height: 64, borderRadius: "50%", backgroundColor: C.ink, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 600 }}>
-          {identity.email ? identity.email.charAt(0).toUpperCase() : "U"}
-        </div>
-        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, wordBreak: "break-all" }}>
-          {identity.email}
-        </div>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", backgroundColor: C.ink, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 600 }}>{identity.email ? identity.email.charAt(0).toUpperCase() : "U"}</div>
+        <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, wordBreak: "break-all" }}>{identity.email}</div>
       </div>
-
       <div>
         <div style={{ backgroundColor: "#fff", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
-          <a href="/law" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
-            <span style={{ fontSize: 16, fontWeight: 400 }}>特定商取引法に基づく表記</span><span style={{ color: C.ink, fontSize: 18 }}>›</span>
-          </a>
-          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
-            <span style={{ fontSize: 16, fontWeight: 400 }}>利用規約</span><span style={{ color: C.ink, fontSize: 18 }}>›</span>
-          </a>
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}>
-            <span style={{ fontSize: 16, fontWeight: 400 }}>プライバシーポリシー</span><span style={{ color: C.ink, fontSize: 18 }}>›</span>
-          </a>
-
-          {/* ★ 追加: 管理者のみ表示される隠し扉 */}
+          <Link to="/law" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}><span style={{ fontSize: 16, fontWeight: 400 }}>特定商取引法に基づく表記</span><span style={{ color: C.ink, fontSize: 18 }}>›</span></Link>
+          <Link to="/terms" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}><span style={{ fontSize: 16, fontWeight: 400 }}>利用規約</span><span style={{ color: C.ink, fontSize: 18 }}>›</span></Link>
+          <Link to="/privacy" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.ink }}><span style={{ fontSize: 16, fontWeight: 400 }}>プライバシーポリシー</span><span style={{ color: C.ink, fontSize: 18 }}>›</span></Link>
           {identity.is_admin && (
-            <button 
-              onClick={() => navigate("/admin")} 
-              style={{ 
-                display: "flex", justifyContent: "space-between", alignItems: "center", 
-                width: "100%", padding: "20px 0", background: "none", border: "none", borderBottom: `1px solid ${C.border}`,
-                textDecoration: "none", color: C.red, cursor: "pointer", textAlign: "left"
-              }}
-            >
-              <span style={{ fontSize: 16, fontWeight: 700 }}>管理者ダッシュボード</span>
-              <span style={{ color: C.red, fontSize: 18 }}>›</span>
-            </button>
+            <button onClick={() => navigate("/admin")} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", padding: "20px 0", background: "none", border: "none", borderBottom: `1px solid ${C.border}`, textDecoration: "none", color: C.red, cursor: "pointer", textAlign: "left" }}><span style={{ fontSize: 16, fontWeight: 700 }}>管理者ダッシュボード</span><span style={{ color: C.red, fontSize: 18 }}>›</span></button>
           )}
-          
-          <button 
-            onClick={() => setShowLogoutModal(true)} 
-            style={{ 
-              display: "flex", justifyContent: "space-between", alignItems: "center", 
-              width: "100%", padding: "20px 0", background: "none", border: "none", 
-              textDecoration: "none", color: C.ink, cursor: "pointer", textAlign: "left"
-            }}
-          >
-            <span style={{ fontSize: 16, fontWeight: 400 }}>ログアウト</span>
-          </button>
+          <button onClick={() => setShowLogoutModal(true)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", padding: "20px 0", background: "none", border: "none", textDecoration: "none", color: C.ink, cursor: "pointer", textAlign: "left" }}><span style={{ fontSize: 16, fontWeight: 400 }}>ログアウト</span></button>
         </div>
       </div>
-
-      {/* ログアウトと退会の間に意図的に巨大な余白を作り、誤タップを完全に防ぐ */}
       <div style={{ marginTop: 160, textAlign: "center" }}>
-        <button
-          onClick={() => setShowDeleteModal(true)}
-          style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: "8px 16px" }}
-        >
-          退会（アカウント削除）をご希望の方はこちら
-        </button>
+        <button onClick={() => setShowDeleteModal(true)} style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: "8px 16px" }}>退会（アカウント削除）をご希望の方はこちら</button>
       </div>
 
       {identity.is_farmer && (
-        <button
-          onClick={() => triggerModeTransition(setTransitionActive, navigate, "/farmer")}
-          style={{
-            position: "fixed",
-            bottom: "calc(64px + env(safe-area-inset-bottom) + 20px)",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 800,
-            backgroundColor: "#222222",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: 9999,
-            padding: "14px 24px",
-            fontSize: 14,
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            cursor: "pointer",
-            boxShadow: "0 6px 16px rgba(0,0,0,0.2), 0 0 2px rgba(0,0,0,0.1)",
-            whiteSpace: "nowrap",
-            transition: "transform 0.1s ease",
-          }}
-          onMouseDown={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(0.96)"}
-          onMouseUp={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(1)"}
-          onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(-50%) scale(1)"}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 10v12" /><path d="M11 18l-4 4-4-4" /><path d="M17 14V2" /><path d="M21 6l-4-4-4 4" />
-          </svg>
+        <button className="mode-switch-btn" onClick={() => triggerModeTransition(setTransitionActive, navigate, "/farmer")}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12" /><path d="M11 18l-4 4-4-4" /><path d="M17 14V2" /><path d="M21 6l-4-4-4 4" /></svg>
           農家モードへ
         </button>
       )}
 
+      {/* ── ログアウトモーダル ── */}
       {showLogoutModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 360, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
+        <div 
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}
+          onClick={() => setShowLogoutModal(false)} // ★ 外側クリックで閉じる
+        >
+          <div 
+            style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 360, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}
+            onClick={(e) => e.stopPropagation()} // ★ 内側クリックでは閉じない
+          >
             <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginBottom: 24, textAlign: "center" }}>本当にログアウトしてもよろしいですか？</div>
             <div style={{ display: "flex", gap: 12 }}>
               <button onClick={() => setShowLogoutModal(false)} style={{ flex: 1, padding: "12px 0", borderRadius: 8, border: `1px solid ${C.border}`, backgroundColor: "#fff", color: C.ink, fontWeight: 600, cursor: "pointer" }}>キャンセル</button>
@@ -247,9 +226,16 @@ export default function AccountSettingsPage() {
         </div>
       )}
 
+      {/* ── 退会モーダル ── */}
       {showDeleteModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 440, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
+        <div 
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}
+          onClick={resetDeleteModal} // ★ 外側クリックで閉じる
+        >
+          <div 
+            style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 24, width: "90%", maxWidth: 440, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}
+            onClick={(e) => e.stopPropagation()} // ★ 内側クリックでは閉じない
+          >
             <div style={{ fontSize: 18, fontWeight: 700, color: C.red, marginBottom: 12 }}>アカウントの削除（取り消し不可）</div>
             <div style={{ fontSize: 14, color: C.ink, lineHeight: 1.6, marginBottom: 20 }}><span style={{ fontWeight: 700, color: C.red, display: "block", marginBottom: 12 }}>※受け取り待ちの予約がある場合は退会できません。</span>アカウントを削除するためには、以下の項目に同意してください。</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>

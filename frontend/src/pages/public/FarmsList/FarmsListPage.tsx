@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom"; // ★ useNavigate を追加
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import MapLayerPortal from "./MapLayerPortal";
 import { FarmCard, type FarmCardData } from "./components/FarmCard";
 import { useFarmsListPage } from "./hooks/useFarmsListPage";
@@ -78,7 +78,7 @@ function Divider({ label }: { label: string }) {
 
 // ── Page ──────────────────────────────────────────
 export default function FarmsListPage() {
-  const navigate = useNavigate(); // ★ 追加
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMapOpen = searchParams.get("map") === "1";
 
@@ -186,6 +186,76 @@ export default function FarmsListPage() {
         backgroundColor: "#fdfcfa",
       }}
     >
+      <style>{`
+        /* ── 地図切り替えボタンのレスポンシブ設計 ── */
+        .map-fab-btn {
+          position: fixed;
+          left: 50%;
+          z-index: 70;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 13px 22px;
+          border-radius: 9999px;
+          border: none;
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 700;
+          font-family: inherit;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 150ms ease;
+        }
+
+        /* 閉じてるとき（一覧画面） */
+        .map-fab-btn.closed {
+          top: auto;
+          bottom: calc(72px + env(safe-area-inset-bottom));
+          transform: translateX(-50%);
+          background: ${C.red};
+          box-shadow: 0 8px 28px rgba(168,48,32,0.35), 0 2px 8px rgba(168,48,32,0.2);
+        }
+        .map-fab-btn.closed:active {
+          transform: translateX(-50%) scale(0.96);
+        }
+
+        /* 開いてるとき（地図画面） */
+        .map-fab-btn.opened {
+          top: calc(100dvh - 140px - env(safe-area-inset-bottom));
+          bottom: auto;
+          transform: translate(-50%, -50%);
+          background: #111827;
+          box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+        }
+        .map-fab-btn.opened:active {
+          transform: translate(-50%, -50%) scale(0.96);
+        }
+
+        .map-fab-btn svg {
+          width: 15px;
+          height: 15px;
+          transition: width 150ms ease, height 150ms ease;
+        }
+
+        /* iPad・タブレット以上の画面向け（少しだけ大きくする） */
+        @media (min-width: 768px) {
+          .map-fab-btn {
+            padding: 16px 28px;
+            font-size: 16px;
+            gap: 10px;
+          }
+          .map-fab-btn.closed {
+            /* PC/iPadでは少し浮かせて存在感を出す */
+            bottom: calc(72px + env(safe-area-inset-bottom) + 16px); 
+          }
+          .map-fab-btn svg {
+            width: 18px;
+            height: 18px;
+          }
+        }
+      `}</style>
+
       <div style={{ flexGrow: 1 }}>
 
         {/* Header */}
@@ -319,6 +389,7 @@ export default function FarmsListPage() {
           {/* ── Map FAB ── */}
           <button
             type="button"
+            className={`map-fab-btn ${isMapOpen ? "opened" : "closed"}`}
             onClick={() => {
               const next = new URLSearchParams(searchParams);
               if (isMapOpen) next.delete("map");
@@ -327,42 +398,9 @@ export default function FarmsListPage() {
             }}
             aria-expanded={isMapOpen}
             aria-label={isMapOpen ? "地図を閉じる" : "地図を表示"}
-            style={{
-              position: "fixed",
-              left: "50%",
-              // ★ 83vh から変更：画面の真の高さから140pxと安全領域を引く
-              top: isMapOpen ? "calc(100dvh - 140px - env(safe-area-inset-bottom))" : "auto",
-              bottom: isMapOpen
-                ? "auto"
-                : "calc(72px + env(safe-area-inset-bottom))",
-              transform: isMapOpen
-                ? "translate(-50%, -50%)"
-                : "translateX(-50%)",
-              zIndex: 70,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "13px 22px",
-              borderRadius: 9999,
-              border: "none",
-              background: isMapOpen ? "#111827" : C.red,
-              color: "#ffffff",
-              fontSize: 14,
-              fontWeight: 700,
-              fontFamily: "inherit",
-              letterSpacing: "0.04em",
-              cursor: "pointer",
-              boxShadow: isMapOpen
-                ? "0 8px 28px rgba(0,0,0,0.25)"
-                : "0 8px 28px rgba(168,48,32,0.35), 0 2px 8px rgba(168,48,32,0.2)",
-              whiteSpace: "nowrap",
-              transition: "background 150ms, box-shadow 150ms",
-            }}
           >
             {/* Map icon */}
             <svg
-              width="15"
-              height="15"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -385,9 +423,7 @@ export default function FarmsListPage() {
               next.delete("map");
               setSearchParams(next, { replace: false });
             }}
-            farms={publicFarms}
             mapCenter={effectiveMapCenter}
-            noFarmsWithin100km={noFarmsWithin100km}
           />
         </section>
       </div>

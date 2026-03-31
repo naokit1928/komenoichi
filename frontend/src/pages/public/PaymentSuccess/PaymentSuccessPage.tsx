@@ -82,7 +82,7 @@ const sx: Record<string, CSSProperties> = {
     width: 64,
     height: 64,
     borderRadius: "50%",
-    background: C.ink2, // 濃い茶色へ変更
+    background: C.ink, // ★ 大きな塗りつぶしを茶色(ink2)から黒(ink)に変更
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -107,14 +107,14 @@ const sx: Record<string, CSSProperties> = {
     display: "block",
     width: "100%",
     textAlign: "center",
-    background: C.ink2, // 濃い茶色へ変更
+    background: C.ink, // ★ ボタンを茶色(ink2)から黒(ink)に変更
     color: "#fff",
     textDecoration: "none",
     fontSize: 15,
     fontWeight: 600,
     padding: "14px",
     borderRadius: 9999,
-    boxShadow: "0 4px 12px rgba(75, 62, 42, 0.2)", // 影も茶色ベースに
+    boxShadow: "0 4px 12px rgba(26, 17, 8, 0.2)", // ★ 影も黒ベースに合わせて調整
   },
 };
 

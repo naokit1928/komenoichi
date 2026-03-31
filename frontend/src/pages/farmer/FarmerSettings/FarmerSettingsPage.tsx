@@ -328,6 +328,16 @@ export default function FarmerSettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] pb-52">
+      {/* ★ iOS Safari特有の文字色バグ（数字を勝手に青い電話番号リンクにする機能）を無効化するCSS */}
+      <style>{`
+        /* 勝手にリンク化された要素の色を親要素と同じ（黒）に強制し、タップできないようにする */
+        a[href^="tel"], a[x-apple-data-detectors] {
+          color: inherit !important;
+          text-decoration: none !important;
+          pointer-events: none !important;
+        }
+      `}</style>
+
       <FarmerSettingsHeader title="農家ページの設定" />
 
       <div className="mx-auto max-w-3xl">
@@ -489,7 +499,7 @@ export default function FarmerSettingsPage() {
       )}
 
       {/* =========================================
-          公開切り替え確認モーダル（変更部分）
+          公開切り替え確認モーダル
       ========================================= */}
       {publishConfirm && ReactDOM.createPortal(
         <>

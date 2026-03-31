@@ -198,7 +198,7 @@ export default function LoginOrRegisterPage() {
                 width: "100%",
                 display: "block",
                 padding: "14px",
-                background: loading ? "#d1d5db" : C.ink2,
+                background: loading ? "#d1d5db" : C.ink, // ★ ボタンを茶色(ink2)から黒(ink)に変更
                 color: "#ffffff",
                 borderRadius: 9999, // 丸ボタン
                 border: "none",
@@ -214,7 +214,7 @@ export default function LoginOrRegisterPage() {
 
             {/* 規約への同意文言 */}
             <div style={{ marginTop: 24, fontSize: 12, color: C.ink3, textAlign: "center", lineHeight: 1.6 }}>
-              続行することで、<a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: C.ink2 }}>利用規約</a> および <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: C.ink2 }}>プライバシーポリシー</a> に同意したものとみなされます。
+              続行することで、<a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: C.ink }}>利用規約</a> および <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: C.ink }}>プライバシーポリシー</a> に同意したものとみなされます。
             </div>
           </div>
         ) : (
@@ -223,7 +223,7 @@ export default function LoginOrRegisterPage() {
             {/* チェックアイコン */}
             <div style={{ 
               display: "inline-flex", alignItems: "center", justifyContent: "center", 
-              width: 48, height: 48, borderRadius: "50%", backgroundColor: C.bgPale, color: C.ink2, marginBottom: 16
+              width: 48, height: 48, borderRadius: "50%", backgroundColor: C.bgPale, color: C.ink, marginBottom: 16
             }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>

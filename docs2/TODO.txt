@@ -29,7 +29,7 @@ Step 3: Admin（管理）ページの作成
 Step 4: 本番インフラ・環境変数の最終設定【重要】
 やること:
 
-Postmarkのドメイン認証: マジックリンクのメールが「迷惑メール」に入らないよう、CloudflareのDNSにPostmarkのDKIM/DMARCレコードを正しく設定する。
+Postmarkのドメイン認証: マジックリンクのメールが「迷惑メール」に入らないよう、CloudflareのDNSにPostmarkのDKIM/DMARCレコードを正しく設定する。ここまで完了した！
 
 環境変数の切り替え: Vercel（フロント）とRender（バック）の環境変数を、StripeのテストキーからLive（本番）キーへ差し替える。
 
