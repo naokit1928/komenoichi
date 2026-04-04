@@ -31,9 +31,6 @@ export default function PromotionPosterDesign({ farmUrl, farmId }: PromotionPost
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: 24, fontWeight: 900, color: "#fff", letterSpacing: "7px" }}>
-          こめのいち
-        </span>
         <span style={{ fontSize: 20, fontWeight: 700, color: "rgba(255,255,255,0.72)", letterSpacing: "0.5px" }}>
           農家の家でお米を売っています
         </span>
