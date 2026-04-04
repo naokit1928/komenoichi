@@ -85,15 +85,23 @@ GitHubへのpushをトリガーに自動デプロイが走る。
 対策： Renderのステータスが「Live」になったのを確認してから、Vercelのダッシュボードで失敗したデプロイの右端の「︙」から 「Redeploy」 をクリックする。
 
 Step 7：本番DBのアップデート（スキーマ変更時のみ）
-テーブル追加やカラム変更があり、**「本番データを全消しして再構築してもよい場合」**は以下の手順を行う。
+テーブル追加やカラム変更があり、「本番データを全消しして再構築してもよい場合」は以下の手順を行う。
 （※ コードがデプロイされただけではDB構造は更新されないため必須）
 
-PowerShell
-# ローカルまたはRenderのShellから実行
-python app_v2/models/init_db.py
-Step 8：完了後のクリーンアップ
-誤操作（本番フォルダで開発を始めてしまう等）を防ぐため、用が済んだフォルダは削除する。
+Render Dashboard → Shell で実行：
 
-PowerShell
-cd ..
-Remove-Item -Recurse -Force .\komenoichi
+  # バックアップ
+  cp /var/data/app.db /var/data/app.db.backup_$(date +%Y%m%d_%H%M%S)
+
+  # 削除
+  rm /var/data/app.db
+
+  # schema.sql から再構築
+  sqlite3 /var/data/app.db < src/schema.sql
+
+完了確認：
+  sqlite3 /var/data/app.db ".schema"
+
+その後 Render Dashboard で Manual Deploy / Restart を行う。
+
+⚠️ データを保持する必要がある場合は scripts/migrations/ に migration スクリプトを作成して実行すること。
