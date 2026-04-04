@@ -23,57 +23,98 @@ type Props = {
   formatYen: (v: number | string | null | undefined) => string;
   onClose: () => void;
   onReload: () => void;
+  pickupSlotCode?: string; // ★ 追加："SAT_9_11" 形式。開始時刻の導出に使用
   eventEndAt?: string;
-  isChecked: boolean; // ★ 追加
-  onToggleCheck: (val: boolean) => void; // ★ 追加
+  isChecked: boolean;
+  onToggleCheck: (val: boolean) => void;
 };
+
+const COMPLETE_WINDOW_MINUTES = 10; // 開始時刻の前後この分数だけ完了マーク可能
+
+/**
+ * pickup_slot_code（例: "SAT_9_11"）と event_end_at から
+ * イベント開始時刻を導出する。
+ * end_at はバックエンドが正確に計算した値なので、
+ * そこから (endHour - startHour) 時間を引くだけで確実に一致する。
+ */
+function deriveEventStartAt(eventEndAt: string, pickupSlotCode: string): Date | null {
+  try {
+    const parts = pickupSlotCode.split("_"); // ["SAT", "9", "11"]
+    if (parts.length < 3) return null;
+    const startHour = parseInt(parts[1], 10);
+    const endHour = parseInt(parts[2], 10);
+    if (isNaN(startHour) || isNaN(endHour) || endHour <= startHour) return null;
+    const durationMs = (endHour - startHour) * 60 * 60 * 1000;
+    const endDt = new Date(eventEndAt);
+    if (isNaN(endDt.getTime())) return null;
+    return new Date(endDt.getTime() - durationMs);
+  } catch {
+    return null;
+  }
+}
 
 const ReservationDetailModal: React.FC<Props> = ({
   row,
   formatYen,
   onClose,
   onReload,
+  pickupSlotCode,
   eventEndAt,
-  isChecked, // ★
-  onToggleCheck, // ★
+  isChecked,
+  onToggleCheck,
 }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const [isTimeLocked, setIsTimeLocked] = useState(true);
-  const [isActionExpired, setIsActionExpired] = useState(false); 
+  // 受渡完了ボタンの時間窓：開始時刻 ±10分
+  const [canComplete, setCanComplete] = useState(false);
+  // ノーショー報告の解禁：イベント終了後
+  const [isNoShowUnlocked, setIsNoShowUnlocked] = useState(false);
+  // 全操作の期限切れ：イベント終了から12時間後
+  const [isActionExpired, setIsActionExpired] = useState(false);
 
   useEffect(() => {
-    if (!eventEndAt) return;
-    
-    const endDt = new Date(eventEndAt);
-    const unlockDt = new Date(endDt.getTime()); 
-    const expireDt = new Date(endDt.getTime() + 12 * 60 * 60 * 1000); 
-
     const checkTime = () => {
       const now = new Date();
-      setIsTimeLocked(now < unlockDt);
-      setIsActionExpired(now >= expireDt); 
+
+      // 受渡完了ボタン：開始時刻 ±10分
+      if (eventEndAt && pickupSlotCode) {
+        const startDt = deriveEventStartAt(eventEndAt, pickupSlotCode);
+        if (startDt) {
+          const windowOpen  = new Date(startDt.getTime() - COMPLETE_WINDOW_MINUTES * 60 * 1000);
+          const windowClose = new Date(startDt.getTime() + COMPLETE_WINDOW_MINUTES * 60 * 1000);
+          setCanComplete(now >= windowOpen && now <= windowClose);
+        } else {
+          setCanComplete(false);
+        }
+      } else {
+        setCanComplete(false);
+      }
+
+      // ノーショー報告・期限切れ：イベント終了時刻を基準
+      if (eventEndAt) {
+        const endDt = new Date(eventEndAt);
+        setIsNoShowUnlocked(now >= endDt);
+        setIsActionExpired(now >= new Date(endDt.getTime() + 12 * 60 * 60 * 1000));
+      }
     };
 
     checkTime();
     const timer = setInterval(checkTime, 10000);
     return () => clearInterval(timer);
-  }, [eventEndAt]);
+  }, [pickupSlotCode, eventEndAt]);
 
-  // ★ 変更：APIを叩かず、フロントエンド（LocalStorage）だけを一瞬で更新して閉じる
   const handleComplete = () => {
     onToggleCheck(true);
-    onClose(); 
+    onClose();
   };
 
   const handleUndoComplete = () => {
     onToggleCheck(false);
-    onClose(); 
+    onClose();
   };
 
-  // ※ ノーショー報告は今まで通りバックエンドと通信する（本物のDB更新のため）
   const handleNoShow = async () => {
     setReporting(true);
     setErrorMsg("");
@@ -102,8 +143,7 @@ const ReservationDetailModal: React.FC<Props> = ({
         credentials: "include",
       });
       if (!res.ok) throw new Error("通信エラーが発生しました。");
-      
-      onReload(); 
+      onReload();
       setReporting(false);
     } catch (e: any) {
       alert(e.message);
@@ -115,16 +155,11 @@ const ReservationDetailModal: React.FC<Props> = ({
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div
-        className={styles.modalCard}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
         <header className={styles.modalHeader}>
           <div className={styles.modalTitleBlock}>
             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: 600 }}>
-                受渡番号
-              </div>
+              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: 600 }}>受渡番号</div>
               <div style={{ fontSize: "28px", fontWeight: 700, color: "#111827", letterSpacing: "0.1em", lineHeight: 1.1 }}>
                 {row.pickup_code}
               </div>
@@ -133,9 +168,7 @@ const ReservationDetailModal: React.FC<Props> = ({
               </div>
             </div>
           </div>
-          <button type="button" className={styles.modalCloseButton} onClick={onClose} aria-label="閉じる">
-            ×
-          </button>
+          <button type="button" className={styles.modalCloseButton} onClick={onClose} aria-label="閉じる">×</button>
         </header>
 
         <div className={styles.modalBody}>
@@ -167,26 +200,18 @@ const ReservationDetailModal: React.FC<Props> = ({
           </table>
 
           <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px dashed #e5e7eb" }}>
-            
-            {/* 完了状態（DBではなくローカルのチェック状態を見る） */}
+
+            {/* チェック済み状態 */}
             {isChecked && !isNoShow && (
               <div style={{ textAlign: "center", padding: "12px", background: "#f3f4f6", borderRadius: "8px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "#111827", marginBottom: "8px" }}>
-                  ✅ 受渡完了としてチェック済み
+                  受渡完了（チェック済み）
                 </div>
                 {!isActionExpired && (
                   <button
                     onClick={handleUndoComplete}
                     disabled={reporting}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#6b7280",
-                      fontSize: "12px",
-                      textDecoration: "underline",
-                      cursor: reporting ? "not-allowed" : "pointer",
-                      padding: "4px 8px",
-                    }}
+                    style={{ background: "none", border: "none", color: "#6b7280", fontSize: "12px", textDecoration: "underline", cursor: reporting ? "not-allowed" : "pointer", padding: "4px 8px" }}
                   >
                     チェックを外す
                   </button>
@@ -198,21 +223,13 @@ const ReservationDetailModal: React.FC<Props> = ({
             {isNoShow && (
               <div style={{ textAlign: "center", padding: "12px", background: "#fef2f2", borderRadius: "8px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "#991b1b", marginBottom: "8px" }}>
-                  🚨 無断キャンセルとして報告済みです
+                  無断キャンセルとして報告済み
                 </div>
                 {!isActionExpired && (
                   <button
                     onClick={handleUndoNoShow}
                     disabled={reporting}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#b91c1c",
-                      fontSize: "12px",
-                      textDecoration: "underline",
-                      cursor: reporting ? "not-allowed" : "pointer",
-                      padding: "4px 8px",
-                    }}
+                    style={{ background: "none", border: "none", color: "#b91c1c", fontSize: "12px", textDecoration: "underline", cursor: reporting ? "not-allowed" : "pointer", padding: "4px 8px" }}
                   >
                     {reporting ? "処理中..." : "報告を取り消す（遅れて到着した場合など）"}
                   </button>
@@ -225,107 +242,50 @@ const ReservationDetailModal: React.FC<Props> = ({
               <>
                 {isActionExpired ? (
                   <div style={{ textAlign: "center", padding: "12px", background: "#f9fafb", borderRadius: "8px", color: "#6b7280", fontSize: "13px" }}>
-                    🔒 操作期限（受け渡し終了から12時間）を過ぎたため、現在は閲覧のみ可能です。
+                    操作期限（受け渡し終了から12時間）を過ぎたため、現在は閲覧のみ可能です。
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <button
-                      onClick={handleComplete}
-                      disabled={reporting}
-                      style={{
-                        width: "100%",
-                        background: "#111827",
-                        border: "none",
-                        color: "#ffffff",
-                        padding: "12px 16px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        fontWeight: 700,
-                        cursor: reporting ? "not-allowed" : "pointer",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                        opacity: reporting ? 0.6 : 1,
-                      }}
-                    >
-                      ✅ 受渡完了としてマークする
-                    </button>
 
-                    {!isTimeLocked && (
+                    {/* 受渡完了ボタン：開始時刻 ±10分 のみ */}
+                    {canComplete && (
+                      <button
+                        onClick={handleComplete}
+                        disabled={reporting}
+                        style={{ width: "100%", background: "#111827", border: "none", color: "#ffffff", padding: "12px 16px", borderRadius: "8px", fontSize: "14px", fontWeight: 700, cursor: reporting ? "not-allowed" : "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)", opacity: reporting ? 0.6 : 1 }}
+                      >
+                        受渡完了としてマークする
+                      </button>
+                    )}
+
+                    {/* ノーショー報告：イベント終了後のみ */}
+                    {isNoShowUnlocked && (
                       <>
                         {!showConfirm ? (
                           <div style={{ textAlign: "center", marginTop: "8px" }}>
                             <button
                               onClick={() => setShowConfirm(true)}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                color: "#b91c1c",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                textDecoration: "underline"
-                              }}
+                              style={{ background: "none", border: "none", color: "#b91c1c", fontSize: "12px", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}
                             >
-                              🚨 無断キャンセル（ノーショー）として報告
+                              無断キャンセル（ノーショー）として報告
                             </button>
                           </div>
                         ) : (
-                          <div style={{
-                            background: "#fef2f2",
-                            border: "1px solid #fca5a5",
-                            padding: "16px",
-                            borderRadius: "8px",
-                            animation: "fadeSlideUp 0.2s ease-out"
-                          }}>
-                            <p style={{ fontSize: "14px", fontWeight: 700, color: "#991b1b", margin: "0 0 8px", textAlign: "center" }}>
-                              本当に報告しますか？
-                            </p>
+                          <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", padding: "16px", borderRadius: "8px", animation: "fadeSlideUp 0.2s ease-out" }}>
+                            <p style={{ fontSize: "14px", fontWeight: 700, color: "#991b1b", margin: "0 0 8px", textAlign: "center" }}>本当に報告しますか？</p>
                             <p style={{ fontSize: "11px", color: "#b91c1c", margin: "0 0 16px", lineHeight: 1.5, textAlign: "center" }}>
-                              ※この操作は取り消せません。<br />
-                              ※確実にお客様が現れなかった場合のみ確定してください。
+                              ※この操作は取り消せません。<br />※確実にお客様が現れなかった場合のみ確定してください。
                             </p>
-                            
                             <div style={{ display: "flex", gap: "10px" }}>
-                              <button
-                                onClick={() => setShowConfirm(false)}
-                                disabled={reporting}
-                                style={{
-                                  flex: 1,
-                                  background: "#ffffff",
-                                  border: "1px solid #d1d5db",
-                                  color: "#4b5563",
-                                  padding: "10px",
-                                  borderRadius: "6px",
-                                  fontSize: "13px",
-                                  fontWeight: 600,
-                                  cursor: reporting ? "not-allowed" : "pointer",
-                                }}
-                              >
+                              <button onClick={() => setShowConfirm(false)} disabled={reporting} style={{ flex: 1, background: "#ffffff", border: "1px solid #d1d5db", color: "#4b5563", padding: "10px", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: reporting ? "not-allowed" : "pointer" }}>
                                 やめる
                               </button>
-                              <button
-                                onClick={handleNoShow}
-                                disabled={reporting}
-                                style={{
-                                  flex: 1,
-                                  background: "#b91c1c",
-                                  border: "none",
-                                  color: "#ffffff",
-                                  padding: "10px",
-                                  borderRadius: "6px",
-                                  fontSize: "13px",
-                                  fontWeight: 600,
-                                  cursor: reporting ? "not-allowed" : "pointer",
-                                  opacity: reporting ? 0.6 : 1,
-                                }}
-                              >
+                              <button onClick={handleNoShow} disabled={reporting} style={{ flex: 1, background: "#b91c1c", border: "none", color: "#ffffff", padding: "10px", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: reporting ? "not-allowed" : "pointer", opacity: reporting ? 0.6 : 1 }}>
                                 {reporting ? "処理中..." : "確定する"}
                               </button>
                             </div>
-
                             {errorMsg && (
-                              <div style={{ color: "#b91c1c", fontSize: "12px", marginTop: "12px", fontWeight: 600, textAlign: "center" }}>
-                                {errorMsg}
-                              </div>
+                              <div style={{ color: "#b91c1c", fontSize: "12px", marginTop: "12px", fontWeight: 600, textAlign: "center" }}>{errorMsg}</div>
                             )}
                           </div>
                         )}

@@ -1,6 +1,6 @@
 // frontend/src/pages/farmer/FarmerReservationTable/FarmerReservationTable.tsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // ★ 追加
+import { useNavigate } from "react-router-dom";
 import styles from "./FarmerReservationTable.module.css";
 import FarmerReservationNoticeModal from "./FarmerReservationNoticeModal";
 import { useFarmerReservations } from "./hooks/useFarmerReservations";
@@ -45,7 +45,7 @@ function formatEventLabel(meta: EventMeta | null): string {
 const FarmerReservationTable: React.FC<Props> = ({
   mode = "farmer",
 }) => {
-  const navigate = useNavigate(); // ★ 追加
+  const navigate = useNavigate();
   const [offset, setOffset] = useState<number>(0);
   
   const { data, loading, error, reload } = useFarmerReservations(offset);
@@ -147,7 +147,6 @@ const FarmerReservationTable: React.FC<Props> = ({
           onPrint={handlePrint}
           onOpenNotice={() => setShowNoticeModal(true)}
           showCancelButton={mode === "farmer" && offset === 0 && hasConfirmedReservations}
-          // ★ 変更：キャンセルページへ遷移
           onOpenCancel={() => navigate("/farmer/reservations/cancel")} 
         />
 
@@ -217,6 +216,7 @@ const FarmerReservationTable: React.FC<Props> = ({
           formatYen={formatYen}
           onClose={handleCloseDetailModal}
           onReload={reload}
+          pickupSlotCode={data?.event_meta?.pickup_slot_code}  // ★ 追加（1行だけ）
           eventEndAt={data?.event_meta?.event_end_at} 
           isChecked={checkedIds.includes(selectedRow.reservation_id)} 
           onToggleCheck={(val) => handleToggleCheck(selectedRow.reservation_id, val)} 
