@@ -49,53 +49,58 @@ const FarmerReservationNoticeModal: React.FC<FarmerReservationNoticeModalProps> 
           <div className={styles.noticeScrollArea}>
             <div className={styles.ruleList}>
 
+              {/* ① 事前精米・袋詰め */}
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
                   <span className={styles.ruleIcon}>①</span>
-                  新規予約の受付は開始時刻の3時間前に締め切られます
-                </div>
-                <p className={styles.ruleDesc}>
-                  それ以降の新規予約はすべて翌週扱いになります。ただし、<b>予約者からのキャンセル手続きは直前まで可能</b>な仕様となっています。受け渡しに向かう前に、必ず最新の予約一覧をご確認ください。
-                </p>
-              </div>
-
-              <div className={styles.ruleItem}>
-                <div className={styles.ruleTitle}>
-                  <span className={styles.ruleIcon}>②</span>
-                  無断キャンセルへの補償・運営の介入はありません
-                </div>
-                <p className={styles.ruleDesc}>
-                  お米代は現地での現金決済となるため、無断キャンセル（ノーショー）が発生した場合の補償や、運営側での仲裁・ペナルティ付与等はいたしかねます。あらかじめご了承ください。
-                </p>
-              </div>
-
-              <div className={styles.ruleItem}>
-                <div className={styles.ruleTitle}>
-                  <span className={styles.ruleIcon}>③</span>
                   お米はすべて事前に精米・袋詰めしておいてください
                 </div>
                 <p className={styles.ruleDesc}>
-                  予約者をお待たせしないため、受け渡し日までにすべての予約分を事前に精米・袋詰めしておくことを推奨します。無断キャンセルが発生した場合でも、精米済みのお米は<b>翌週の販売に回すことができます</b>（次のルールをご確認ください）。
+                  受け渡し日までに全量を精米・袋詰めしておくことを推奨します。当日のお待たせを防ぎ、万一キャンセルが出ても翌週に回せます。
                 </p>
               </div>
 
+              {/* ② 精米タイミング */}
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
-                  <span className={styles.ruleIcon}>④</span>
+                  <span className={styles.ruleIcon}>②</span>
+                  精米は受け渡しの3時間前以降に行ってください
+                </div>
+                <p className={styles.ruleDesc}>
+                  受け渡し開始の3時間前に新規予約の受付が締め切られ、それ以降のキャンセルはユーザーに強く自制を求める仕様になっています。つまり<b>3時間前の時点で、その週の予約数がほぼ確定します</b>。精米はそのタイミング以降に行うことで、実際の注文数に合わせた量だけ精米できます。
+                </p>
+              </div>
+
+              {/* ③ 余った白米の翌週持ち越し */}
+              <div className={styles.ruleItem}>
+                <div className={styles.ruleTitle}>
+                  <span className={styles.ruleIcon}>③</span>
                   余った白米は翌週に回せます（再来週への繰り越しは禁止）
                 </div>
                 <p className={styles.ruleDesc}>
-                  無断キャンセルにより精米済みのお米がやむを得ず余った場合、冷蔵庫または冷暗所で保管のうえ、<b>翌週の販売に回すことができます</b>。ただし、こめのいちで販売できるのは<b>精米後8日以内</b>のお米に限ります。再来週以降への繰り越しは品質上の理由から<b>固くお断りしています</b>。翌週も売れなかった分はご自身でご消費ください。
+                  やむを得ず余った分は冷蔵または冷暗所で保管し、翌週の販売に充てることができます。ただし<b>精米後8日を超えた販売</b>、および<b>再来週以降への繰り越しは禁止</b>です。翌週も売れ残った分はご自身でご消費ください。
                 </p>
               </div>
 
+              {/* ④ 品質トラブル */}
+              <div className={styles.ruleItem}>
+                <div className={styles.ruleTitle}>
+                  <span className={styles.ruleIcon}>④</span>
+                  品質トラブルは当事者間でご解決ください
+                </div>
+                <p className={styles.ruleDesc}>
+                  返品・交換の申し出は受け渡し当日その場で。運営は品質に関するトラブルへの介入を行いません。
+                </p>
+              </div>
+
+              {/* ⑤ 無断キャンセル報告 */}
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
                   <span className={styles.ruleIcon}>⑤</span>
-                  品質等に関するトラブルは当事者間でご解決ください
+                  無断キャンセルが出た場合はシステムから報告をお願いします
                 </div>
                 <p className={styles.ruleDesc}>
-                  運営は品質に関するクレームに一切関与いたしません。なお、予約者には「返品・交換の申し出は受け渡し時にその場で行うこと」と規約で定めています。受け渡し日以降の返品対応は原則不要ですが、実際の対応は各農家さんのご判断にお任せします。
+                  受け渡し時刻を過ぎても来られなかった場合、受け渡し画面から「無断キャンセル報告」が行えます。報告していただくことで、同じ予約者による再発を防ぐシステム上の対策が機能します。なお<b>代金の補償は運営では行いません</b>。
                 </p>
               </div>
 

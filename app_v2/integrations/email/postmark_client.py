@@ -108,3 +108,20 @@ def send_farmer_cancelled_notification_email(to_email: str, template_model: dict
     TemplateAlias: farmer-reservation-cancelled-notification
     """
     return _send_with_template(to_email, "farmer-reservation-cancelled-notification", template_model)
+
+
+def send_farmer_emergency_cancel_email(to_email: str, farm_name: str, reason: str):
+    """
+    農家による緊急停止（一括キャンセル）時の通知メール
+    reason: 'A' (災害) または 'B' (自己都合)
+    """
+    if reason == "A":
+        template_alias = "emergency-cancel-disaster"
+    else:
+        template_alias = "emergency-cancel-convenience"
+
+    template_model = {
+        "farm_name": farm_name
+    }
+
+    return _send_with_template(to_email, template_alias, template_model)

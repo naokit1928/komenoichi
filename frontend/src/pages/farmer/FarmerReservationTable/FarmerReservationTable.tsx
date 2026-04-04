@@ -1,5 +1,6 @@
 // frontend/src/pages/farmer/FarmerReservationTable/FarmerReservationTable.tsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // ★ 追加
 import styles from "./FarmerReservationTable.module.css";
 import FarmerReservationNoticeModal from "./FarmerReservationNoticeModal";
 import { useFarmerReservations } from "./hooks/useFarmerReservations";
@@ -8,7 +9,7 @@ import ReservationDetailModal from "./ReservationDetailModal";
 import ReservationHeader from "./ReservationHeader";
 
 const NOTICE_STORAGE_KEY = "farmer_reservation_notice_ack";
-const CHECKED_STORAGE_KEY = "farmer_local_checked_ids"; // ★ 追加：ローカル保存用キー
+const CHECKED_STORAGE_KEY = "farmer_local_checked_ids"; 
 
 type Props = {
   reservationId?: number;
@@ -44,13 +45,13 @@ function formatEventLabel(meta: EventMeta | null): string {
 const FarmerReservationTable: React.FC<Props> = ({
   mode = "farmer",
 }) => {
+  const navigate = useNavigate(); // ★ 追加
   const [offset, setOffset] = useState<number>(0);
   
   const { data, loading, error, reload } = useFarmerReservations(offset);
   const [selectedRow, setSelectedRow] = useState<ReservationRow | null>(null);
   const [showNoticeModal, setShowNoticeModal] = useState<boolean>(false);
 
-  // ★ 追加：ローカルストレージで受渡完了（蛍光ペン）の状態を管理
   const [checkedIds, setCheckedIds] = useState<number[]>(() => {
     try {
       const stored = localStorage.getItem(CHECKED_STORAGE_KEY);
@@ -108,6 +109,8 @@ const FarmerReservationTable: React.FC<Props> = ({
   const rows = data?.rows ?? [];
   const hasRows = rows.length > 0;
   
+  const hasConfirmedReservations = rows.some((r) => r.status === "confirmed");
+  
   const SIZE_COLUMNS = [5, 10, 25] as const;
   const totalBySize = SIZE_COLUMNS.map((size) => {
     if (!data || !hasRows) return 0;
@@ -143,6 +146,9 @@ const FarmerReservationTable: React.FC<Props> = ({
           subtitle={displaySubtitle}
           onPrint={handlePrint}
           onOpenNotice={() => setShowNoticeModal(true)}
+          showCancelButton={mode === "farmer" && offset === 0 && hasConfirmedReservations}
+          // ★ 変更：キャンセルページへ遷移
+          onOpenCancel={() => navigate("/farmer/reservations/cancel")} 
         />
 
         {mode === "farmer" && (
@@ -191,7 +197,7 @@ const FarmerReservationTable: React.FC<Props> = ({
                 formatYen={formatYen}
                 onRowClick={handleRowClick}
                 offset={offset}
-                checkedIds={checkedIds} // ★ 追加
+                checkedIds={checkedIds} 
               />
             )}
           </section>
@@ -212,8 +218,8 @@ const FarmerReservationTable: React.FC<Props> = ({
           onClose={handleCloseDetailModal}
           onReload={reload}
           eventEndAt={data?.event_meta?.event_end_at} 
-          isChecked={checkedIds.includes(selectedRow.reservation_id)} // ★ 追加
-          onToggleCheck={(val) => handleToggleCheck(selectedRow.reservation_id, val)} // ★ 追加
+          isChecked={checkedIds.includes(selectedRow.reservation_id)} 
+          onToggleCheck={(val) => handleToggleCheck(selectedRow.reservation_id, val)} 
         />
       )}
     </div>

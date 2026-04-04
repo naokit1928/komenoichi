@@ -20,9 +20,8 @@ export default function PrivacyPage({ isModal = false }: { isModal?: boolean }) 
       <p style={{ marginBottom: 16 }}>
         本サービスでは、ログイン認証およびサービス提供のため、以下の情報を取得します。<br />
         ・メールアドレス<br />
-        ・Cookieおよびセッション情報<br />
-        ・受け渡しに必要な情報（農家の場合は位置情報など）<br />
-        ※クレジットカード情報等は決済代行会社（Stripe社）が直接管理し、本サービスでは一切保持しません。
+        ・Cookie（ログイン状態の維持等に使用します）<br />
+        ・その他、サービス提供に不可欠な情報（農家の場合は位置情報など）
       </p>
 
       <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>2. 利用目的</h2>
@@ -40,12 +39,22 @@ export default function PrivacyPage({ isModal = false }: { isModal?: boolean }) 
 
       <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>4. 退会時のデータの取り扱い（匿名化）</h2>
       <p style={{ marginBottom: 16 }}>
-        ユーザーが退会手続きを行った場合、本サービスは直ちにユーザーのメールアドレス等の個人を特定できる情報を匿名化（不可逆的な書き換え）し、物理的に個人情報を消去します。ただし、売上集計のための個人を特定できない購買履歴は保持されます。
+        ユーザーが退会手続きを行った場合、本サービスは直ちにユーザーのメールアドレス等の個人を特定できる情報を削除または匿名化し、復元不可能な状態にします。ただし、無断キャンセルや不正利用に伴うペナルティ履歴に関するデータについては、悪質な再登録や利用を防ぐ目的で、退会後も一定期間安全に保持される場合があります。
       </p>
 
-      <p style={{ marginTop: 40, fontSize: 14, color: "#6B7280" }}>
-        制定日：2026年3月24日
+      <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>5. セキュリティ</h2>
+      <p style={{ marginBottom: 16 }}>
+        本サービスは、個人情報の漏洩、滅失、または毀損の防止のため、適切なセキュリティ対策を講じます。
       </p>
+
+      <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: "#111827" }}>6. お問い合わせ窓口</h2>
+      <p style={{ marginBottom: 16 }}>
+        本ポリシーに関するお問い合わせは、特定商取引法に基づく表記に記載の連絡先までお願いいたします。
+      </p>
+
+      <div style={{ marginTop: 40, textAlign: "right", fontSize: 14, color: "#6B7280" }}>
+        制定日：2026年4月3日<br />
+      </div>
     </div>
   );
 
@@ -54,11 +63,13 @@ export default function PrivacyPage({ isModal = false }: { isModal?: boolean }) 
   return (
     <div style={{ 
       display: "flex", 
-      flexDirection: "column", 
-      minHeight: "100vh", 
-      backgroundColor: isFarmerMode ? "#F7F7F7" : "#fdfcfa" 
+      flexDirection: "column",
+      minHeight: "100vh",
+      background: "#fff"
     }}>
-      <div style={{ flexGrow: 1, paddingBottom: 80 }}>{content}</div>
+      <div style={{ flex: 1, paddingBottom: 80 }}>
+        {content}
+      </div>
       <Footer />
       {isFarmerMode ? <FarmerBottomBar /> : <PublicBottomBar />}
     </div>

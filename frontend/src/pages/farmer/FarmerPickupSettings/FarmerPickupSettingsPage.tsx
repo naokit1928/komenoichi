@@ -3,13 +3,12 @@ import ReactDOM from "react-dom";
 import PickupLocationCard from "./PickupLocationCard";
 import PickupPlaceNameCard from "./PickupPlaceNameCard";
 import PickupNotesCard from "./PickupNotesCard";
-// ★修正ポイント: コンポーネント（値）と 型（TimeSlotOption）のインポートを分けました
 import PickupTimeCard from "./PickupTimeCard";
 import type { TimeSlotOption } from "./PickupTimeCard";
 
 import FarmerSettingsHeader from "../FarmerSettings/FarmerSettingsHeader";
 
-// API関連のインポート（型と値を分離済み）
+// API関連のインポート
 import {
   fetchPickupSettingsMe,
   updatePickupSettingsMe,
@@ -83,133 +82,129 @@ const FarmerPickupSettingsPage: React.FC = () => {
 
   // 編集可否ロジック
   const canEdit = activeReservationsCount === 0;
-  const lockReason =
-    !canEdit && activeReservationsCount > 0
-      ? "今週すでに予約が入っているため、今は編集できません。"
-      : undefined;
 
   return (
     <div className="min-h-screen bg-[#F7F7F7]">
       <FarmerSettingsHeader title="受け渡し設定" />
-      <div style={{ height: "24px" }} />
+      
+      {/* ── 他ページと同じ最大幅640pxの中央寄せ ── */}
+      <div style={{ maxWidth: 640, margin: "0 auto", paddingTop: 24 }}>
+        
+        {/* 予約ロックバナー */}
+        {!canEdit && (
+          <div style={{
+            margin: "0 16px 24px",
+            padding: "12px 16px",
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: 16,
+            fontSize: 13,
+            color: "#DC2626",
+            fontWeight: 600,
+            lineHeight: 1.6,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            今週すでに予約が入っているため、設定は変更できません。
+          </div>
+        )}
 
-      {/* 予約ロックバナー */}
-      {!canEdit && (
-        <div style={{
-          margin: "0 16px 0",
-          padding: "12px 16px",
-          background: "#FEF2F2",
-          border: "1px solid #FECACA",
-          borderRadius: 16,
-          fontSize: 13,
-          color: "#DC2626",
-          fontWeight: 600,
-          lineHeight: 1.6,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          今週すでに予約が入っているため、設定は変更できません。
+        <div style={{ padding: "0 16px 64px", display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* 場所カード */}
+          <PickupLocationCard
+            initialLat={pickupLat}
+            initialLng={pickupLng}
+            baseLat={baseLat}
+            baseLng={baseLng}
+            radiusMeters={400}
+            saving={savingLocation}
+            disabled={initialLoading || !canEdit || savingLocation}
+            onSave={async (lat, lng) => {
+              try {
+                setSavingLocation(true);
+                const data = await updatePickupSettingsMe({
+                  pickup_lat: lat,
+                  pickup_lng: lng,
+                });
+                applyFarmState(data.farm, data.status);
+                showToast("ok", "受け渡し場所を保存しました。");
+              } catch {
+                showToast("ng", "受け渡し場所の保存に失敗しました");
+              } finally {
+                setSavingLocation(false);
+              }
+            }}
+          />
+
+          {/* 場所名カード */}
+          <PickupPlaceNameCard
+            value={pickupPlaceName}
+            saving={savingPlaceName}
+            disabled={initialLoading || !canEdit || savingPlaceName}
+            onSave={async (val) => {
+              try {
+                setSavingPlaceName(true);
+                const data = await updatePickupSettingsMe({
+                  pickup_place_name: val,
+                });
+                applyFarmState(data.farm, data.status);
+                showToast("ok", "場所名を保存しました。");
+              } catch {
+                showToast("ng", "受け渡し場所名の保存に失敗しました");
+              } finally {
+                setSavingPlaceName(false);
+              }
+            }}
+          />
+
+          {/* メモカード */}
+          <PickupNotesCard
+            value={pickupNotes}
+            saving={savingNotes}
+            disabled={initialLoading || !canEdit || savingNotes}
+            onSave={async (val) => {
+              try {
+                setSavingNotes(true);
+                const data = await updatePickupSettingsMe({
+                  pickup_notes: val,
+                });
+                applyFarmState(data.farm, data.status);
+                showToast("ok", "補足メモを保存しました。");
+              } catch {
+                showToast("ng", "補足メモの保存に失敗しました");
+              } finally {
+                setSavingNotes(false);
+              }
+            }}
+          />
+
+          {/* 時間カード */}
+          <PickupTimeCard
+            value={pickupTime as TimeSlotOption}
+            saving={savingTime}
+            disabled={initialLoading || !canEdit || savingTime}
+            onSave={async (slot) => {
+              try {
+                setSavingTime(true);
+                const data = await updatePickupSettingsMe({
+                  pickup_time: String(slot),
+                });
+                applyFarmState(data.farm, data.status);
+                showToast("ok", "受け取り時間を保存しました。");
+              } catch {
+                showToast("ng", "受け取り時間の保存に失敗しました");
+              } finally {
+                setSavingTime(false);
+              }
+            }}
+          />
         </div>
-      )}
-
-      <div className="mx-auto max-w-md px-4 py-6 space-y-6">
-        {/* 場所カード */}
-        <PickupLocationCard
-          initialLat={pickupLat}
-          initialLng={pickupLng}
-          baseLat={baseLat}
-          baseLng={baseLng}
-          radiusMeters={400}
-          saving={savingLocation}
-          disabled={initialLoading || !canEdit || savingLocation}
-          onSave={async (lat, lng) => {
-            try {
-              setSavingLocation(true);
-              // 変更点(lat, lng)だけを送信
-              const data = await updatePickupSettingsMe({
-                pickup_lat: lat,
-                pickup_lng: lng,
-              });
-              applyFarmState(data.farm, data.status);
-              showToast("ok", "受け渡し場所を保存しました。");
-            } catch {
-              showToast("ng", "受け渡し場所の保存に失敗しました");
-            } finally {
-              setSavingLocation(false);
-            }
-          }}
-        />
-
-        {/* 場所名カード */}
-        <PickupPlaceNameCard
-          value={pickupPlaceName}
-          saving={savingPlaceName}
-          disabled={initialLoading || !canEdit || savingPlaceName}
-          onSave={async (val) => {
-            try {
-              setSavingPlaceName(true);
-              // 変更点(name)だけを送信
-              const data = await updatePickupSettingsMe({
-                pickup_place_name: val,
-              });
-              applyFarmState(data.farm, data.status);
-              showToast("ok", "場所名を保存しました。");
-            } catch {
-              showToast("ng", "受け渡し場所名の保存に失敗しました");
-            } finally {
-              setSavingPlaceName(false);
-            }
-          }}
-        />
-
-        {/* メモカード */}
-        <PickupNotesCard
-          value={pickupNotes}
-          saving={savingNotes}
-          disabled={initialLoading || !canEdit || savingNotes}
-          onSave={async (val) => {
-            try {
-              setSavingNotes(true);
-              // 変更点(notes)だけを送信
-              const data = await updatePickupSettingsMe({
-                pickup_notes: val,
-              });
-              applyFarmState(data.farm, data.status);
-              showToast("ok", "補足メモを保存しました。");
-            } catch {
-              showToast("ng", "補足メモの保存に失敗しました");
-            } finally {
-              setSavingNotes(false);
-            }
-          }}
-        />
-
-        {/* 時間カード */}
-        <PickupTimeCard
-          value={pickupTime as TimeSlotOption}
-          saving={savingTime}
-          disabled={initialLoading || !canEdit || savingTime}
-          onSave={async (slot) => {
-            try {
-              setSavingTime(true);
-              // 変更点(time)だけを送信
-              const data = await updatePickupSettingsMe({
-                pickup_time: String(slot),
-              });
-              applyFarmState(data.farm, data.status);
-              showToast("ok", "受け取り時間を保存しました。");
-            } catch {
-              showToast("ng", "受け取り時間の保存に失敗しました");
-            } finally {
-              setSavingTime(false);
-            }
-          }}
-        />
       </div>
+
       {/* トースト */}
       {toast && ReactDOM.createPortal(
         <div

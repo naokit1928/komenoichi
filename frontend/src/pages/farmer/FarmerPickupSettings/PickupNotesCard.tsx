@@ -102,15 +102,28 @@ function PickupNotesModal({
       >
         {/* ヘッダー */}
         <div className="flex items-start justify-between">
-          <div
-            className="text-gray-800"
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              letterSpacing: ".01em",
-            }}
-          >
-            受け渡し詳細メモを入力
+          <div>
+            <div
+              className="text-gray-800"
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                letterSpacing: ".01em",
+              }}
+            >
+              来訪ルール・駐車案内
+            </div>
+            {/* ヒント行 */}
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: 12.5,
+                color: "#6B7280",
+                lineHeight: 1.6,
+              }}
+            >
+              駐車場所・ハウスルールなど、お客様に伝えておきたいことを記入してください。
+            </div>
           </div>
           <button
             aria-label="閉じる"
@@ -120,6 +133,8 @@ function PickupNotesModal({
               border: "none",
               padding: 0,
               cursor: "pointer",
+              flexShrink: 0,
+              marginLeft: 12,
             }}
           >
             <svg width="22" height="22" viewBox="0 0 24 24">
@@ -157,7 +172,7 @@ function PickupNotesModal({
             ref={textareaRef}
             value={draft}
             onChange={(e) => setDraft(sanitize(e.target.value))}
-            placeholder="例）駐車場は受け渡し地点の東側の庭です。他の方が出入りしやすいよう整列して駐車してください。"
+            placeholder={"例）駐車は看板を立ててあるスペースに最大3台まで。\n道路への駐車はご遠慮ください。"}
             className="w-full outline-none"
             style={{
               background: "transparent",
@@ -171,7 +186,7 @@ function PickupNotesModal({
               resize: "vertical",
             }}
             maxLength={MAX_LEN + 50}
-            aria-label="受け渡し詳細メモを入力"
+            aria-label="来訪ルール・駐車案内を入力"
           />
         </div>
 
@@ -228,8 +243,7 @@ const PickupNotesCard: React.FC<Props> = ({
   const [open, setOpen] = useState(false);
 
   const confirmed = sanitize(value ?? "");
-  const preview =
-    confirmed.trim() === "" ? "補足メモを追加（任意）" : confirmed.trim();
+  const isEmpty = confirmed.trim() === "";
 
   const handleConfirm = async (next: string) => {
     onChange?.(next);
@@ -254,43 +268,50 @@ const PickupNotesCard: React.FC<Props> = ({
         }}
         className="w-full text-left"
       >
+        {/* タイトル行 */}
         <div className="flex items-start justify-between">
-          <span
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              letterSpacing: ".01em",
-              color: "#111827",
-            }}
-          >
-            受け渡し詳細メモ
-          </span>
+          <div>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                letterSpacing: ".01em",
+                color: "#111827",
+              }}
+            >
+              来訪ルール・駐車案内
+            </span>
+
+          </div>
 
           <span
             style={{
               marginLeft: 8,
               fontSize: 11,
-              color: "#6B7280",
+              color: "#9CA3AF",
               lineHeight: 1.6,
+              flexShrink: 0,
             }}
           >
-            {confirmed.length}/{MAX_LEN}
+            任意
           </span>
         </div>
 
+        {/* 本文プレビュー */}
         <div
           style={{
-            marginTop: 8,
+            marginTop: 10,
             fontSize: 14.5,
             lineHeight: 1.7,
-            color:
-              preview === "補足メモを追加（任意）" ? "#9CA3AF" : "#374151",
+            color: isEmpty ? "#9CA3AF" : "#374151",
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
             overflowWrap: "anywhere",
           }}
         >
-          {preview}
+          {isEmpty
+            ? "ルールや駐車場所などをここに記入できます"
+            : confirmed.trim()}
         </div>
 
         {cannotChangeReason && (
@@ -298,7 +319,7 @@ const PickupNotesCard: React.FC<Props> = ({
             style={{
               marginTop: 8,
               fontSize: 12,
-              color: "#DC2626", // 受け取り日時カードと同じ赤
+              color: "#DC2626",
               lineHeight: 1.6,
             }}
           >

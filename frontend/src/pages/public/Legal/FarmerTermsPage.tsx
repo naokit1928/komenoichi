@@ -1,4 +1,3 @@
-// frontend/src/pages/legal/FarmerTermsPage.tsx
 import React from "react";
 import { useSearchParams } from "react-router-dom";
 import Footer from "@/components/Footer";
@@ -23,80 +22,60 @@ export default function FarmerTermsPage({ isModal = false }: { isModal?: boolean
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第1条（予約の受付とキャンセル）
+            第1条（本サービスの目的と役割）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
-            <li>本サービスにおける新規予約の受付は、設定された受け渡し開始時刻の3時間前に締め切られます。それ以降の新規予約は翌週以降の扱いとなります。</li>
-            <li>予約者によるキャンセル手続きは、受け渡し直前まで可能な仕様となっております。農家（以下「利用者」といいます）は、受け渡し場所へ向かう前に必ず本サービス上で最新の予約状況をご確認ください。</li>
+            <li>本サービスは、農家と消費者をマッチングし、農作物の予約受付および直接の受け渡しを支援するプラットフォームです。</li>
+            <li>実際の商品の売買契約および代金の受け渡しは、農家とユーザーの間で直接行われるものであり、運営は取引の当事者にはなりません。</li>
           </ul>
         </section>
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第2条（取扱商品および受け渡し場所の制限）
+            第2条（受け渡しと代金の受領）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
-            <li>利用者は、本サービスにおいて、自身が直接栽培・生産した農作物のみを取り扱うものとします。第三者からの仕入れによる転売や代理販売での利用は固く禁じます。</li>
-            <li>受け渡し場所として、公共施設、公園、他店舗の敷地、または路上駐車などの迷惑行為が必要となる場所を登録することはできません。</li>
-            <li>登録可能な受け渡し場所は、利用者の自宅、納屋、または自身や家族が所有する土地など、予約者が車両を安全に停車できる場所に限ります。</li>
-            <li>受け渡し場所は、屋根があり雨天時でも商品の受け渡しが可能な場所であることを必須とします。</li>
+            <li>農家は、自らが設定した受け渡し日時に指定場所へ赴き、予約者へ商品を直接引き渡す義務を負います。</li>
+            <li>商品の代金は、現地にて農家がユーザーから現金にて直接受け取るものとします。</li>
           </ul>
         </section>
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第3条（無断キャンセルと免責）
+            第3条（キャンセルとトラブル対応）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
-            <li>本サービスにおける農作物の代金は、受け渡し時の現地現金決済となります。</li>
-            <li>予約者による無断キャンセル（ノーショー）が発生した場合であっても、運営は代金の補償を一切行いません。</li>
-            <li>運営は、無断キャンセルを行った予約者に対する仲裁、ペナルティの付与、または利用制限の措置を行う義務を負わないものとします。</li>
+            <li>ユーザーからのキャンセルは、システム上にて「受け渡し開始時刻」まで可能です。それ以降のキャンセルや無断キャンセルが発生した場合の代金補償は、運営では一切行いません。なお、受け渡し時刻の3時間前を過ぎての直前キャンセルや無断キャンセルを繰り返したユーザーに対しては、プラットフォームの健全性を保つため、事前の予告なく自動的に本サービスの利用制限を行う等の対策を講じています。</li>
+            <li>農家は、災害や悪天候、またはやむを得ない事情により、システム上からすでに受け付けた予約の受け渡しを緊急で停止（キャンセル）することができます。ただし、「自己都合」によるキャンセルを複数回繰り返す等、予約者からの信頼を著しく損なう行為が確認された場合、事前の予告なくアカウントの利用制限（利用停止等）の措置を講じる場合があります。</li>
+            <li>無断キャンセル等により精米済みのお米がやむを得ず余った場合、冷蔵庫または冷暗所で保管のうえ、翌週の販売に回すことができます。ただし、本サービスで販売できるのは「精米後8日以内」のお米に限るものとし、再来週以降への繰り越しは品質上の理由から固く禁止します。</li>
+            <li>品質（味、異物の混入など）に関するトラブルや返品・交換の申し出については、受け渡し時に当事者間で解決するものとし、運営は一切の責任を負いません。</li>
           </ul>
         </section>
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第4条（事前精米および余剰米の取り扱い）
+            第4条（禁止事項）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
-            <li>利用者は、予約者をお待たせしないため、受け渡し日までに予約された全量を事前に精米・袋詰めしておくことが推奨されます。</li>
-            <li>無断キャンセルにより精米済みのお米が余った場合、利用者は冷蔵庫または冷暗所で保管のうえ、翌週の販売に回すことができます。ただし、本サービスにおいて販売できるのは<b>精米後8日以内</b>のお米に限ります。</li>
-            <li>精米後8日を超えたお米を本サービス上で販売することは固く禁じます。再来週以降への繰り越し販売は品質保持の観点から認められません。翌週の販売においても売れ残った余剰米については、利用者がご自身で消費するか、適切に処分するものとします。</li>
-            <li>余剰米の保管・品質管理・翌週への繰り越し販売に関するすべての判断および責任は、利用者に帰属するものとします。運営は余剰米に対する補填を一切行いません。</li>
+            <li>食品表示法、食品衛生法、計量法その他の関係法令に違反する商品の出品。</li>
+            <li>他人の権利（著作権、商標権、肖像権等）を侵害する画像やテキストの掲載。</li>
+            <li>予約者との間での、本サービスを介さない直接取引へ誘導する行為。</li>
+            <li>公序良俗に反する行為、または運営が不適切と判断する行為。</li>
           </ul>
         </section>
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第5条（品質トラブルおよび当事者間解決の原則）
+            第5条（サービスの停止・免責）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
-            <li>農作物の品質、数量、状態等に関するトラブル、クレーム、または返品・交換の要求については、利用者と予約者の当事者間で直接解決するものとします。</li>
-            <li>運営は、農作物の品質保証、瑕疵担保責任、およびトラブルへの介入を一切行いません。</li>
-            <li>本サービスでは、予約者に対し「返品・交換の申し出は受け渡し時にその場で行うこと」を定めています。受け渡し完了後の返品対応については原則不要とし、実際の対応は利用者の任意の判断に委ねられるものとします。</li>
+            <li>運営は、システム障害の発生、メンテナンスの実施、またはその他やむを得ない理由により、予告なく本サービスの提供を一時停止することがあります。これによって生じたいかなる損害についても、運営は責任を負いません。</li>
           </ul>
         </section>
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第6条（利用制限およびアカウントの停止）
-          </h2>
-          <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
-            <li>運営は、利用者が以下の各号のいずれかに該当すると判断した場合、事前の通知をすることなく、当該利用者に対して本サービスの利用を制限し、またはアカウントを停止することができるものとします。
-              <ul style={{ paddingLeft: 20, marginTop: 8, listStyleType: "circle" }}>
-                <li>本規約（特に第2条の禁止事項等）のいずれかの条項に違反した場合</li>
-                <li>予約者または第三者に対し、著しく不利益を与える行為や迷惑行為を行った場合</li>
-                <li>公序良俗に反する行為、または運営が不適切と判断した行為を行った場合</li>
-                <li>その他、本サービスの運営に支障をきたすと判断した場合</li>
-              </ul>
-            </li>
-            <li>運営は、本条に基づき運営が行った措置により利用者に生じた損害について、一切の責任を負わないものとします。</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第7条（規約の変更）
+            第6条（規約の変更）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
             <li>運営は、必要と判断した場合には、利用者に事前通知することなく本規約を変更することができるものとします。変更後の規約は、本サービス上に掲示された時点から効力を生じるものとします。</li>
@@ -105,7 +84,7 @@ export default function FarmerTermsPage({ isModal = false }: { isModal?: boolean
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", borderBottom: "1px solid #E5E7EB", paddingBottom: 8, marginBottom: 16 }}>
-            第8条（準拠法・裁判管轄）
+            第7条（準拠法・裁判管轄）
           </h2>
           <ul style={{ paddingLeft: 24, margin: 0, fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
             <li>本規約の解釈にあたっては、日本法を準拠法とします。本サービスに関して紛争が生じた場合には、運営者の所在地を管轄する地方裁判所を第一審の専属的合意管轄裁判所とします。</li>
@@ -114,22 +93,24 @@ export default function FarmerTermsPage({ isModal = false }: { isModal?: boolean
 
       </div>
 
-      <p style={{ marginTop: 40, fontSize: 14, color: "#6B7280" }}>
-        制定日：2026年3月24日<br />
-      </p>
+      <div style={{ marginTop: 40, textAlign: "right", fontSize: 14, color: "#6B7280" }}>
+        制定日：2026年4月3日<br />
+      </div>
     </div>
   );
 
   if (isModal) return content;
 
   return (
-    <div style={{
-      display: "flex",
+    <div style={{ 
+      display: "flex", 
       flexDirection: "column",
       minHeight: "100vh",
-      backgroundColor: isFarmerMode ? "#F7F7F7" : "#fdfcfa"
+      background: "#fff"
     }}>
-      <div style={{ flexGrow: 1, paddingBottom: 80 }}>{content}</div>
+      <div style={{ flex: 1, paddingBottom: 80 }}>
+        {content}
+      </div>
       <Footer />
       {isFarmerMode ? <FarmerBottomBar /> : <PublicBottomBar />}
     </div>

@@ -5,9 +5,10 @@ import { useNavigate } from "react-router-dom";
 
 type Props = {
   cancelActionUri: string | null;
+  eventStartAt?: string | null; // 受け渡し開始時刻（ISO文字列）。親から渡す
 };
 
-const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
+const CancelActionCard: React.FC<Props> = ({ cancelActionUri, eventStartAt }) => {
   const navigate = useNavigate();
   const disabled = !cancelActionUri;
 
@@ -22,7 +23,12 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
       return;
     }
 
-    navigate(`/cancel/confirm?token=${token}`);
+    // event_start_at を一緒に渡してCancelConfirmPage側で時間判定する
+    const dest = eventStartAt
+      ? `/cancel/confirm?token=${token}&event_start_at=${encodeURIComponent(eventStartAt)}`
+      : `/cancel/confirm?token=${token}`;
+
+    navigate(dest);
   };
 
   return (
@@ -48,10 +54,10 @@ const CancelActionCard: React.FC<Props> = ({ cancelActionUri }) => {
       ) : (
         <>
           <div style={{ fontSize: 13, marginBottom: 24, color: "#374151", lineHeight: 1.6 }}>
-            {/* ★ 変更: 「開始時刻までに」を削り、精米前の早めのキャンセルを促す文言に */}
-            農家さんは受け渡しに合わせて事前に精米を行います。やむを得ず行けなくなった場合は、
-            <strong style={{ color: "#111827" }}>できるだけ早めに</strong>
-            下のボタンからキャンセルの手続きをお願いします。
+            {/* ★ 校正済み文言 */}
+            農家さんは受け渡し日に合わせて事前に精米しています。やむを得ずキャンセルされる場合は、農家さんへのご配慮として
+            <strong style={{ color: "#111827" }}>受け渡しの3時間前まで</strong>
+            にお手続きください。
           </div>
           <button
             onClick={handleClick}

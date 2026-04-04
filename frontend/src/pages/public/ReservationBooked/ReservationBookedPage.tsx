@@ -11,7 +11,6 @@ import BookingItemsCard from "./BookingItemsCard";
 import PaymentSummaryCard from "./PaymentSummaryCard";
 import ReservationCodeCard from "./ReservationCodeCard";
 import MemoCard from "./MemoCard";
-// ★ NoticeCard のインポートを削除しました
 import CancelActionCard from "./CancelActionCard";
 import { PublicBottomBar } from "@/components/PublicBottomBar";
 
@@ -32,7 +31,7 @@ const ReservationBookedPage: React.FC = () => {
 
         const apiBase = import.meta.env.VITE_API_BASE || "";
         const whoamiRes = await fetch(`${apiBase}/api/consumers/me`, { credentials: "include" });
-        
+
         if (!whoamiRes.ok) {
           navigate("/login-only?redirect=" + encodeURIComponent("/reservation/booked"), { replace: true });
           return;
@@ -160,6 +159,9 @@ const ReservationBookedPage: React.FC = () => {
     cancel_token,
   } = context;
 
+  // ★ 追加: バックエンドから受け取った受け渡し開始時刻
+  const eventStartAt = (data as { event_start_at?: string | null }).event_start_at ?? null;
+
   const items: string[] = [];
   if (qty_5 > 0) items.push(`${label_5kg}：${qty_5}袋`);
   if (qty_10 > 0) items.push(`${label_10kg}：${qty_10}袋`);
@@ -182,12 +184,13 @@ const ReservationBookedPage: React.FC = () => {
       <PaymentSummaryCard riceSubtotalText={riceSubtotalText} />
       <ReservationCodeCard pickupCode={pickup_code} />
       <MemoCard memo={pickup_detail_memo} />
-      
-      {/* ★ ここにあった <NoticeCard /> を削除しました */}
-      
-      <CancelActionCard cancelActionUri={cancelActionUri} />
 
-      {/* システム照会ID — 目立たないが問い合わせ時に使える */}
+      {/* ★ eventStartAt を渡す → CancelConfirmPage で3時間以内判定に使用 */}
+      <CancelActionCard
+        cancelActionUri={cancelActionUri}
+        eventStartAt={eventStartAt}
+      />
+
       {data.reservation_id && (
         <div style={{
           marginTop: 32,

@@ -27,17 +27,16 @@ const C = {
 const formatNumber = (n: number) =>
   new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }).format(n);
 
-// ★ 変更：no_show のスタイルとラベルを追加
 const getStatusStyle = (status: string): React.CSSProperties => {
   if (status === "confirmed") return { background: C.ink, color: "#fff", border: `1px solid ${C.ink}` };
-  if (status === "no_show") return { background: C.red, color: "#fff", border: `1px solid ${C.red}` }; // ★
+  if (status === "no_show") return { background: C.red, color: "#fff", border: `1px solid ${C.red}` };
   if (status === "cancelled") return { background: C.redLight, color: C.red, border: `1px solid ${C.redBorder}` };
   return { background: C.bg, color: C.ink3, border: `1px solid ${C.border}` };
 };
 
 const getStatusLabel = (status: string): string => {
   if (status === "confirmed") return "確 定";
-  if (status === "no_show") return "無断ｷｬﾝｾﾙ"; // ★
+  if (status === "no_show") return "無断ｷｬﾝｾﾙ";
   if (status === "cancelled") return "キャンセル";
   return status;
 };
@@ -82,6 +81,34 @@ const CopyableText: React.FC<{ text: string, prefix?: string }> = ({ text, prefi
   );
 };
 
+// ★ 追加: キャンセル回数バッジ
+const CancelCountBadges: React.FC<{ countA: number, countB: number, showWarning?: boolean }> = ({ countA, countB, showWarning }) => (
+  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+    {showWarning && (
+      <span style={{ fontSize: 10, fontWeight: 700, color: C.red, background: "#fff", border: `1px solid ${C.redBorder}`, padding: "1px 4px", borderRadius: 4 }}>
+        ⚠️要注意
+      </span>
+    )}
+    <div style={{ display: "flex", alignItems: "center", gap: 3, background: "#fff", border: `1px solid ${C.border}`, padding: "1px 5px", borderRadius: 4 }}>
+      <span style={{ fontSize: 9, color: C.ink3, fontWeight: 700 }}>災害</span>
+      <span style={{ fontSize: 12, fontWeight: 800, color: C.ink }}>{countA}</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 3, background: countB > 0 ? C.redLight : "#fff", border: `1px solid ${countB > 0 ? C.redBorder : C.border}`, padding: "1px 5px", borderRadius: 4 }}>
+      <span style={{ fontSize: 9, color: countB > 0 ? C.red : C.ink3, fontWeight: 700 }}>自己都合</span>
+      <span style={{ fontSize: 12, fontWeight: 800, color: countB > 0 ? C.red : C.ink }}>{countB}</span>
+    </div>
+  </div>
+);
+
+// 農家情報用の型
+type FarmDetailData = {
+  farm_id: number;
+  owner_full_name: string;
+  cancel_count_a?: number;
+  cancel_count_b?: number;
+  active_flag?: number;
+};
+
 const AdminReservationEventDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -94,6 +121,7 @@ const AdminReservationEventDetailPage: React.FC = () => {
   const farmId = farmIdParam ? Number(farmIdParam) : null;
 
   const [items, setItems] = useState<AdminReservationListItemDTO[]>([]);
+  const [farmData, setFarmData] = useState<FarmDetailData | null>(null); // ★ 追加
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,21 +131,33 @@ const AdminReservationEventDetailPage: React.FC = () => {
     if (farmId == null || !eventStartParam) return;
     const controller = new AbortController();
 
-    const fetchReservations = async () => {
+    const fetchAll = async () => {
       setLoading(true); setError(null);
       try {
+        // 予約一覧と農家一覧(バッジ情報のため)を同時に取得
         const params = new URLSearchParams({ farm_id: String(farmId), event_start: eventStartParam });
-        const res = await fetch(`${API_BASE}/api/admin/reservations?` + params.toString(), { signal: controller.signal, credentials: "include" });
+        const resReq = fetch(`${API_BASE}/api/admin/reservations?` + params.toString(), { signal: controller.signal, credentials: "include" });
+        const farmsReq = fetch(`${API_BASE}/api/admin/farms/`, { signal: controller.signal, credentials: "include" });
+
+        const [res, farmsRes] = await Promise.all([resReq, farmsReq]);
+        
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: AdminReservationListResponse = await res.json();
         setItems(data.items || []);
+
+        if (farmsRes.ok) {
+          const farmsJson = await farmsRes.json();
+          const targetFarm = farmsJson.farms?.find((f: any) => f.farm_id === farmId);
+          if (targetFarm) setFarmData(targetFarm);
+        }
+
       } catch (e: any) {
-        if (e.name !== "AbortError") setError("予約一覧の取得に失敗しました。");
+        if (e.name !== "AbortError") setError("データの取得に失敗しました。");
       } finally {
         setLoading(false);
       }
     };
-    fetchReservations();
+    fetchAll();
     return () => controller.abort();
   }, [farmId, eventStartParam]);
 
@@ -133,7 +173,9 @@ const AdminReservationEventDetailPage: React.FC = () => {
   const ownerPhone = items[0]?.owner_phone ?? "";
   const ownerEmail = items[0]?.owner_email ?? ""; 
 
-  // ★ 変更：no_show を cancelled 側にカウントする
+  // バッジ用変数
+  const eCancels = (farmData?.cancel_count_a ?? 0) + (farmData?.cancel_count_b ?? 0);
+
   const { confirmedCount, cancelledCount } = useMemo(() => {
     let confirmed = 0; let cancelled = 0;
     items.forEach((r) => {
@@ -237,10 +279,16 @@ const AdminReservationEventDetailPage: React.FC = () => {
                   </div>
                   
                   <div style={{ padding: "20px 24px", flex: 1, display: "flex", flexDirection: "column" }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16 }}>
+                    
+                    {/* ★ バッジ表示エリア */}
+                    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
                       <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{ownerName || "（未設定）"}</span>
                       {ownerKana && <span style={{ fontSize: 12, color: C.ink3 }}>{ownerKana}</span>}
+                      {eCancels > 0 && (
+                        <CancelCountBadges countA={farmData?.cancel_count_a ?? 0} countB={farmData?.cancel_count_b ?? 0} showWarning={eCancels >= 2} />
+                      )}
                     </div>
+
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "12px 24px", fontSize: 13, color: C.ink2 }}>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}><span style={{ color: C.ink3, fontSize: 11 }}>郵便番号:</span>{ownerPostalCode || "—"}</div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}><span style={{ color: C.ink3, fontSize: 11 }}>住所:</span>{ownerAddressLine || "—"}</div>
@@ -341,6 +389,7 @@ const AdminReservationEventDetailPage: React.FC = () => {
                 <div style={{ fontSize: 13, color: C.ink3 }}>※ この受け渡し回には pending の予約のみ存在します。</div>
               ) : (
                 <>
+                  {/* PC用テーブル */}
                   <div className="desktop-only" style={{ background: C.cardBg, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "0 4px 20px rgba(15,23,42,0.03)" }}>
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900, textAlign: "left" }}>
@@ -376,12 +425,23 @@ const AdminReservationEventDetailPage: React.FC = () => {
                                   <div style={{ fontSize: 14, fontWeight: 600, color: C.ink2, marginBottom: 6 }}>{r.items_display}</div>
                                   <div style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>¥{formatNumber(r.rice_subtotal)}</div>
                                 </td>
+                                
+                                {/* ★ 変更: 決済情報の表示最適化 */}
                                 <td style={{ padding: "16px 20px", verticalAlign: "top", width: "240px" }}>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: r.payment_status === "succeeded" ? C.ink : C.ink3, marginBottom: 6 }}>{r.payment_status || "—"}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: r.payment_status === "succeeded" ? C.ink : C.ink3, marginBottom: 6 }}>
+                                    {r.payment_intent_id?.startsWith("free_launch") ? "決済スキップ" : (r.payment_status || "—")}
+                                  </div>
                                   <div style={{ fontSize: 11, fontFamily: "monospace", color: C.ink3, marginTop: 2 }}>
-                                    {r.payment_intent_id ? <CopyableText text={r.payment_intent_id} prefix="PI: " /> : "PI: —"}
+                                    {r.payment_intent_id?.startsWith("free_launch") ? (
+                                      <span style={{ background: C.bg, padding: "2px 6px", borderRadius: 4, color: C.ink3 }}>無料ローンチ期間</span>
+                                    ) : r.payment_intent_id ? (
+                                      <CopyableText text={r.payment_intent_id} prefix="PI: " />
+                                    ) : (
+                                      "PI: —"
+                                    )}
                                   </div>
                                 </td>
+
                                 <td style={{ padding: "16px 20px", whiteSpace: "nowrap", verticalAlign: "top", textAlign: "center" }}>
                                   <span style={{ padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, ...getStatusStyle(r.reservation_status) }}>{getStatusLabel(r.reservation_status)}</span>
                                 </td>
@@ -393,6 +453,7 @@ const AdminReservationEventDetailPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* スマホ用 */}
                   <div className="mobile-only">
                     {visibleItems.map(r => {
                       const isHighlight = highlightId === Number(r.reservation_id);
@@ -434,15 +495,26 @@ const AdminReservationEventDetailPage: React.FC = () => {
                                 <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, marginTop: 2 }}>¥{formatNumber(r.rice_subtotal)}</div>
                               </div>
                             </div>
+
+                            {/* ★ 変更: スマホ側の決済情報 */}
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <span style={{ fontSize: 12, color: C.ink3 }}>決済情報</span>
                               <div style={{ textAlign: "right", maxWidth: "60%" }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: r.payment_status === "succeeded" ? C.ink : C.ink3 }}>{r.payment_status || "—"}</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: r.payment_status === "succeeded" ? C.ink : C.ink3 }}>
+                                  {r.payment_intent_id?.startsWith("free_launch") ? "決済スキップ" : (r.payment_status || "—")}
+                                </div>
                                 <div style={{ fontSize: 11, fontFamily: "monospace", color: C.ink3, marginTop: 4 }}>
-                                  {r.payment_intent_id ? <CopyableText text={r.payment_intent_id} prefix="PI: " /> : "PI: —"}
+                                  {r.payment_intent_id?.startsWith("free_launch") ? (
+                                    <span style={{ background: C.bg, padding: "2px 6px", borderRadius: 4, color: C.ink3 }}>無料ローンチ期間</span>
+                                  ) : r.payment_intent_id ? (
+                                    <CopyableText text={r.payment_intent_id} prefix="PI: " />
+                                  ) : (
+                                    "PI: —"
+                                  )}
                                 </div>
                               </div>
                             </div>
+                            
                           </div>
                         </div>
                       );

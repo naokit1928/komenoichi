@@ -29,7 +29,7 @@ export function PublicPageHeader({ title }: Props) {
           gap: 6,
           textDecoration: "none",
           color: "inherit",
-          transform: "translateX(-6px)",
+          transform: "translateX(-7px)",
         }}
       >
         <img
@@ -40,42 +40,27 @@ export function PublicPageHeader({ title }: Props) {
           style={{ flexShrink: 0 }}
         />
 
-        {/* D2: 赤「こ」を少し下げたバージョン */}
         <div style={{
           display: "flex",
           flexDirection: "column",
           lineHeight: 1,
           alignItems: "center",
         }}>
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <span style={{
-              fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif",
-              fontSize: 22,
-              fontWeight: 400,
-              letterSpacing: 0,
-              color: "#C62828",
-              position: "relative",
-              top: 1,
-            }}>
-              こ
-            </span>
-            <span style={{
-              fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif",
-              fontSize: 18,
-              fontWeight: 400,
-              letterSpacing: "0.22em",
-              color: "#1a1108",
-              paddingLeft: "0.05em",
-            }}>
-              めのいち
-            </span>
-          </div>
+          <span style={{
+            fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif",
+            fontSize: 19,
+            fontWeight: 400,
+            letterSpacing: "0.21em",
+            color: "#1a1108",
+          }}>
+            こめのいち
+          </span>
           <span style={{
             fontSize: 10,
-            letterSpacing: "0.18em",
+            letterSpacing: "0.22em",
             color: "#7a6c58",
             fontWeight: 400,
-            marginTop: 5,
+            marginTop: 4,
           }}>
             KOME NO ICHI
           </span>

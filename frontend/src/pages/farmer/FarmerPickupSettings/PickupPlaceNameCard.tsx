@@ -278,16 +278,7 @@ const PickupPlaceNameCard: React.FC<Props> = ({
             受け渡し場所名
           </span>
 
-          <span
-            style={{
-              marginLeft: 8,
-              fontSize: 11,
-              color: "#6B7280",
-              lineHeight: 1.6,
-            }}
-          >
-            {confirmed.length}/{MAX_LEN}
-          </span>
+
         </div>
 
         <div

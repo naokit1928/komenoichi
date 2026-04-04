@@ -28,8 +28,8 @@ type ConfirmCtx = {
 
 type ConsumerState = {
   penalty: {
-    status: "none" | "locked_requestable" | "locked_cooling" | "banned";
-    no_show_count: number;
+    status: "none" | "banned";
+    penalty_count: number;
   };
   active: {
     exists: boolean;
@@ -109,9 +109,7 @@ export default function ConfirmPage() {
   const [agreed, setAgreed] = useState(false);
 
   const [isInitializing, setIsInitializing] = useState(true);
-  
-  const [penalty, setPenalty] = useState<ConsumerState["penalty"] | null>(null);
-  const [pardoning, setPardoning] = useState(false);
+  const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
     async function run() {
@@ -130,8 +128,11 @@ export default function ConfirmPage() {
           navigate(`/farms/${farmId}/active`, { replace: true });
           return;
         }
-        if (state?.penalty) {
-          setPenalty(state.penalty);
+
+        if (state?.penalty?.status === "banned") {
+          setIsBanned(true);
+          setIsInitializing(false);
+          return;
         }
 
         const context = await fetchConfirmContext(cs);
@@ -157,24 +158,6 @@ export default function ConfirmPage() {
         amount: it.unitPrice * it.qty,
       }));
   }, [ctx]);
-
-  const handlePardon = async () => {
-    if (!window.confirm("制限の解除を申請しますか？\n※システムの反映には通常数日かかる場合があります。")) return;
-    setPardoning(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/consumer/pardon`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("申請に失敗しました。");
-      const newState = await fetchConsumerState();
-      if (newState?.penalty) setPenalty(newState.penalty);
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setPardoning(false);
-    }
-  };
 
   async function handleMainAction() {
     try {
@@ -214,37 +197,35 @@ export default function ConfirmPage() {
     );
   }
 
+  if (isBanned) {
+    return (
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "64px 24px", textAlign: "center" }}>
+        <div style={{ padding: "16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "12px" }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#4b5563" }}>
+            現在、このアカウントからはご予約手続きを行うことができません。
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!ctx) {
     return (
-      <div
-        style={{
-          maxWidth: 520,
-          margin: "0 auto",
-          padding: "64px 24px",
-          textAlign: "center",
-        }}
-      >
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "64px 24px", textAlign: "center" }}>
         <div style={{ fontSize: 18, fontWeight: 600, color: C.ink }}>
           {err || "エラーが発生しました"}
         </div>
-        
         {err !== "ご自身の農場には予約できません。" && (
           <div style={{ color: C.ink3, fontSize: 14, marginTop: 12 }}>
             農家詳細ページに戻って、もう一度予約を開始してください。
           </div>
         )}
-        
         <button
           onClick={() => navigate(`/farms/${farmId}`)}
           style={{
-            marginTop: 24,
-            padding: "12px 24px",
-            background: "#fff",
-            color: C.ink,
-            border: `1px solid ${C.border}`,
-            borderRadius: 9999,
-            cursor: "pointer",
-            fontWeight: 600,
+            marginTop: 24, padding: "12px 24px", background: "#fff",
+            color: C.ink, border: `1px solid ${C.border}`,
+            borderRadius: 9999, cursor: "pointer", fontWeight: 600,
           }}
         >
           詳細に戻る
@@ -254,38 +235,17 @@ export default function ConfirmPage() {
   }
 
   return (
-    <div
-      style={{
-        padding: "24px 16px 64px",
-        maxWidth: 520,
-        margin: "0 auto",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          position: "relative",
-          marginBottom: 24,
-        }}
-      >
+    <div style={{ padding: "24px 16px 64px", maxWidth: 520, margin: "0 auto" }}>
+      <div style={{ display: "flex", alignItems: "center", position: "relative", marginBottom: 24 }}>
         <button
           onClick={() => navigate(`/farms/${farmId}`)}
           disabled={loading}
           style={{
-            position: "absolute",
-            left: 0,
-            background: "none",
-            border: "none",
-            padding: "8px",
-            margin: "-8px",
+            position: "absolute", left: 0, background: "none", border: "none",
+            padding: "8px", margin: "-8px",
             cursor: loading ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: C.ink,
-            transition: "opacity 0.2s",
-            opacity: loading ? 0.5 : 1,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: C.ink, opacity: loading ? 0.5 : 1,
           }}
           aria-label="農家詳細に戻る"
         >
@@ -294,17 +254,11 @@ export default function ConfirmPage() {
           </svg>
         </button>
 
-        <h1
-          style={{
-            flex: 1,
-            fontSize: 18,
-            fontWeight: 600,
-            color: C.ink,
-            textAlign: "center",
-            margin: 0,
-            fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
-          }}
-        >
+        <h1 style={{
+          flex: 1, fontSize: 18, fontWeight: 600, color: C.ink,
+          textAlign: "center", margin: 0,
+          fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
+        }}>
           予約内容の確認
         </h1>
       </div>
@@ -315,93 +269,46 @@ export default function ConfirmPage() {
         pickupDisplay={ctx.nextPickupDisplay}
       />
 
-      <ServiceFeeCard
+      {/* 運営サポート費（300円）のブロックをコメントアウトしました */}
+      {/* <ServiceFeeCard
         serviceFee={ctx.serviceFee}
         termLabel="運営サポート費"
       />
+      */}
+
       <AgreementBlock agreed={agreed} onChange={setAgreed} />
 
       {err && (
-        <div
-          style={{
-            color: C.red,
-            marginTop: 16,
-            textAlign: "center",
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
+        <div style={{ color: C.red, marginTop: 16, textAlign: "center", fontSize: 14, fontWeight: 600 }}>
           {err}
         </div>
       )}
 
-      {/* ★ 変更: BAN時は無機質に、解除待機は「数日」に変更したペナルティUI */}
       <div style={{ marginTop: 32 }}>
-        {penalty?.status === "banned" ? (
-          <div style={{ padding: "16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "12px", textAlign: "center" }}>
-            {/* ★ 赤色や怒りの表現を消し、無機質なグレーでシャットアウト */}
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#4b5563" }}>
-              現在、このアカウントからはご予約手続きを行うことができません。
-            </p>
-          </div>
-        ) : penalty?.status === "locked_cooling" ? (
-          <div style={{ padding: "16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "12px", textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#4b5563" }}>
-              制限の解除申請を受け付けました。
-            </p>
-            {/* ★ 24時間ではなく「通常数日」に変更 */}
-            <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>
-              システムの反映には通常数日かかります。<br/>恐れ入りますが、日を改めて再度ご予約をお試しください。
-            </p>
-          </div>
-        ) : penalty?.status === "locked_requestable" ? (
-          <div style={{ padding: "16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "12px", textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#dc2626", lineHeight: 1.4 }}>
-              農家より複数回の無断キャンセルが報告されたため、現在一時的に予約が制限されています。
-            </p>
-            <p style={{ margin: "8px 0 12px", fontSize: 11, color: "#7f1d1d", lineHeight: 1.4 }}>
-              ※もし無断キャンセルに心当たりがない場合、または今後の確実なお受け取りをお約束いただける場合は、以下のボタンより制限の解除を申請してください。
-            </p>
-            <button
-              onClick={handlePardon}
-              disabled={pardoning}
-              style={{
-                width: "100%", padding: "12px",
-                background: "#ffffff", color: "#dc2626", border: "1px solid #fca5a5",
-                borderRadius: 9999, fontSize: 13, fontWeight: 700,
-                cursor: pardoning ? "not-allowed" : "pointer",
-                opacity: pardoning ? 0.6 : 1,
-              }}
-            >
-              {pardoning ? "処理中..." : "制限の解除を申請する"}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleMainAction}
-            disabled={loading}
-            style={{
-              width: "100%",
-              height: 52,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: loading ? "#d1d5db" : "#C62828",
-              color: "#fff",
-              borderRadius: 9999,
-              border: "none",
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: loading ? "not-allowed" : "pointer",
-              transition: "all 0.2s ease",
-              boxShadow: loading ? "none" : "0 4px 12px rgba(198, 40, 40, 0.3)",
-            }}
-          >
-            {loading ? "処理中…" : "予約確定に進む"}
-          </button>
-        )}
+        <button
+          onClick={handleMainAction}
+          disabled={loading}
+          style={{
+            width: "100%",
+            height: 52,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: loading ? "#d1d5db" : C.red,
+            color: "#fff",
+            borderRadius: 9999,
+            border: "none",
+            fontWeight: 700,
+            fontSize: 16,
+            cursor: loading ? "not-allowed" : "pointer",
+            transition: "all 0.2s ease",
+            boxShadow: loading ? "none" : "0 4px 12px rgba(198, 40, 40, 0.3)",
+          }}
+        >
+          {/* ★ 変更: 「予約確定に進む」→「予約を確定する」 */}
+          {loading ? "処理中…" : "予約を確定する"}
+        </button>
       </div>
-
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function RiceBreakdown({
   return (
     <section
       style={{
-        border: "1px solid #e5e7eb",
+        border: "1.5px solid #d4c8b8", // ★ ここだけ変更：線の色と太さのみ
         borderRadius: 12,
         padding: 16,
         background: "#fff",
@@ -43,7 +43,7 @@ export function RiceBreakdown({
           <div
             style={{
               fontSize: 12,
-              color: C.ink3, // ← グレーから薄い茶色に変更
+              color: C.ink3,
               marginBottom: 2,
             }}
           >
@@ -53,7 +53,7 @@ export function RiceBreakdown({
             style={{
               fontSize: 16,
               fontWeight: 700,
-              color: "#111827", // 読ませるために黒のまま
+              color: "#111827",
               whiteSpace: "nowrap",
             }}
           >
@@ -76,8 +76,8 @@ export function RiceBreakdown({
         <span style={{ color: "#111827" }}>お米代合計</span>
         <span
           style={{
-            background: "#f4f1ed", // ← グレーから茶系の薄い背景に変更
-            color: C.ink2,         // ← 文字色も濃い茶色に変更
+            background: "#f4f1ed",
+            color: C.ink2,
             border: `1px solid ${C.border}`,
             borderRadius: 9999,
             padding: "2px 8px",
@@ -94,7 +94,7 @@ export function RiceBreakdown({
           fontSize: 22,
           fontWeight: 800,
           marginBottom: 12,
-          color: "#111827", // 黒のまま
+          color: "#111827",
         }}
       >
         {money(riceSubtotal)}円
@@ -106,7 +106,7 @@ export function RiceBreakdown({
           fontSize: 13,
           fontWeight: 600,
           marginBottom: 6,
-          color: "#374151", // 黒のまま
+          color: "#374151",
         }}
       >
         注文内容
@@ -121,7 +121,7 @@ export function RiceBreakdown({
               justifyContent: "space-between",
               fontSize: 15,
               fontWeight: 500,
-              color: "#111827", // 黒のまま
+              color: "#111827",
               padding: "4px 0",
             }}
           >
@@ -134,7 +134,7 @@ export function RiceBreakdown({
       <div
         style={{
           marginTop: 8,
-          color: C.ink2, // ← グレーから濃い茶色に変更
+          color: C.ink2,
           fontSize: 12,
           fontWeight: 500,
         }}

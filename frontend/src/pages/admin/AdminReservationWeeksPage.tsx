@@ -30,7 +30,6 @@ const getCancelRateStyle = (rate: number | null): React.CSSProperties => {
   return { color: C.ink2 };
 };
 
-// AdminFarmsListPage と同じデータ構造を受け取るための型
 type FarmDetailData = {
   farm_id: number;
   owner_full_name: string;
@@ -46,7 +45,34 @@ type FarmDetailData = {
   is_public?: number;
   is_accepting_reservations?: number;
   active_flag?: number;
+  cancel_count_a?: number;
+  cancel_count_b?: number;
 };
+
+// ★ 新しい属性（emergency_cancel_reason）を含めるように型を拡張
+type ExtendedWeekSummary = AdminReservationWeekSummary & {
+  emergency_cancel_reason?: "A" | "B" | null;
+};
+
+// ★ カウント表示用バッジコンポーネント
+const CancelCountBadges: React.FC<{ countA: number, countB: number, showWarning?: boolean }> = ({ countA, countB, showWarning }) => (
+  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+    {showWarning && (
+      <span style={{ fontSize: 10, fontWeight: 700, color: C.red, background: "#fff", border: `1px solid ${C.redBorder}`, padding: "1px 4px", borderRadius: 4 }}>
+        ⚠️要注意
+      </span>
+    )}
+    <div style={{ display: "flex", alignItems: "center", gap: 3, background: "#fff", border: `1px solid ${C.border}`, padding: "1px 5px", borderRadius: 4 }}>
+      <span style={{ fontSize: 9, color: C.ink3, fontWeight: 700 }}>災害</span>
+      <span style={{ fontSize: 12, fontWeight: 800, color: C.ink }}>{countA}</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 3, background: countB > 0 ? C.redLight : "#fff", border: `1px solid ${countB > 0 ? C.redBorder : C.border}`, padding: "1px 5px", borderRadius: 4 }}>
+      <span style={{ fontSize: 9, color: countB > 0 ? C.red : C.ink3, fontWeight: 700 }}>自己都合</span>
+      <span style={{ fontSize: 12, fontWeight: 800, color: countB > 0 ? C.red : C.ink }}>{countB}</span>
+    </div>
+  </div>
+);
+
 
 const AdminReservationWeeksPage: React.FC = () => {
   const navigate = useNavigate();
@@ -54,7 +80,7 @@ const AdminReservationWeeksPage: React.FC = () => {
   const farmIdParam = searchParams.get("farm_id");
   const farmId = farmIdParam ? Number(farmIdParam) : null;
   
-  const [weeks, setWeeks] = useState<AdminReservationWeekSummary[]>([]);
+  const [weeks, setWeeks] = useState<ExtendedWeekSummary[]>([]);
   const [farmData, setFarmData] = useState<FarmDetailData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +102,8 @@ const AdminReservationWeeksPage: React.FC = () => {
         
         if (!weeksRes.ok || !farmsRes.ok) throw new Error("API通信に失敗しました");
 
-        const weeksJson: AdminReservationWeekListResponse = await weeksRes.json();
-        const sorted = [...(weeksJson.items ?? [])].sort((a, b) => new Date(b.event_start).getTime() - new Date(a.event_start).getTime());
+        const weeksJson = await weeksRes.json();
+        const sorted = [...(weeksJson.items ?? [])].sort((a: any, b: any) => new Date(b.event_start).getTime() - new Date(a.event_start).getTime());
         setWeeks(sorted);
 
         const farmsJson = await farmsRes.json();
@@ -95,7 +121,6 @@ const AdminReservationWeeksPage: React.FC = () => {
     return () => controller.abort();
   }, [farmId]);
 
-  // ★ 追加: BAN切り替えロジック
   const handleToggleBan = async (targetFarmId: number, currentFlag: number) => {
     const nextFlag = currentFlag === 1 ? 0 : 1;
     const actionName = nextFlag === 0 ? "利用停止 (BAN)" : "BANを解除";
@@ -124,7 +149,6 @@ const AdminReservationWeeksPage: React.FC = () => {
     }
   };
 
-  // ── パフォーマンス指標の計算 ──
   const conf = farmData?.total_confirmed_6m ?? 0;
   const canc = farmData?.total_cancelled_6m ?? 0;
   const sales = farmData?.total_sales_6m ?? 0;
@@ -136,11 +160,9 @@ const AdminReservationWeeksPage: React.FC = () => {
   const displayVelocity = netHours > 100 ? `${velocity100.toFixed(1)}件` : "—";
   const displayHours = netHours > 0 ? netHours.toFixed(1) : "0.0";
 
-  // ステータスバッジ用
   const safeActiveFlag = farmData?.active_flag ?? 1;
   const isBanned = safeActiveFlag === 0;
 
-  // ── 過去12ヶ月の月別トレンドデータ生成 ──
   const monthlyTrends = useMemo(() => {
     const result = [];
     const now = new Date();
@@ -170,6 +192,7 @@ const AdminReservationWeeksPage: React.FC = () => {
 
   const maxSales = Math.max(...monthlyTrends.map(m => m.sales), 5000); 
   const maxCount = Math.max(...monthlyTrends.map(m => m.count), 5);
+  const eCancels = (farmData?.cancel_count_a ?? 0) + (farmData?.cancel_count_b ?? 0);
 
   if (!farmId) return null;
 
@@ -221,7 +244,6 @@ const AdminReservationWeeksPage: React.FC = () => {
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif", padding: "16px", color: C.ink }}>
         <div style={{ maxWidth: 1140, margin: "0 auto" }}>
           
-          {/* ★ ヘッダー部にステータスバッジを追加 */}
           <div className="admin-page-header">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button type="button" onClick={() => navigate(-1)} style={{ fontSize: 12, fontWeight: 700, color: C.ink, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
@@ -262,7 +284,15 @@ const AdminReservationWeeksPage: React.FC = () => {
             <div style={{ background: C.cardBg, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <div style={{ background: C.ink, padding: "6px 12px", fontSize: 10, fontWeight: 700, color: "#fff", letterSpacing: "0.05em" }}>PROFILE</div>
               <div style={{ padding: "12px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 2 }}>{farmData?.owner_full_name || "—"}</div>
+                
+                {/* ★ ここにカウントバッジを表示 */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{farmData?.owner_full_name || "—"}</span>
+                  {eCancels > 0 && (
+                    <CancelCountBadges countA={farmData?.cancel_count_a ?? 0} countB={farmData?.cancel_count_b ?? 0} showWarning={eCancels >= 2} />
+                  )}
+                </div>
+
                 <div style={{ fontSize: 10, color: C.ink3, marginBottom: 12 }}>{farmData?.owner_full_kana || "—"}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11, color: C.ink2 }}>
                   <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>✉ {farmData?.owner_email || "—"}</div>
@@ -374,52 +404,76 @@ const AdminReservationWeeksPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {weeks.map((w) => (
-                      <tr 
-                        key={`${w.pickup_slot_code}-${w.event_start}`} 
-                        onClick={() => navigate(`/admin/reservations/event?farm_id=${farmId}&event_start=${encodeURIComponent(w.event_start)}`)}
-                        style={{ borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background 0.2s" }} 
-                        onMouseOver={(e) => e.currentTarget.style.background = C.bg} 
-                        onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
-                      >
-                        <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: C.ink }}>{w.pickup_display}</td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <div style={{ display: "flex", gap: 8, fontSize: 13 }}>
-                            <span style={{ color: C.ink }}>確: <span style={{ fontWeight: 700 }}>{w.confirmed_count}</span></span>
-                            <span style={{ color: C.border }}>/</span>
-                            <span style={{ color: C.ink3 }}>キ: {w.cancelled_count}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: "12px 16px", fontSize: 15, fontWeight: 700, color: C.ink, textAlign: "right" }}>¥{formatNumber(w.rice_subtotal)}</td>
-                      </tr>
-                    ))}
+                    {weeks.map((w) => {
+                      // ★ 追加: キャンセル理由に応じた行の背景色
+                      let rowBg = "transparent";
+                      let hoverBg = C.bg;
+                      if (w.emergency_cancel_reason === "A") { rowBg = "#eff6ff"; hoverBg = "#dbeafe"; }
+                      else if (w.emergency_cancel_reason === "B") { rowBg = "#fef2f2"; hoverBg = "#fee2e2"; }
+
+                      return (
+                        <tr 
+                          key={`${w.pickup_slot_code}-${w.event_start}`} 
+                          onClick={() => navigate(`/admin/reservations/event?farm_id=${farmId}&event_start=${encodeURIComponent(w.event_start)}`)}
+                          style={{ borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background 0.2s", background: rowBg }} 
+                          onMouseOver={(e) => e.currentTarget.style.background = hoverBg} 
+                          onMouseOut={(e) => e.currentTarget.style.background = rowBg}
+                        >
+                          <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: C.ink }}>
+                            {w.pickup_display}
+                            {/* ★ 追加: 行の中のバッジ */}
+                            {w.emergency_cancel_reason === "A" && <span style={{ marginLeft: 8, fontSize: 10, background: "#bfdbfe", color: "#1e40af", padding: "2px 6px", borderRadius: 4 }}>災害で停止</span>}
+                            {w.emergency_cancel_reason === "B" && <span style={{ marginLeft: 8, fontSize: 10, background: "#fecaca", color: "#b91c1c", padding: "2px 6px", borderRadius: 4 }}>自己都合で停止</span>}
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", gap: 8, fontSize: 13 }}>
+                              <span style={{ color: C.ink }}>確: <span style={{ fontWeight: 700 }}>{w.confirmed_count}</span></span>
+                              <span style={{ color: C.border }}>/</span>
+                              <span style={{ color: C.ink3 }}>キ: {w.cancelled_count}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 16px", fontSize: 15, fontWeight: 700, color: C.ink, textAlign: "right" }}>¥{formatNumber(w.rice_subtotal)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* スマホ用リスト */}
               <div className="mobile-only">
-                {weeks.map((w) => (
-                  <div 
-                    key={`mobile-${w.pickup_slot_code}-${w.event_start}`} 
-                    onClick={() => navigate(`/admin/reservations/event?farm_id=${farmId}&event_start=${encodeURIComponent(w.event_start)}`)}
-                    style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
-                    onMouseOver={(e) => e.currentTarget.style.background = C.bg}
-                    onMouseOut={(e) => e.currentTarget.style.background = C.cardBg}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{w.pickup_display}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-                      <div>
-                        <span style={{ color: C.ink }}>確: <b>{w.confirmed_count}</b></span>
-                        <span style={{ color: C.border, margin: "0 8px" }}>/</span>
-                        <span style={{ color: C.ink3 }}>キ: {w.cancelled_count}</span>
+                {weeks.map((w) => {
+                  let rowBg = C.cardBg;
+                  let hoverBg = C.bg;
+                  if (w.emergency_cancel_reason === "A") { rowBg = "#eff6ff"; hoverBg = "#dbeafe"; }
+                  else if (w.emergency_cancel_reason === "B") { rowBg = "#fef2f2"; hoverBg = "#fee2e2"; }
+
+                  return (
+                    <div 
+                      key={`mobile-${w.pickup_slot_code}-${w.event_start}`} 
+                      onClick={() => navigate(`/admin/reservations/event?farm_id=${farmId}&event_start=${encodeURIComponent(w.event_start)}`)}
+                      style={{ background: rowBg, border: `1px solid ${w.emergency_cancel_reason ? (w.emergency_cancel_reason === "A" ? "#bfdbfe" : "#fecaca") : C.border}`, borderRadius: 8, padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
+                      onMouseOver={(e) => e.currentTarget.style.background = hoverBg}
+                      onMouseOut={(e) => e.currentTarget.style.background = rowBg}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>
+                          {w.pickup_display}
+                          {w.emergency_cancel_reason === "A" && <span style={{ marginLeft: 8, fontSize: 10, background: "#bfdbfe", color: "#1e40af", padding: "2px 6px", borderRadius: 4 }}>災害</span>}
+                          {w.emergency_cancel_reason === "B" && <span style={{ marginLeft: 8, fontSize: 10, background: "#fecaca", color: "#b91c1c", padding: "2px 6px", borderRadius: 4 }}>自己都合</span>}
+                        </span>
                       </div>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>¥{formatNumber(w.rice_subtotal)}</span>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                        <div>
+                          <span style={{ color: C.ink }}>確: <b>{w.confirmed_count}</b></span>
+                          <span style={{ color: C.border, margin: "0 8px" }}>/</span>
+                          <span style={{ color: C.ink3 }}>キ: {w.cancelled_count}</span>
+                        </div>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>¥{formatNumber(w.rice_subtotal)}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

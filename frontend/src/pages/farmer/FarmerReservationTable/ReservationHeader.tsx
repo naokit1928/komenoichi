@@ -1,36 +1,95 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styles from "./FarmerReservationTable.module.css";
 
 type Props = {
-  // title: string; は削除
   subtitle: string;
   onPrint: () => void;
   onOpenNotice: () => void;
+  showCancelButton?: boolean;
+  onOpenCancel?: () => void;
 };
 
 const ReservationHeader: React.FC<Props> = ({
   subtitle,
   onPrint,
   onOpenNotice,
+  showCancelButton,
+  onOpenCancel,
 }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // メニューの外側をクリックした時に閉じる処理
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  const handleOpenNotice = () => {
+    setIsMenuOpen(false);
+    onOpenNotice();
+  };
+
+  const handleOpenCancel = () => {
+    setIsMenuOpen(false);
+    if (onOpenCancel) onOpenCancel();
+  };
+
   return (
     <header className={styles.header}>
       <div className={styles.titleBlock}>
-        {/* subtitleをメインタイトルとして大きく表示 */}
         <div className={styles.mainTitle}>{subtitle}</div>
       </div>
 
-      {/* ★ 変更：インラインスタイルを削除し、CSSクラス「.headerActions」に変更 */}
       <div className={styles.headerActions}>
-        {/* 目立ちすぎないアウトラインボタンに変更 */}
-        <button
-          type="button"
-          className={styles.headerRuleButton}
-          onClick={onOpenNotice}
-        >
-          ルール
-        </button>
+        {/* ハンバーガーメニュー */}
+        <div style={{ position: "relative" }} ref={menuRef}>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="メニュー"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
 
+          {/* ドロップダウンメニュー */}
+          {isMenuOpen && (
+            <div className={styles.dropdownMenu}>
+              {showCancelButton && (
+                <button
+                  type="button"
+                  className={styles.dropdownItemDanger}
+                  onClick={handleOpenCancel}
+                >
+                  今週の予約をキャンセル
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={handleOpenNotice}
+              >
+                ルールを確認
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 印刷ボタン */}
         <button
           type="button"
           className={styles.iconButton}

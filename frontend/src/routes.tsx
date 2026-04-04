@@ -16,6 +16,12 @@ import AdminGuard from "./components/AdminGuard";
 const FarmerReservationTable = React.lazy(
   () => import("./pages/farmer/FarmerReservationTable/FarmerReservationTable")
 );
+
+// ★ 修正：ファイルを作った実際の場所（FarmerReservationTableフォルダの中）に合わせました
+const FarmerCancelPage = React.lazy(
+  () => import("./pages/farmer/FarmerReservationTable/FarmerCancelPage")
+);
+
 const FarmerSettingsPage = React.lazy(
   () => import("./pages/farmer/FarmerSettings/FarmerSettingsPage")
 );
@@ -133,7 +139,6 @@ class ErrorBoundary extends React.Component<
         }
       }
 
-      // 自動リロード不可 or その他エラー → 日本語画面
       return (
         <div style={{ padding: '40px 20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
           <p style={{ fontSize: '16px', color: '#333', marginBottom: '16px' }}>
@@ -198,6 +203,7 @@ export default function AppRoutes() {
             <Route element={<FarmerLayout />}>
               <Route index element={<Navigate to="/farmer/reservations" replace />} />
               <Route path="reservations" element={<FarmerReservationTable />} />
+              <Route path="reservations/cancel" element={<FarmerCancelPage />} />
               <Route path="settings" element={<FarmerSettingsPage />} />
               <Route path="pickup-settings" element={<FarmerPickupSettingsPage />} />
               <Route path="menu" element={<FarmerMenu />} />

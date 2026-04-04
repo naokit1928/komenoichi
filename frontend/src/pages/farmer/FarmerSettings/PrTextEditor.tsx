@@ -402,15 +402,6 @@ export default function PrTextEditor({
           >
             農家からのメッセージ
           </span>
-          <span
-            style={{
-              fontSize: 12.5,
-              color: "#6B7280",
-              lineHeight: 1.6,
-            }}
-          >
-            {text.length}/{MAX_LEN}
-          </span>
         </div>
 
         {preview ? (
@@ -430,8 +421,8 @@ export default function PrTextEditor({
         ) : (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 13, color: "#9CA3AF", lineHeight: 1.6 }}>
-              こだわり、栽培方法、農家としての想いなど、<br />
-              アピールしたいことを自由に書いてください。
+              こだわりや栽培方法、農家としての想いなど、アピールしたいことを自由に書いてください。<br />
+              <span style={{ fontSize: 12, marginTop: 4, display: "inline-block" }}>※記入は任意ですが、お客さんに魅力が伝わりやすくなるため記入をおすすめしています。</span>
             </div>
           </div>
         )}

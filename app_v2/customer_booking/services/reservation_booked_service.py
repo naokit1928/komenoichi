@@ -32,6 +32,10 @@ class ReservationBookedViewDTO(BaseModel):
     is_expired: bool
     is_expired_for_display: bool
 
+    # ★ 追加: 受け渡し開始時刻（ISO文字列）
+    # CancelActionCard → CancelConfirmPage の遅延キャンセル判定に使用
+    event_start_at: Optional[str] = None
+
 
 class ReservationBookedService:
     def __init__(
@@ -95,7 +99,6 @@ class ReservationBookedService:
                farm=dict(farm_row),
             )
 
-            # ★ 修正: キャンセル期限を「受け渡し開始時刻（event_start_at）」に変更
             now_utc = datetime.now(tz=timezone.utc)
             cancel_deadline = event_start_at
             cancel_token_exp = int(cancel_deadline.timestamp())
@@ -118,7 +121,6 @@ class ReservationBookedService:
                 cancel_token_exp=cancel_token_exp,
             )
 
-            # 終了時刻まではキャンセルボタンを表示
             if now_utc < cancel_deadline:
                 payload = CancelTokenPayload(
                     reservation_id=ctx.reservation_id,
@@ -151,4 +153,5 @@ class ReservationBookedService:
             confirmed_at=confirmed_at.isoformat(),
             is_expired=is_expired,
             is_expired_for_display=is_expired_for_display,
+            event_start_at=event_start_at.isoformat(),  # ★ 追加
         )

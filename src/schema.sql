@@ -11,8 +11,7 @@ CREATE TABLE consumers (
     created_at TEXT,
     stripe_customer_id TEXT,
     registration_status TEXT,
-    email TEXT,
-    no_show_pardon INTEGER DEFAULT 0 -- ★ 追加: ペナルティの自己解除用タイムスタンプ
+    email TEXT
 );
 
 -- =========================================================
@@ -57,10 +56,12 @@ CREATE TABLE farms (
     first_activated_at TEXT,
     owner_farmer_id INTEGER,
     email TEXT NOT NULL,
-    registration_status TEXT NOT NULL
+    registration_status TEXT NOT NULL,
+    suspension_reason TEXT,
+    warning_checked_count INTEGER DEFAULT 0
 );
 
-CREATE INDEX idx_farms_publishable_location 
+CREATE INDEX idx_farms_publishable_location
     ON farms (active_flag, is_accepting_reservations, pickup_lat, pickup_lng);
 
 -- =========================================================
@@ -91,6 +92,7 @@ CREATE TABLE reservations (
     event_end_at DATETIME,
     guest_key TEXT,
     confirm_session_id TEXT,
+    is_late_cancel INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (consumer_id) REFERENCES consumers(consumer_id),
     FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
 );
@@ -185,6 +187,8 @@ CREATE TABLE farm_status_logs (
     farm_id INTEGER NOT NULL,
     is_accepting INTEGER NOT NULL,
     created_at TEXT NOT NULL,
+    reason TEXT,
+    is_checked INTEGER DEFAULT 0,
     FOREIGN KEY (farm_id) REFERENCES farms(farm_id)
 );
 

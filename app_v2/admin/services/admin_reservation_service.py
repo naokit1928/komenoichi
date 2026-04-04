@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 from app_v2.admin.repository.admin_reservation_repo import (
@@ -11,12 +11,10 @@ from app_v2.admin.repository.admin_reservation_repo import (
 from app_v2.admin.dto.admin_reservation_dtos import (
     AdminReservationListItemDTO,
 )
-
 from app_v2.admin.services.admin_items_formatter import (
     build_items_display,
     calc_amounts,
 )
-
 from app_v2.admin.services.admin_event_resolver import (
     parse_created_at,
     resolve_event,
@@ -33,129 +31,76 @@ class AdminReservationService:
     def __init__(self, repo: Optional[AdminReservationRepository] = None) -> None:
         self.repo = repo or AdminReservationRepository()
 
-    # ------------------------------------------------------------------
-    # 一覧 API 用
-    # ------------------------------------------------------------------
     def list_for_admin(
-        self,
-        *,
-        limit: int = 200,
-        offset: int = 0,
-        farm_id: Optional[int] = None,
-        reservation_id: Optional[int] = None,
-        status: Optional[str] = None,
-        date_from: Optional[date] = None,
-        date_to: Optional[date] = None,
+        self, *, limit: int = 200, offset: int = 0, farm_id: Optional[int] = None,
+        reservation_id: Optional[int] = None, status: Optional[str] = None,
+        date_from: Optional[date] = None, date_to: Optional[date] = None,
         event_start: Optional[datetime] = None,
     ) -> Tuple[List[AdminReservationListItemDTO], int]:
 
         if event_start is not None:
             raw_rows = self.repo.list_reservations(
-                limit=10000,
-                offset=0,
-                farm_id=farm_id,
-                reservation_id=reservation_id,
-                status=status,
-                date_from=None,
-                date_to=None,
+                limit=10000, offset=0, farm_id=farm_id, reservation_id=reservation_id,
+                status=status, date_from=None, date_to=None,
             )
-
             dtos: List[AdminReservationListItemDTO] = []
-
             for row in raw_rows:
                 pickup_slot_code = str(row.get("pickup_slot_code") or "")
-                if not pickup_slot_code:
-                    continue
+                if not pickup_slot_code: continue
 
                 created_at = parse_created_at(row.get("created_at"))
+                row_event_start, _ = resolve_event(created_at=created_at, pickup_slot_code=pickup_slot_code)
 
-                row_event_start, _ = resolve_event(
-                    created_at=created_at,
-                    pickup_slot_code=pickup_slot_code,
-                )
-
-                if row_event_start != event_start:
-                    continue
-
+                if row_event_start != event_start: continue
                 dto = self._build_admin_dto(row)
                 dtos.append(dto)
-
             return dtos, len(dtos)
 
         raw_rows = self.repo.list_reservations(
-            limit=limit,
-            offset=offset,
-            farm_id=farm_id,
-            reservation_id=reservation_id,
-            status=status,
-            date_from=date_from,
-            date_to=date_to,
+            limit=limit, offset=offset, farm_id=farm_id, reservation_id=reservation_id,
+            status=status, date_from=date_from, date_to=date_to,
         )
 
         total_count = self.repo.count_reservations(
-            farm_id=farm_id,
-            reservation_id=reservation_id,
-            status=status,
-            date_from=date_from,
-            date_to=date_to,
+            farm_id=farm_id, reservation_id=reservation_id, status=status,
+            date_from=date_from, date_to=date_to,
         )
 
         dtos: List[AdminReservationListItemDTO] = []
         for row in raw_rows:
             dto = self._build_admin_dto(row)
             dtos.append(dto)
-
         return dtos, total_count
 
-    # ------------------------------------------------------------------
-    # 受け渡しイベント（week）一覧
-    # ------------------------------------------------------------------
     def list_weeks_for_farm(
-        self,
-        *,
-        farm_id: int,
-        date_from: Optional[date] = None,
-        date_to: Optional[date] = None,
+        self, *, farm_id: int, date_from: Optional[date] = None, date_to: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
 
         raw_rows = self.repo.list_reservations(
-            limit=10000,
-            offset=0,
-            farm_id=farm_id,
-            reservation_id=None,
-            status=None,
-            date_from=date_from,
-            date_to=date_to,
+            limit=10000, offset=0, farm_id=farm_id, reservation_id=None,
+            status=None, date_from=date_from, date_to=date_to,
         )
+
+        emergency_logs = self.repo.get_farm_emergency_logs(farm_id)
 
         grouped: Dict[Tuple[str, datetime], Dict[str, Any]] = {}
 
         for row in raw_rows:
             pickup_slot_code = str(row.get("pickup_slot_code") or "")
-            if not pickup_slot_code:
-                continue
+            if not pickup_slot_code: continue
 
             created_at = parse_created_at(row.get("created_at"))
-
-            event_start, event_end = resolve_event(
-                created_at=created_at,
-                pickup_slot_code=pickup_slot_code,
-            )
+            event_start, event_end = resolve_event(created_at=created_at, pickup_slot_code=pickup_slot_code)
 
             key = (pickup_slot_code, event_start)
 
             if key not in grouped:
                 grouped[key] = {
-                    "farm_id": farm_id,
-                    "pickup_slot_code": pickup_slot_code,
-                    "event_start": event_start,
-                    "event_end": event_end,
+                    "farm_id": farm_id, "pickup_slot_code": pickup_slot_code,
+                    "event_start": event_start, "event_end": event_end,
                     "pickup_display": row.get("pickup_display"),
-                    "reservation_count": 0,
-                    "pending_count": 0,
-                    "confirmed_count": 0,
-                    "cancelled_count": 0,
-                    "rice_subtotal": 0,
+                    "reservation_count": 0, "pending_count": 0,
+                    "confirmed_count": 0, "cancelled_count": 0, "rice_subtotal": 0,
                 }
 
             g = grouped[key]
@@ -167,44 +112,47 @@ class AdminReservationService:
             elif status == "confirmed":
                 g["confirmed_count"] += 1
                 g["rice_subtotal"] += int(row.get("rice_subtotal") or 0)
-            # ★ 修正: no_show をキャンセル件数としてカウント
             elif status in ("cancelled", "no_show"):
                 g["cancelled_count"] += 1
 
         items = list(grouped.values())
+        
+        for g in items:
+            event_start = g["event_start"]
+            event_end = g["event_end"]
+            
+            week_logs = [
+                l for l in emergency_logs
+                if (event_start - timedelta(days=7)) <= parse_created_at(l["created_at"]) <= event_end
+            ]
+            if week_logs:
+                latest_log = max(week_logs, key=lambda l: parse_created_at(l["created_at"]))
+                g["emergency_cancel_reason"] = latest_log["reason"]
+            else:
+                g["emergency_cancel_reason"] = None
+
         items.sort(key=lambda x: (x["event_start"], x["pickup_slot_code"]))
         return items
 
-    # ------------------------------------------------------------------
-    # ダッシュボード用 アラート一覧
-    # ------------------------------------------------------------------
-    def get_alerts_for_admin(self) -> Dict[str, List[AdminReservationListItemDTO]]:
+    def get_alerts_for_admin(self) -> Dict[str, Any]:
         anomalies_raw = self.repo.list_payment_anomalies(limit=50)
         zombies_raw = self.repo.list_zombie_reservations(hours_old=1, limit=50)
+        unchecked_cancels = self.repo.list_unchecked_emergency_cancels()
+        unchecked_warnings = self.repo.list_unchecked_warning_farms() # ★ 変更
 
         return {
             "payment_anomalies": [self._build_admin_dto(row) for row in anomalies_raw],
             "zombies": [self._build_admin_dto(row) for row in zombies_raw],
+            "emergency_cancels": unchecked_cancels,
+            "warning_farms": unchecked_warnings, # ★ 変更
         }
 
-    # ------------------------------------------------------------------
-    # 内部ヘルパ
-    # ------------------------------------------------------------------
-    def _build_admin_dto(
-        self,
-        row: Dict[str, Any],
-    ) -> AdminReservationListItemDTO:
-
+    def _build_admin_dto(self, row: Dict[str, Any]) -> AdminReservationListItemDTO:
         pickup_slot_code = str(row.get("pickup_slot_code") or "")
         created_at = parse_created_at(row.get("created_at"))
-
-        event_start, event_end = resolve_event(
-            created_at=created_at,
-            pickup_slot_code=pickup_slot_code,
-        )
+        event_start, event_end = resolve_event(created_at=created_at, pickup_slot_code=pickup_slot_code)
 
         pickup_display = row.get("pickup_display")
-
         items_display = build_items_display(row.get("items_json"))
         rice_subtotal, service_fee, total_amount = calc_amounts(row)
 
@@ -212,11 +160,7 @@ class AdminReservationService:
         payment_status = str(row.get("payment_status") or "")
 
         updated_raw = row.get("updated_at")
-        updated_at = (
-            parse_created_at(updated_raw)
-            if updated_raw is not None
-            else created_at
-        )
+        updated_at = parse_created_at(updated_raw) if updated_raw is not None else created_at
 
         customer_user_id = int(row.get("customer_user_id") or row.get("user_id") or 0)
 
@@ -224,7 +168,6 @@ class AdminReservationService:
         owner_first_name = (row.get("owner_first_name") or "").strip()
         owner_last_kana = (row.get("owner_last_kana") or "").strip()
         owner_first_kana = (row.get("owner_first_kana") or "").strip()
-
         farmer_postcode = (row.get("owner_postcode") or "").strip()
         addr_line = (row.get("owner_addr_line") or "").strip()
 
@@ -234,48 +177,29 @@ class AdminReservationService:
         lat = row.get("pickup_lat")
         lng = row.get("pickup_lng")
         pickup_map_url = ""
-
         try:
             if lat is not None and lng is not None:
                 pickup_map_url = self._build_google_maps_url(float(lat), float(lng))
         except (TypeError, ValueError):
-            pickup_map_url = ""
+            pass
 
         pickup_code = ""
         if customer_user_id > 0:
             pickup_code = _generate_pickup_code(int(row["id"]), customer_user_id)
 
         return AdminReservationListItemDTO(
-            reservation_id=int(row["id"]),
-            farm_id=int(row["farm_id"]),
-            pickup_slot_code=pickup_slot_code,
-            pickup_code=pickup_code,
-            customer_user_id=customer_user_id,
-            consumer_email=row.get("consumer_email"),
-            payment_intent_id=row.get("payment_intent_id"),
-            payment_status=payment_status,
-            confirm_session_id=row.get("confirm_session_id"),
-            owner_last_name=owner_last_name or None,
-            owner_first_name=owner_first_name or None,
-            owner_last_kana=owner_last_kana or None,
-            owner_first_kana=owner_first_kana or None,
-            owner_postcode=farmer_postcode or None,
-            owner_address_line=addr_line or None,
-            owner_phone=(row.get("owner_phone") or "").strip() or None,
-            owner_email=(row.get("owner_email") or "").strip() or None,
-            pickup_start=event_start,
-            pickup_end=event_end,
-            pickup_display=pickup_display or "",
-            pickup_place_name=pickup_place_name or None,
-            pickup_map_url=pickup_map_url or None,
-            pickup_detail_memo=pickup_detail_memo or None,
-            items_display=items_display,
-            rice_subtotal=rice_subtotal,
-            service_fee=service_fee,
-            total_amount=total_amount,
-            reservation_status=reservation_status,
-            created_at=created_at,
-            updated_at=updated_at,
+            reservation_id=int(row["id"]), farm_id=int(row["farm_id"]), pickup_slot_code=pickup_slot_code,
+            pickup_code=pickup_code, customer_user_id=customer_user_id, consumer_email=row.get("consumer_email"),
+            payment_intent_id=row.get("payment_intent_id"), payment_status=payment_status,
+            confirm_session_id=row.get("confirm_session_id"), owner_last_name=owner_last_name or None,
+            owner_first_name=owner_first_name or None, owner_last_kana=owner_last_kana or None,
+            owner_first_kana=owner_first_kana or None, owner_postcode=farmer_postcode or None,
+            owner_address_line=addr_line or None, owner_phone=(row.get("owner_phone") or "").strip() or None,
+            owner_email=(row.get("owner_email") or "").strip() or None, pickup_start=event_start,
+            pickup_end=event_end, pickup_display=pickup_display or "", pickup_place_name=pickup_place_name or None,
+            pickup_map_url=pickup_map_url or None, pickup_detail_memo=pickup_detail_memo or None,
+            items_display=items_display, rice_subtotal=rice_subtotal, service_fee=service_fee,
+            total_amount=total_amount, reservation_status=reservation_status, created_at=created_at, updated_at=updated_at,
         )
 
     @staticmethod

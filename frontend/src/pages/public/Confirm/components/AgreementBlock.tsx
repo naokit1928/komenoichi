@@ -1,16 +1,13 @@
-// frontend/src/pages/public/ReservationBooked/components/AgreementBlock.tsx
+// frontend/src/pages/public/ConfirmPage/components/AgreementBlock.tsx
 import React, { useState, useEffect } from "react";
 import LawPage from "../../Legal/LawPage";
 import TermsPage from "../../Legal/TermsPage";
 
-// ── Brand tokens (COLOR_STRATEGY.md準拠) ──
 const C = {
-  ink:       "#1a1108",
-  ink2:      "#4b3e2a",
-  ink3:      "#7a6c58",
-  border:    "#e8e2d8",
-  bgPale:    "#f4f1ed",
-  bgBase:    "#fdfcfa",
+  ink:    "#1a1108",
+  ink2:   "#4b3e2a",
+  ink3:   "#7a6c58",
+  border: "#e8e2d8",
 } as const;
 
 type Props = {
@@ -22,64 +19,44 @@ export function AgreementBlock({ agreed, onChange }: Props) {
   const [openModal, setOpenModal] = useState<"law" | "terms" | null>(null);
 
   useEffect(() => {
-    if (openModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    document.body.style.overflow = openModal ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [openModal]);
 
-  const isMobile = window.innerWidth < 480;
-
   return (
-    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>
+    <div style={{ paddingTop: 4, marginTop: 4 }}>
 
-      {/* ★ 軽量化した警告メッセージ */}
-      <div style={{ marginBottom: 32 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: C.ink, margin: "0 0 10px" }}>
-          ご予約に関する大切なお願い
-        </p>
-        
-        <ul style={{
-          margin: 0,
-          paddingLeft: 20,
-          fontSize: 12,
-          color: C.ink3,
-          lineHeight: 1.6,
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-        }}>
-          {/* ★ 軽量化したメッセージを箇条書きの最初に配置 */}
-          <li>農家さんが予約に合わせて精米します。確実にお受け取りできる日時であることを確認しご予約ください。。</li>
-          <li>システム利用料（300円）はキャンセル時も返金不可となります。</li>
-          <li>品質不良や返品のご相談は,受け渡し当日その場で農家さんへ直接お伝えください。</li>
-        </ul>
+      {/* ── 注意事項（2行のみ） ── */}
+      <ul style={{
+        margin: "0 0 20px",
+        paddingLeft: 18,
+        fontSize: 12,
+        color: C.ink3,
+        lineHeight: 1.7,
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+      }}>
+        <li>受け取りに来られない場合は早めにキャンセルしてください。無断キャンセルが続くとご利用が制限されます。</li>
+        <li>品質に関するご相談は、受け渡し当日その場で農家さんへ直接お伝えください。</li>
+      </ul>
 
-        {/* ★ ペナルティ注記を箇条書きの下に,目立たないグレーで配置 */}
-        <p style={{ marginTop: 10, fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
-          ※過度な回数のキャンセルや無断キャンセルをされた場合,以後のご予約に制限を加える場合がございます。
-        </p>
-      </div>
-
-      {/* チェックボックス：カード型 */}
+      {/* ── チェックボックス ── */}
       <div
         onClick={() => onChange(!agreed)}
         style={{
-          background: "#ffffff",
-          border: `1.5px solid ${agreed ? C.ink2 : C.border}`,
+          background: agreed ? "#fafaf9" : "#ffffff",
+          border: `1.5px solid ${agreed ? C.ink2 : "#d4c8b8"}`,
           borderRadius: 12,
           padding: "14px 16px",
           display: "flex",
           alignItems: "flex-start",
           gap: 12,
           cursor: "pointer",
-          transition: "border-color 0.15s",
+          transition: "border-color 0.15s, background 0.15s",
         }}
       >
+        {/* チェックマーク */}
         <div style={{
           width: 20,
           height: 20,
@@ -105,19 +82,16 @@ export function AgreementBlock({ agreed, onChange }: Props) {
           )}
         </div>
 
+        {/* テキスト */}
         <div>
           <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: C.ink, userSelect: "none" }}>
-            規約に同意する
+            上記を確認し、規約に同意する
           </p>
-          <p style={{ fontSize: 11, color: C.ink2, margin: 0, lineHeight: 1.6, userSelect: "none" }}>
+          <p style={{ fontSize: 11, color: C.ink3, margin: 0, lineHeight: 1.6, userSelect: "none" }}>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setOpenModal("law"); }}
-              style={{
-                background: "none", border: "none", padding: 0,
-                color: C.ink2, textDecoration: "underline",
-                cursor: "pointer", fontSize: 11, fontFamily: "inherit",
-              }}
+              style={{ background: "none", border: "none", padding: 0, color: C.ink3, textDecoration: "underline", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}
             >
               特定商取引法に基づく表記
             </button>
@@ -125,68 +99,41 @@ export function AgreementBlock({ agreed, onChange }: Props) {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setOpenModal("terms"); }}
-              style={{
-                background: "none", border: "none", padding: 0,
-                color: C.ink2, textDecoration: "underline",
-                cursor: "pointer", fontSize: 11, fontFamily: "inherit",
-              }}
+              style={{ background: "none", border: "none", padding: 0, color: C.ink3, textDecoration: "underline", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}
             >
               利用規約
             </button>
-            に同意したとみなされます。
           </p>
         </div>
       </div>
 
-      {/* モーダルオーバーレイ */}
-      {openModal && (
-        <div
-          style={{
-            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.6)", zIndex: 9999,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "40px 0",
-          }}
-          onClick={() => setOpenModal(null)}
-        >
-          <div
-            style={{
-              background: "#ffffff",
-              width: "100%",
-              maxWidth: isMobile ? "100%" : "640px",
-              height: isMobile ? "80vh" : "85vh",
-              borderRadius: isMobile ? 0 : 12,
-              display: "flex",
-              flexDirection: "column",
-              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* ヘッダー */}
-            <div style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              padding: "8px 12px",
-              borderBottom: `1px solid ${C.border}`,
-              position: "sticky", top: 0, backgroundColor: "#fff", zIndex: 10,
-            }}>
-              <button
-                onClick={() => setOpenModal(null)}
-                style={{
-                  background: C.bgPale, border: "none", width: 36, height: 36,
-                  borderRadius: "50%", fontSize: 24, cursor: "pointer", color: C.ink2,
-                }}
-              >×</button>
-            </div>
-            {/* コンテンツ */}
-            <div style={{ overflowY: "auto", flex: 1, padding: 0, WebkitOverflowScrolling: "touch" }}>
-              {/* ★ isModal={true} を渡してボトムバーを非表示にする */}
-              {openModal === "law" && <LawPage isModal={true} />}
-              {openModal === "terms" && <TermsPage isModal={true} />}
+      {/* ── 法務モーダル ── */}
+      {openModal && (() => {
+        const isLaw = openModal === "law";
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", justifyContent: "center", alignItems: "flex-end" }}>
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} onClick={() => setOpenModal(null)} />
+            <div style={{ position: "relative", width: "100%", maxWidth: 600, background: "#fff", height: "85vh", borderTopLeftRadius: 20, borderTopRightRadius: 20, display: "flex", flexDirection: "column", animation: "slideUp 0.3s ease-out" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: `1px solid ${C.border}` }}>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.ink }}>
+                  {isLaw ? "特定商取引法に基づく表記" : "利用規約"}
+                </h2>
+                <button onClick={() => setOpenModal(null)} style={{ background: "none", border: "none", fontSize: 24, color: C.ink3, cursor: "pointer", padding: 4 }}>×</button>
+              </div>
+              <div style={{ flex: 1, overflowY: "auto" }}>
+                {isLaw ? <LawPage isModal /> : <TermsPage isModal />}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

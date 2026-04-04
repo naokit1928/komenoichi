@@ -47,15 +47,20 @@ function Toast({ kind, text }: { kind: "ok" | "ng"; text: string }) {
   return ReactDOM.createPortal(
     <div
       role="status"
-      className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[2147483647]"
+      style={{
+        position: "fixed", left: "50%", top: "50%",
+        transform: "translate(-50%, -50%)",
+        zIndex: 2147483647
+      }}
     >
       <div
-        className="flex items-center gap-2 rounded-2xl px-5 py-3 shadow-2xl"
         style={{
+          display: "flex", alignItems: "center", gap: "8px",
+          borderRadius: "16px", padding: "12px 20px",
+          boxShadow: "0 20px 25px -5px rgba(0,0,0,0.2)",
           background: kind === "ok" ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)",
-          color: "white",
-          fontSize: 15,
-          fontWeight: 600,
+          color: "white", fontSize: "15px", fontWeight: 600,
+          whiteSpace: "nowrap"
         }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
@@ -99,75 +104,45 @@ function PreviewModal({
 
   return ReactDOM.createPortal(
     <>
-      {/* =====================================
-          背景オーバーレイ — タップで閉じる
-      ===================================== */}
       <div
         onClick={onClose}
         style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 2147483640,
-          background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(6px)",
+          position: "fixed", inset: 0, zIndex: 2147483640,
+          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
         }}
       />
 
-      {/* =====================================
-          モーダル本体 — クリックは伝播させない
-      ===================================== */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 2147483641,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "20px 16px",
-          pointerEvents: "none",
+          position: "fixed", inset: 0, zIndex: 2147483641,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "20px 16px", pointerEvents: "none",
         }}
       >
-        {/* iframeコンテナ */}
         <div
           style={{
-            pointerEvents: "auto",
-            width: "100%",
-            maxWidth: 390,
-            height: "100%",
-            maxHeight: 780,
-            background: "#fff",
-            borderRadius: 20,
-            overflow: "hidden",
+            pointerEvents: "auto", width: "100%", maxWidth: 390,
+            height: "100%", maxHeight: 780, background: "#fff",
+            borderRadius: 20, overflow: "hidden",
             boxShadow: "0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)",
-            display: "flex",
-            flexDirection: "column",
-            position: "relative",
+            display: "flex", flexDirection: "column", position: "relative",
           }}
         >
-          {/* ヘッダーバー */}
           <div
             style={{
-              height: 44,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0 16px",
+              height: 44, display: "flex", alignItems: "center",
+              justifyContent: "space-between", padding: "0 16px",
               borderBottom: "1px solid rgba(0,0,0,0.06)",
-              background: "#FAFAFA",
-              flexShrink: 0,
+              background: "#FAFAFA", flexShrink: 0,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span
                 style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "#22C55E",
-                  display: "inline-block",
+                  width: 6, height: 6, borderRadius: "50%",
+                  background: "#22C55E", display: "inline-block",
                   boxShadow: "0 0 0 2px rgba(34,197,94,0.25)",
                 }}
               />
@@ -179,16 +154,9 @@ function PreviewModal({
               onClick={onClose}
               aria-label="閉じる"
               style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                border: "none",
-                background: "rgba(0,0,0,0.06)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 0,
+                width: 28, height: 28, borderRadius: "50%",
+                border: "none", background: "rgba(0,0,0,0.06)", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -200,12 +168,7 @@ function PreviewModal({
           <iframe
             src={`/farms/${farmId}?preview=true`}
             title="農家ページプレビュー"
-            style={{
-              width: "100%",
-              flex: 1,
-              border: "none",
-              display: "block",
-            }}
+            style={{ width: "100%", flex: 1, border: "none", display: "block" }}
           />
         </div>
       </div>
@@ -327,10 +290,9 @@ export default function FarmerSettingsPage() {
     .filter((x): x is MissingItem => !!x);
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7] pb-52">
+    <div style={{ minHeight: "100vh", backgroundColor: "#F7F7F7", paddingBottom: "200px" }}>
       {/* ★ iOS Safari特有の文字色バグ（数字を勝手に青い電話番号リンクにする機能）を無効化するCSS */}
       <style>{`
-        /* 勝手にリンク化された要素の色を親要素と同じ（黒）に強制し、タップできないようにする */
         a[href^="tel"], a[x-apple-data-detectors] {
           color: inherit !important;
           text-decoration: none !important;
@@ -340,17 +302,16 @@ export default function FarmerSettingsPage() {
 
       <FarmerSettingsHeader title="農家ページの設定" />
 
-      <div className="mx-auto max-w-3xl">
-        <section className="px-4 sm:px-6 mt-6">
+      {/* ── 農家メニューやテーブルと同じ最大幅640pxの中央寄せ ── */}
+      <div style={{ maxWidth: 640, margin: "0 auto", paddingTop: 24 }}>
+        
+        <section style={{ padding: "0 16px", marginBottom: 32 }}>
           {/* 公開前バナー — ピルタグ形式 */}
           {!canPublish && data && missingItems.length > 0 && (
             <div
               style={{
-                background: "#FFFFFF",
-                border: "1px solid rgba(0,0,0,0.07)",
-                borderRadius: 16,
-                padding: "12px 14px",
-                marginBottom: 16,
+                background: "#FFFFFF", border: "1px solid rgba(0,0,0,0.07)",
+                borderRadius: 16, padding: "12px 14px", marginBottom: 16,
                 boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
               }}
             >
@@ -362,12 +323,8 @@ export default function FarmerSettingsPage() {
                   <span
                     key={item.key}
                     style={{
-                      fontSize: 11,
-                      background: "#F3F4F6",
-                      color: "#374151",
-                      borderRadius: 9999,
-                      padding: "2px 8px",
-                      whiteSpace: "nowrap",
+                      fontSize: 11, background: "#F3F4F6", color: "#374151",
+                      borderRadius: 9999, padding: "2px 8px", whiteSpace: "nowrap",
                     }}
                   >
                     {item.label}
@@ -376,8 +333,9 @@ export default function FarmerSettingsPage() {
               </div>
             </div>
           )}
+          
+          {/* トグルカード */}
           <PublishToggleCard
-            className="!mt-0"
             isOn={!!data?.is_accepting_reservations}
             disabled={!canPublish}
             onToggle={(v) => setPublishConfirm({ next: v })}
@@ -391,7 +349,7 @@ export default function FarmerSettingsPage() {
           onChanged={fetchAll}
         />
 
-        <div className="px-4 sm:px-6">
+        <div style={{ padding: "0 16px", marginTop: 24, display: "flex", flexDirection: "column", gap: 24 }}>
           <PriceEditor
             initialPrice10={data?.price_10kg ?? undefined}
             onSaved={fetchAll}
@@ -447,11 +405,8 @@ export default function FarmerSettingsPage() {
       {!previewOpen && !cropOpen && (
         <div
           style={{
-            position: "fixed",
-            bottom: 108,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 60,
+            position: "fixed", bottom: 108, left: "50%",
+            transform: "translateX(-50%)", zIndex: 60,
           }}
         >
           <button
@@ -463,18 +418,10 @@ export default function FarmerSettingsPage() {
               setPreviewOpen(true);
             }}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "12px 22px",
-              background: "#111",
-              color: "#fff",
-              border: "none",
-              borderRadius: 9999,
-              fontSize: 14,
-              fontWeight: 700,
-              letterSpacing: ".02em",
-              cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "12px 22px", background: "#111", color: "#fff",
+              border: "none", borderRadius: 9999, fontSize: 14,
+              fontWeight: 700, letterSpacing: ".02em", cursor: "pointer",
               boxShadow: "0 4px 20px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.15)",
               whiteSpace: "nowrap",
             }}
@@ -511,14 +458,10 @@ export default function FarmerSettingsPage() {
             role="dialog"
             aria-modal="true"
             style={{
-              position: "fixed",
-              top: "50%", left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 2147483647,
-              width: "min(400px, 88vw)",
-              background: "#fff",
-              borderRadius: 24,
-              padding: "24px 20px 20px",
+              position: "fixed", top: "50%", left: "50%",
+              transform: "translate(-50%, -50%)", zIndex: 2147483647,
+              width: "min(400px, 88vw)", background: "#fff",
+              borderRadius: 24, padding: "24px 20px 20px",
               boxShadow: "0 24px 60px rgba(0,0,0,0.25)",
             }}
             onClick={(e) => e.stopPropagation()}

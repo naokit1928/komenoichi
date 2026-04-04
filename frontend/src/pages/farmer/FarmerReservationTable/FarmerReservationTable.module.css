@@ -24,11 +24,11 @@
    =========================== */
 .header {
   display: flex;
-  align-items: center; /* 垂直中央揃え */
-  justify-content: space-between; /* 両端に配置 */
-  padding: 16px; /* 均等にして中央揃えを完璧に */
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 16px; 
   border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap; /* タイトルを縦に割らせない */
+  white-space: nowrap; 
 }
 
 .titleBlock {
@@ -38,6 +38,8 @@
   text-align: left;
   flex: 1;
   min-width: 0;
+  overflow: hidden; /* タイトルが長すぎても突き抜けないように */
+  text-overflow: ellipsis;
 }
 
 .mainTitle {
@@ -47,46 +49,23 @@
   word-break: keep-all;
 }
 
-/* 右側のボタンエリアの配置を調整 */
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 8px; /* ボタンとアイコンの間隔を最適化 */
-  flex-shrink: 0; /* 潰れないようにする */
-}
-
-/* ★ 変更：ピルから「角形」にし、デザインを洗練 */
-.headerRuleButton {
-  padding: 6px 12px; /* パディングを少し詰め、おさまりを良く */
-  border-radius: 6px; /* 角形に変更（カード全体の角丸と統一） */
-  border: 1px solid #d1d5db; /* 枠線 */
-  background-color: #ffffff;
-  color: #111827; /* テキスト色を黒にしてよりプロ仕様に */
-  font-size: 12px; /* 少し小さく */
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s ease; /* スムーズなアニメーション */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* 控えめな影で質感向上 */
-}
-
-.headerRuleButton:hover {
-  background-color: #f9fafb; /* 薄いグレーの背景 */
-  border-color: #c1c5cb; /* 枠線を少し濃く */
-  color: #111827;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 影を強く */
+  gap: 8px; 
+  flex-shrink: 0; 
 }
 
 .iconButton {
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 6px;
+  padding: 8px; /* タップしやすくするため少し広げる */
   border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #111827;
+  color: #374151;
   transition: background 0.2s ease;
 }
 
@@ -94,7 +73,61 @@
   background: #f3f4f6;
 }
 
-/* ★ 追加：テーブルフェードインアニメーション */
+/* ★ 追加：ドロップダウンメニュー */
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  min-width: 220px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dropdownItem,
+.dropdownItemDanger {
+  padding: 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s ease;
+}
+
+.dropdownItem:last-child,
+.dropdownItemDanger:last-child {
+  border-bottom: none;
+}
+
+.dropdownItem {
+  color: #374151;
+}
+
+.dropdownItem:hover {
+  background-color: #f9fafb;
+}
+
+.dropdownItemDanger {
+  color: #b91c1c;
+}
+
+.dropdownItemDanger:hover {
+  background-color: #fef2f2;
+}
+
+/* ===========================
+   アニメーション・テーブル関連
+   =========================== */
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
@@ -124,7 +157,6 @@
 
 .tableWrapper {
   overflow-x: auto;
-  /* 横スクロール可能なことを示す右側のシャドウヒント */
   background:
     linear-gradient(to right, white 30%, rgba(255,255,255,0)),
     linear-gradient(to right, rgba(255,255,255,0), white 70%) 100% 0,
@@ -141,7 +173,6 @@
   font-size: 14px;
 }
 
-/* スマホ等で押しやすいように行の高さを確保 */
 .table th,
 .table td {
   padding: 12px 10px;
@@ -196,15 +227,13 @@
 
 .cellRight {
   text-align: right;
-  font-variant-numeric: tabular-nums; /* 数字を縦に揃える */
+  font-variant-numeric: tabular-nums; 
 }
 
-/* 「0」を薄くして視覚的ノイズを減らす */
 .zeroText {
   color: #d1d5db;
 }
 
-/* 矢印アフォーダンス */
 .chevronCell {
   color: #9ca3af;
   text-align: right;
@@ -215,7 +244,6 @@
   font-weight: 300;
 }
 
-/* 予約 / コード を2行表示するため */
 .thTop {
   display: block;
 }
@@ -225,7 +253,7 @@
   white-space: nowrap;
 }
 
-/* ===== Empty State（予約ゼロ時） ===== */
+/* ===== Empty State ===== */
 .emptyState,
 .emptyStateBox {
   padding: 80px 24px;
@@ -246,12 +274,12 @@
 .emptyStateIcon {
   font-size: 32px;
   margin-bottom: 12px;
-  filter: grayscale(100%); /* モノトーンに合わせる */
+  filter: grayscale(100%); 
   opacity: 0.5;
 }
 
 
-/* ===== 週切り替えナビゲーション（セグメントコントロール・縮小版） ===== */
+/* ===== 週切り替えナビゲーション ===== */
 .segmentControl {
   display: flex;
   position: relative;
@@ -281,7 +309,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ★ 黒色に変更し、少し拡大＆影をつけて「切り替えた感（重み）」を出す */
 .segmentTab.active {
   color: #ffffff;
   background-color: #111827;
@@ -315,7 +342,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 4px; /* 左右を極小に */
+  padding: 24px 4px; 
   z-index: 40;
 }
 
@@ -393,11 +420,10 @@
 
 .modalTable th,
 .modalTable td {
-  padding: 8px 6px; /* 横だけ詰める */
+  padding: 8px 6px; 
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* === モーダル内テーブル：配置の統一 === */
 .modalTable thead th:nth-child(1),
 .modalTable tbody td:nth-child(1) {
   text-align: left;
@@ -417,7 +443,6 @@
   font-weight: 600;
 }
 
-/* レシート風の二重線 */
 .modalTotalRow td {
   border-top: 3px double #d1d5db !important;
   border-bottom: none !important;
@@ -430,7 +455,6 @@
   color: #111827;
 }
 
-/* 警告ボックス（赤・グレー系に統一） */
 .warningBox {
   background-color: #fef2f2;
   color: #991b1b;
@@ -557,7 +581,6 @@
   opacity: 0.7;
 }
 
-/* 受渡番号の横につける小さなバッジ */
 .statusBadge {
   display: inline-flex;
   align-items: center;
@@ -586,12 +609,10 @@
    =========================== */
 
 @media print {
-  /* ブラウザのURLや日付（ヘッダー・フッター）を完全に消す */
   @page {
     margin: 0mm;
   }
 
-  /* 2枚目の白紙を防ぐため、html/body/root の高さや余白を完全リセット */
   html, body, #root {
     height: auto !important;
     min-height: auto !important;
@@ -600,7 +621,6 @@
     background: #ffffff !important;
   }
 
-  /* Layoutコンポーネント等が持つ「見えない100vh」を強制解除 */
   #root > div,
   #root > div > div {
     height: auto !important;
@@ -609,7 +629,6 @@
     padding: 0 !important;
   }
 
-  /* 印刷内容のエリア。ここでだけ「見切れないための安全な余白」を取る */
   .page {
     height: auto !important;
     min-height: auto !important;
@@ -633,16 +652,14 @@
     margin-bottom: 0 !important;
   }
 
-  /* 不要なUI要素の非表示 */
   .iconButton,
-  .headerRuleButton,
+  .dropdownMenu,
   .noticeCloseButton,
   .modalOverlay,
   .segmentControl {
     display: none !important;
   }
 
-  /* 画面下部のナビゲーション等を消す */
   nav, footer, .bottomNav, [role="navigation"] {
     display: none !important;
   }
