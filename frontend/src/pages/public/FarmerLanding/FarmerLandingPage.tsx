@@ -32,7 +32,7 @@ export default function FarmerLandingPage() {
           Komenoichi
         </div>
         <button
-          onClick={() => navigate("/apply")} // ★ 変更: 事前エントリーページへ誘導
+          onClick={() => navigate("/apply")}
           style={{ background: C.ink, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
         >
           農家登録（無料）
@@ -53,13 +53,13 @@ export default function FarmerLandingPage() {
           <span style={{ display: "inline-block" }}>農家さんの</span><span style={{ display: "inline-block" }}>出品・維持手数料は、</span><br />
           <span style={{ color: C.red, textDecoration: "underline", textUnderlineOffset: 4, textDecorationColor: C.goldLight, display: "inline-block", marginTop: 8 }}>一切無料。</span>
         </h1>
+        {/* ★修正①：300円システム利用料を農家メリットの根拠として説明する表現を削除 */}
         <p style={{
           fontSize: 16,
           color: C.ink3,
           lineHeight: 1.8,
         }}>
-          購入者が支払うシステム利用料も、1回たったの300円と非常に安価で負担が軽い仕組み。<br />
-          これにより、農家さんは完全にノーリスクで「自分だけの直売所」を始められます。
+          初期費用・月額費用・販売手数料はすべて0円。農家さんは完全にノーリスクで「自分だけの直売所」を始められます。
         </p>
       </section>
 
@@ -117,7 +117,8 @@ export default function FarmerLandingPage() {
               </tr>
             </tbody>
           </table>
-          <p style={{ fontSize: 11, color: C.ink3, marginTop: 16, textAlign: "center", lineHeight: 1.5 }}>※価格・手数料はすべて一例です。Komenoichiは購入者がシステム利用料（300円）を支払うため、農家側の手数料は常に0円となります。</p>
+          {/* ★修正②：300円を農家の手数料が0円である理由として説明する注釈を削除 */}
+          <p style={{ fontSize: 11, color: C.ink3, marginTop: 16, textAlign: "center", lineHeight: 1.5 }}>※価格・手数料はすべて一例です。Komenoichiは農家さんへの出品手数料を一切いただきません。</p>
         </div>
       </section>
 
@@ -140,16 +141,18 @@ export default function FarmerLandingPage() {
           <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: C.bgPale, color: C.ink2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, flexShrink: 0 }}>2</div>
             <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: C.ink, marginBottom: 10, lineHeight: 1.3 }}>電話対応ゼロ。スマホで在庫管理。</h3>
-              <p style={{ fontSize: 14, color: C.ink3, lineHeight: 1.7 }}>作業中に鳴る予約電話、手帳での管理、Komenoichiがすべて引き受けます。お客様はスマホで24時間予約でき、農家さんは管理画面で在庫（kg）を設定するだけ。農家さんの生活ペースを最優先できます。</p>
+              {/* ★修正③：「在庫（kg）を設定するだけ」→ ON/OFFトグルの仕様に修正 */}
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: C.ink, marginBottom: 10, lineHeight: 1.3 }}>電話対応ゼロ。スマホで出品管理。</h3>
+              <p style={{ fontSize: 14, color: C.ink3, lineHeight: 1.7 }}>作業中に鳴る予約電話、手帳での管理、Komenoichiがすべて引き受けます。お客様はスマホで24時間予約でき、農家さんは管理画面のON/OFFボタンで公開・一時停止を切り替えるだけ。農家さんの生活ペースを最優先できます。</p>
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: C.bgPale, color: C.ink2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, flexShrink: 0 }}>3</div>
             <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: C.ink, marginBottom: 10, lineHeight: 1.3 }}>農家さんは「ノーリスク」。事前決済でドタキャン防止。</h3>
-              <p style={{ fontSize: 14, color: C.ink3, lineHeight: 1.7 }}>初期費用、月額費用、販売手数料は一切かかりません（農家負担ゼロ）。お客様からの予約時に、システム利用料（300円）を事前にクレジットカード決済していただく仕組みのため、いたずら予約や無断キャンセル（ノーショー）を強力に防止します。</p>
+              {/* ★修正④：「事前決済でドタキャン防止」「300円」の記述を実態に合わせて修正 */}
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: C.ink, marginBottom: 10, lineHeight: 1.3 }}>農家さんは「ノーリスク」。ペナルティでドタキャン防止。</h3>
+              <p style={{ fontSize: 14, color: C.ink3, lineHeight: 1.7 }}>初期費用、月額費用、販売手数料は一切かかりません（農家負担ゼロ）。直前のキャンセルや無断キャンセル（ノーショー）を強力に抑制するペナルティの仕組みを設けているため、農家さんが損をする心配がありません。</p>
             </div>
           </div>
         </div>
@@ -159,13 +162,12 @@ export default function FarmerLandingPage() {
       <section style={{ padding: "0 24px 88px", textAlign: "center", backgroundColor: "#fff", borderTop: `1px solid ${C.border}` }}>
         <div style={{ maxWidth: 400, margin: "0 auto", marginTop: 56 }}>
           <button
-            onClick={() => navigate("/apply")} // ★ 変更: 事前エントリーページへ誘導
+            onClick={() => navigate("/apply")}
             style={{ width: "100%", background: C.ink, color: "#fff", border: "none", padding: "18px 24px", borderRadius: 999, fontSize: 16, fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 24px rgba(0,0,0,0.15)", transition: "all 0.2s", outline: "none" }}
           >
             無料で農家登録してみる
           </button>
           
-          {/* ★ 修正：自然なテキストの折り返しに戻し、コンテナを中央に配置しました */}
           <div style={{ marginTop: 20, maxWidth: 350, margin: "20px auto 0" }}>
             <p style={{ fontSize: 13, color: C.ink3, lineHeight: 1.6, margin: 0, textAlign: "left" }}>
               初期費用・月額費用・販売手数料は一切かかりません（農家負担ゼロ）。<br />
