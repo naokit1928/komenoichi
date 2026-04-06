@@ -71,14 +71,14 @@ const FarmerReservationNoticeModal: React.FC<FarmerReservationNoticeModalProps> 
                 </p>
               </div>
 
-              {/* ③ 余った白米の翌週持ち越し */}
+              {/* ③ お米の鮮度ルール・翌週持ち越し */}
               <div className={styles.ruleItem}>
                 <div className={styles.ruleTitle}>
                   <span className={styles.ruleIcon}>③</span>
-                  余った白米は翌週に回せます（再来週への繰り越しは禁止）
+                  出品できるお米の鮮度条件
                 </div>
                 <p className={styles.ruleDesc}>
-                  やむを得ず余った分は冷蔵または冷暗所で保管し、翌週の販売に充てることができます。ただし<b>精米後8日を超えた販売</b>、および<b>再来週以降への繰り越しは禁止</b>です。翌週も売れ残った分はご自身でご消費ください。
+                  受け渡しできるお米は、<b>収穫から335日以内</b>かつ<b>精米から8日以内</b>のものに限ります。どちらか一方でも超えた場合は出品できません。やむを得ず余った分は冷蔵または冷暗所で保管し翌週に回すことができますが、<b>再来週以降への繰り越しは禁止</b>です。翌週も売れ残った分はご自身でご消費ください。
                 </p>
               </div>
 
