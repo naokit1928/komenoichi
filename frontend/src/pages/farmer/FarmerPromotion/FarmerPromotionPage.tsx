@@ -55,22 +55,44 @@ export default function FarmerPromotionPage() {
       });
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      
-      const doc = new jsPDF({ 
-        orientation: "portrait", 
-        unit: "mm", 
+
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
         format: "a4",
-        compress: true 
+        compress: true,
       });
-      
+
       doc.addImage(imgData, "JPEG", 0, 0, 210, 297);
 
       const filename = printType === "poster"
         ? "komenoichi-poster.pdf"
         : "komenoichi-labels.pdf";
-      doc.save(filename);
 
-    } catch (e) {
+      const blob = doc.output("blob");
+
+      // Android Chrome 対策：Web Share API 経由でファイルを渡す
+      const file = new File([blob], filename, { type: "application/pdf" });
+      if (
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [file] })
+      ) {
+        await navigator.share({ files: [file], title: filename });
+      } else {
+        // PC・非対応ブラウザは従来のダウンロード
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+    } catch (e: unknown) {
+      // ユーザーが共有シートをキャンセルした場合は無視
+      if (e instanceof Error && e.name === "AbortError") return;
       console.error("PDF生成エラー:", e);
       alert("PDFの生成に失敗しました。再度お試しください。");
     } finally {
@@ -112,15 +134,13 @@ export default function FarmerPromotionPage() {
           background-color: rgba(0,0,0,0.75); display: flex; justify-content: center;
           align-items: center; z-index: 1000; cursor: pointer; backdrop-filter: blur(4px);
         }
-        /* ★ ボタンのスタイル修正（1行に収める、文字を少し小さく、折り返し禁止） */
         .pdf-btn {
           width: 100%; padding: 16px; background: #111827; color: #fff;
           border: none; border-radius: 16px; font-size: 16px; font-weight: 700;
           cursor: pointer; box-shadow: 0 8px 16px rgba(0,0,0,0.1);
           transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, opacity 0.15s;
           display: flex; align-items: center; justify-content: center; gap: 8px;
-          white-space: nowrap; /* 2行になるのを防止 */
-          overflow: hidden; text-overflow: ellipsis; /* 万が一はみ出たら「...」にする */
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .pdf-btn:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .pdf-btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -210,7 +230,6 @@ export default function FarmerPromotionPage() {
         {/* アクション */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-          {/* ★ ボタン文言も少しスッキリとさせ、確実に1行に収まるように調整 */}
           <button type="button" onClick={handleDownloadPDF} disabled={generating} className="pdf-btn">
             {generating ? (
               <>⏳ 高画質PDFを作成中…</>
@@ -267,7 +286,7 @@ export default function FarmerPromotionPage() {
         </div>
       </div>
 
-      {/* キャプチャ用実寸要素を「画面外の安全な領域」に完全に隠蔽 */}
+      {/* キャプチャ用実寸要素（画面外に隠蔽） */}
       <div style={{ position: "absolute", top: "-9999px", left: "-9999px", zIndex: -9999 }}>
         <div ref={captureRef} style={{ width: "210mm", height: "297mm", backgroundColor: "#fff" }}>
           {printType === "label" ? (
