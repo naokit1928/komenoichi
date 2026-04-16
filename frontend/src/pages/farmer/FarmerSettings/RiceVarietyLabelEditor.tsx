@@ -262,6 +262,7 @@ export default function RiceVarietyLabelEditor({
           boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
           cursor: disabled ? "not-allowed" : "pointer",
           textAlign: "center",
+          color: "#111827", 
         }}
         aria-label="お米の品種（銘柄）を編集"
       >
