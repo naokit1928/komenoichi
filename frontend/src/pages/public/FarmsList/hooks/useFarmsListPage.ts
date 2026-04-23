@@ -9,9 +9,10 @@ type PublicFarmListResponse = components["schemas"]["PublicFarmListResponse"];
 
 // ===== API =====
 const LIST_URL = `${API_BASE}/api/public/farms`;
-const LAST_CONFIRMED_URL = `${API_BASE}/api/public/reservations/latest`; 
+const LAST_CONFIRMED_URL = `${API_BASE}/api/public/reservations/latest`;
 
 // ===== Geo =====
+// 徳島市役所中心（launch初期はユーザー位置情報を取得せず、常にここを中心にする）
 const TOKUSHIMA_CENTER = { lat: 34.0703, lng: 134.5548 };
 
 export function useFarmsListPage() {
@@ -27,8 +28,13 @@ export function useFarmsListPage() {
   const [hasNext, setHasNext] = useState(false);
   const [lastConfirmedFarmId, setLastConfirmedFarmId] = useState<number | null>(null);
 
-  // ★ 1. "pending" を廃止し、初期値を null に。これで即座にフェッチが走るようになる
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // ─────────────────────────────────────────────────────────────
+  // ★ 位置情報の取得は launch 初期は廃止（信用が薄い段階での
+  //   permission ダイアログは離脱要因になるため）。
+  //   プラットフォームの信用が蓄積したら下記をコメントアウト解除すれば復活する。
+  // ─────────────────────────────────────────────────────────────
+  // const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
   const observerTarget = useRef<HTMLDivElement | null>(null);
 
   // ---- 1. 前回予約した農家の取得 ----
@@ -46,32 +52,27 @@ export function useFarmsListPage() {
     fetchLastConfirmed();
   }, []);
 
-
-  // ---- 2. 位置情報の取得（バックグラウンドで実行） ----
-  useEffect(() => {
-    if (!("geolocation" in navigator)) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      },
-      () => {
-        // 失敗しても userLocation は null のままなので、fallback（徳島中心など）が使われる
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
-    );
-  }, []);
+  // ---- 2. 位置情報の取得（★ 一時廃止中） ----
+  // useEffect(() => {
+  //   if (!("geolocation" in navigator)) return;
+  //
+  //   navigator.geolocation.getCurrentPosition(
+  //     (pos) => {
+  //       setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+  //     },
+  //     () => {
+  //       // 失敗しても userLocation は null のままなので、fallback（徳島中心）が使われる
+  //     },
+  //     { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+  //   );
+  // }, []);
 
   // ---- 3. APIフェッチ関数 ----
   const fetchPage = useCallback(
     async (page: number, append: boolean, lat: number | null, lng: number | null) => {
-      // 2回目以降のフェッチ（GPS確定後の再取得など）で、
-      // 既にデータがある場合は「loading（全画面）」ではなく「loadingMore（下部）」で処理する工夫
       if (append) {
         setLoadingMore(true);
       } else {
-        // すでに farms がある状態（GPS取得後の再読み込み）なら、
-        // 全画面 loading にせず裏でこっそり更新するとUXが良い
         if (!farms) setLoading(true);
       }
 
@@ -116,36 +117,29 @@ export function useFarmsListPage() {
     [farms]
   );
 
-  // ---- 4. 初回 & 位置情報確定時のフェッチ ----
+  // ---- 4. 初回フェッチ（★ userLocation 監視は廃止、lat/lng は常に null） ----
   useEffect(() => {
-    // userLocation が null（未確定）でも一回目を叩く。
-    // その後 GPS が取れて userLocation が更新されたら、もう一度叩いて「近い順」に更新する。
-    const lat = userLocation?.lat ?? null;
-    const lng = userLocation?.lng ?? null;
-    fetchPage(1, false, lat, lng);
-  }, [userLocation]); // userLocation を監視
-
+    fetchPage(1, false, null, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---- 5. 無限スクロール ----
   useEffect(() => {
     const el = observerTarget.current;
-    // ★ "pending" チェックを削除
     if (!el || loading || loadingMore || !hasNext) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          const lat = userLocation?.lat ?? null;
-          const lng = userLocation?.lng ?? null;
-          fetchPage(currentPage + 1, true, lat, lng);
+          fetchPage(currentPage + 1, true, null, null);
         }
       },
-      { rootMargin: "300px" } 
+      { rootMargin: "300px" }
     );
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loading, loadingMore, hasNext, currentPage, userLocation, fetchPage]);
+  }, [loading, loadingMore, hasNext, currentPage, fetchPage]);
 
   return {
     farms,
@@ -155,8 +149,8 @@ export function useFarmsListPage() {
     loadingMore,
     errorMsg,
     lastConfirmedFarmId,
-    // ★ 修正: 位置情報があっても、100km以内に農家がいなければ強制的に徳島中心にする
-    effectiveMapCenter: (userLocation && !noFarmsWithin100km) ? userLocation : TOKUSHIMA_CENTER,
+    // ★ 位置情報廃止中：常に徳島中心を返す
+    effectiveMapCenter: TOKUSHIMA_CENTER,
     observerTarget,
   };
 }
