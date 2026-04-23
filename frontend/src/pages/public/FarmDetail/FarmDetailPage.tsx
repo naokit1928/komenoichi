@@ -344,6 +344,7 @@ export default function FarmDetailPage() {
             pickupTextCard={pickupTextCard}
             centerLat={centerLat}
             centerLng={centerLng}
+            isAccepting={isAccepting}
           />
         </div>
       </section>

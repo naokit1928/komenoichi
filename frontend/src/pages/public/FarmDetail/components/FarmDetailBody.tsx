@@ -8,7 +8,7 @@ import FarmDetailAreaMapCard from "../FarmDetailAreaMapCard";
 // ── Brand tokens ──────────────────────────────────
 const C = {
   ink:       "#1a1108",
-  ink2:      "#4b3e2a", // 品種ラベルなどを引き締める
+  ink2:      "#4b3e2a",
   ink3:      "#7a6c58",
 } as const;
 
@@ -33,6 +33,8 @@ type Props = {
   pickupTextCard: string;
   centerLat?: number;
   centerLng?: number;
+  /** ★ 追加: 農家が予約受付中か（false なら価格カード操作をロック） */
+  isAccepting: boolean;
 };
 
 export default function FarmDetailBody({
@@ -54,10 +56,11 @@ export default function FarmDetailBody({
   pickupTextCard,
   centerLat,
   centerLng,
+  isAccepting, // ★ 追加
 }: Props) {
   return (
     <>
-      {/* タイトル：19px, 黒 (Level 1) */}
+      {/* タイトル */}
       {titleText && (
         <h1
           style={{
@@ -74,7 +77,7 @@ export default function FarmDetailBody({
         </h1>
       )}
 
-      {/* 品種：14px, 濃い茶色 (Level 2) - 薄茶色から濃茶色へ変更 */}
+      {/* 品種 */}
       {riceVarietyLabel && (
         <div
           style={{
@@ -99,6 +102,7 @@ export default function FarmDetailBody({
         onInc={onInc}
         onDec={onDec}
         money={money}
+        disabled={!isAccepting} // ★ 追加: 受付停止中はロック
       />
 
       <FarmDetailProfileCard
