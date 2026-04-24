@@ -33,7 +33,7 @@ class PublicFarmListResponse(BaseModel):
 class SnsLinkDTO(BaseModel):
     platform: str
     account_id: str
-    display_label: str
+    display_label: Optional[str] = None
 
 class PublicFarmDetailDTO(BaseModel):
     farm_id: int

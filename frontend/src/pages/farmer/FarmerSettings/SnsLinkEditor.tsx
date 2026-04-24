@@ -8,20 +8,64 @@ export type SnsLink = {
   account_id: string;
 };
 
+type PlatformConfig = {
+  name: string;
+  inputLabel: string;
+  placeholder: string;
+  domain: string;
+  helpText: string;
+};
+
+const PLATFORMS: Record<SnsPlatform, PlatformConfig> = {
+  instagram: {
+    name: "Instagram",
+    inputLabel: "ユーザーネーム",
+    placeholder: "例: kometokushima",
+    domain: "instagram.com/",
+    helpText: "Instagramプロフィール画面の @ の後に表示される英数字を入力してください。日本語の表示名は使えません。",
+  },
+  line: {
+    name: "LINE",
+    inputLabel: "LINE ID",
+    placeholder: "個人: naokit1007 ／ 公式アカウント: @xxx",
+    domain: "line.me/ti/p/~",
+    helpText: "LINEアプリの「設定→プロフィール→ID」で確認できる英数字。LINE公式アカウントの場合は先頭に「@」を付けてください。日本語の表示名は使えません。",
+  },
+  x: {
+    name: "X (旧Twitter)",
+    inputLabel: "ユーザー名",
+    placeholder: "例: kometokushima（@は不要）",
+    domain: "x.com/",
+    helpText: "プロフィール画面の「@xxx」の xxx 部分を入力してください。@は自動で付きます。日本語の表示名は使えません。",
+  },
+  facebook: {
+    name: "Facebook",
+    inputLabel: "FacebookページのID",
+    placeholder: "例: kometokushima",
+    domain: "facebook.com/",
+    helpText: "FacebookページのURL（facebook.com/◯◯）の◯◯部分。個人プロフィールは対応していません。",
+  },
+  youtube: {
+    name: "YouTube",
+    inputLabel: "ハンドル名",
+    placeholder: "例: kometokushima（@は不要）",
+    domain: "youtube.com/@",
+    helpText: "YouTubeチャンネル画面の「@xxx」の xxx 部分を入力してください。チャンネル名（日本語の表示名）は使えません。",
+  },
+  tiktok: {
+    name: "TikTok",
+    inputLabel: "ユーザー名",
+    placeholder: "例: kometokushima（@は不要）",
+    domain: "tiktok.com/@",
+    helpText: "TikTokプロフィール画面の「@xxx」の xxx 部分を入力してください。",
+  },
+};
+
 type Props = {
   links: SnsLink[];
   onSave: (next: SnsLink[]) => void | Promise<void>;
   saving?: boolean;
   disabled?: boolean;
-};
-
-const PLATFORMS: Record<SnsPlatform, { name: string; placeholder: string; domain: string }> = {
-  instagram: { name: "Instagram", placeholder: "ユーザーネーム (例: kometokushima)", domain: "instagram.com/" },
-  line:      { name: "LINE公式アカウント", placeholder: "LINE ID (例: @123abcde)", domain: "line.me/R/ti/p/" },
-  x:         { name: "X (旧Twitter)", placeholder: "ユーザー名 (例: kometokushima)", domain: "x.com/" },
-  facebook:  { name: "Facebook", placeholder: "ユーザー名", domain: "facebook.com/" },
-  youtube:   { name: "YouTube", placeholder: "チャンネル名 (例: @kometokushima)", domain: "youtube.com/@" },
-  tiktok:    { name: "TikTok", placeholder: "ユーザーネーム", domain: "tiktok.com/@" },
 };
 
 function SnsLinkModal({ open, initialLinks, onClose, onConfirm, busy }: {
@@ -65,24 +109,36 @@ function SnsLinkModal({ open, initialLinks, onClose, onConfirm, busy }: {
         </div>
 
         <div className="space-y-6">
-          {draftLinks.map((link, idx) => (
-            <div key={idx} style={{ background: "#F9FAFB", padding: 16, borderRadius: 16, border: "1px solid #E5E7EB" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#4B5563" }}>リンク {idx + 1}</span>
-                <button onClick={() => removeLink(idx)} style={{ background: "none", border: "none", color: "#DC2626", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>削除</button>
+          {draftLinks.map((link, idx) => {
+            const config = PLATFORMS[link.platform];
+            return (
+              <div key={idx} style={{ background: "#F9FAFB", padding: 16, borderRadius: 16, border: "1px solid #E5E7EB" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#4B5563" }}>リンク {idx + 1}</span>
+                  <button onClick={() => removeLink(idx)} style={{ background: "none", border: "none", color: "#DC2626", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>削除</button>
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>種類</label>
+                  <select value={link.platform} onChange={(e) => updateLink(idx, "platform", e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #D1D5DB", marginTop: 4, background: "#fff" }}>
+                    {Object.entries(PLATFORMS).map(([k, v]) => (<option key={k} value={k}>{v.name}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>{config.inputLabel}</label>
+                  <input
+                    type="text"
+                    value={link.account_id}
+                    onChange={(e) => updateLink(idx, "account_id", e.target.value)}
+                    placeholder={config.placeholder}
+                    style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #D1D5DB", marginTop: 4 }}
+                  />
+                  <div style={{ fontSize: 11, color: "#6B7280", marginTop: 6, lineHeight: 1.5 }}>
+                    {config.helpText}
+                  </div>
+                </div>
               </div>
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>種類</label>
-                <select value={link.platform} onChange={(e) => updateLink(idx, "platform", e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #D1D5DB", marginTop: 4, background: "#fff" }}>
-                  {Object.entries(PLATFORMS).map(([k, v]) => (<option key={k} value={k}>{v.name}</option>))}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>アカウントID / ユーザーネーム</label>
-                <input type="text" value={link.account_id} onChange={(e) => updateLink(idx, "account_id", e.target.value)} placeholder={PLATFORMS[link.platform].placeholder} style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #D1D5DB", marginTop: 4 }} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           {draftLinks.length < 3 && (
             <button onClick={addLink} style={{ width: "100%", padding: "14px", border: "2px dashed #D1D5DB", borderRadius: 16, background: "transparent", color: "#4B5563", fontWeight: 600, cursor: "pointer" }}>＋ リンクを追加する</button>

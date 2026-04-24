@@ -79,7 +79,7 @@ class PRImageDTO(BaseModel):
 class SnsLinkDTO(BaseModel):
     platform: str
     account_id: str
-    display_label: str
+    display_label: Optional[str] = None
 
 class FarmerSettingsDTO(BaseModel):
     farm_id: int  # ★ ここを追加しました
