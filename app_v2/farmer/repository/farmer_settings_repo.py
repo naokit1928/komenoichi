@@ -10,7 +10,7 @@ ALLOWED_FARM_COLUMNS: frozenset[str] = frozenset({
     "is_accepting_reservations", "rice_variety_label",
     "price_10kg", "price_5kg", "price_25kg",
     "active_flag", "is_public",
-    "pr_title", "pr_text", "face_image_url", "cover_image_url", "pr_images_json",
+    "pr_title", "pr_text", "face_image_url", "cover_image_url", "pr_images_json", "sns_links_json",
     "monthly_upload_bytes", "monthly_upload_limit", "next_reset_at",
     "registration_status",
 })
@@ -40,6 +40,7 @@ class FarmerSettingsRepository:
                    cover_image_url = NULL,
                    face_image_url = NULL,
                    pr_images_json = '[]',
+                   sns_links_json = '[]',
                    monthly_upload_bytes = 0,
                    monthly_upload_limit = ?,
                    next_reset_at = NULL

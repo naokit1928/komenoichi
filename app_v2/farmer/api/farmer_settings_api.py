@@ -13,7 +13,7 @@ from fastapi import (
 )
 from pydantic import BaseModel, field_validator
 
-from app_v2.farmer.dtos import FarmerSettingsDTO
+from app_v2.farmer.dtos import FarmerSettingsDTO, SnsLinkDTO
 from app_v2.farmer.services.farmer_settings_service import FarmerSettingsService
 
 
@@ -35,6 +35,7 @@ class FarmerSettingsUpdatePayload(BaseModel):
     price_10kg: Optional[int] = None
     face_image_url: Optional[str] = None
     cover_image_url: Optional[str] = None
+    sns_links: Optional[List[SnsLinkDTO]] = None
 
 
 class AdminActiveFlagPayload(BaseModel):
@@ -83,7 +84,6 @@ def _require_admin(request: Request) -> None:
             detail="admin authentication failed",
         )
 
-# ↓ _validate_image_upload は削除します。Service側でチェックするため不要です。
 
 # ============================================================
 # GET: Farmer Settings（ME）
@@ -134,6 +134,7 @@ def update_farmer_settings_me(
             pr_text=payload.pr_text,
             price_10kg=payload.price_10kg,
             face_image_url=payload.face_image_url,
+            sns_links=payload.sns_links,
         )
     except ValueError as e:
         msg = str(e)
@@ -191,8 +192,6 @@ async def upload_face_image_me(
     file: UploadFile = File(...),
 ):
     farm_id = _require_farm_id_from_session(request)
-    
-    # 削除: _validate_image_upload(file)
 
     service = FarmerSettingsService()
     try:
@@ -209,7 +208,6 @@ async def upload_face_image_me(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=msg,
             )
-        # 画像不正などもここでキャッチ
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=msg,
@@ -224,19 +222,11 @@ async def upload_cover_image_me(
     request: Request,
     file: UploadFile = File(...),
 ):
-    # cover-image だけのAPIは現状使われていないようですが、もし残すなら以下。
-    # 基本は pr-images 経由でカバーが決まるロジックに統一されているなら、ここは削除推奨。
-    # ひとまずエラーが出ないように修正だけしておきます。
-    
     farm_id = _require_farm_id_from_session(request)
-    # 削除: _validate_image_upload(file)
 
     service = FarmerSettingsService()
     try:
         file_bytes = await file.read()
-        # 注意: upload_cover_image_from_bytes は Service から削除されているかも？
-        # もし未実装ならこのエンドポイントごと削除でOKです。
-        # 既存コードとの互換性のため、ここでは一旦エラーを返すか、実装が必要です。
         raise HTTPException(status_code=501, detail="Not implemented") 
     except ValueError as e:
         raise HTTPException(
@@ -259,8 +249,6 @@ async def upload_pr_images_me(
     files: List[UploadFile] = File(...),
 ):
     farm_id = _require_farm_id_from_session(request)
-
-    # 削除: for f in files: _validate_image_upload(f)
 
     service = FarmerSettingsService()
     try:
@@ -296,7 +284,6 @@ def reorder_pr_images_me(
 
     service = FarmerSettingsService()
     try:
-        # Service に reorder_pr_images が復活しているので呼べる
         return service.reorder_pr_images(
             farm_id=farm_id,
             image_ids=payload.image_ids,

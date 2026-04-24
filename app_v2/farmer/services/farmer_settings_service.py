@@ -1,5 +1,6 @@
 from __future__ import annotations
 import sqlite3
+import json
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional, List, Tuple, Dict, Any
@@ -8,7 +9,7 @@ from app_v2.db.core import resolve_db_path
 from app_v2.common.client import upload_bytes
 from app_v2.common.image_utils import validate_image_content
 from app_v2.farmer.constants import FarmConfig
-from app_v2.farmer.dtos import FarmerSettingsDTO, PRImageDTO
+from app_v2.farmer.dtos import FarmerSettingsDTO, PRImageDTO, SnsLinkDTO
 from app_v2.farmer.repository.farmer_settings_repo import FarmerSettingsRepository
 
 class FarmerSettingsService:
@@ -88,6 +89,14 @@ class FarmerSettingsService:
             PRImageDTO(id=item.get("id"), url=item.get("url"), order=int(item.get("order", 0)))
             for item in pr_sorted
         ]
+
+        sns_raw = farm.get("sns_links_json") or "[]"
+        sns_links = []
+        try:
+            sns_data = json.loads(sns_raw)
+            sns_links = [SnsLinkDTO(**item) for item in sns_data if isinstance(item, dict)]
+        except Exception:
+            sns_links = []
         
         price_10kg = farm.get("price_10kg")
         price_5kg = farm.get("price_5kg")
@@ -115,6 +124,7 @@ class FarmerSettingsService:
             face_image_url=profile.get("face_image_url"),
             cover_image_url=pr_images[0].url if pr_images else None,
             pr_images=pr_images,
+            sns_links=sns_links,
             harvest_year=self._calc_harvest_year(),
             monthly_upload_bytes=int(profile.get("monthly_upload_bytes") or 0),
             monthly_upload_limit=int(profile.get("monthly_upload_limit") or FarmConfig.DEFAULT_MONTHLY_UPLOAD_LIMIT),
@@ -130,7 +140,8 @@ class FarmerSettingsService:
                       pr_title: Optional[str] = None,
                       pr_text: Optional[str] = None,
                       price_10kg: Optional[int] = None,
-                      face_image_url: Optional[str] = None) -> FarmerSettingsDTO:
+                      face_image_url: Optional[str] = None,
+                      sns_links: Optional[List[SnsLinkDTO]] = None) -> FarmerSettingsDTO:
         
         with self._transaction() as conn:
             current = self._load_settings_with_conn(conn, farm_id)
@@ -167,6 +178,10 @@ class FarmerSettingsService:
             if pr_title is not None: profile_updates["pr_title"] = pr_title
             if pr_text is not None: profile_updates["pr_text"] = pr_text
             if face_image_url is not None: profile_updates["face_image_url"] = face_image_url
+
+            if sns_links is not None:
+                links_data = [link.model_dump() for link in sns_links]
+                farm_updates["sns_links_json"] = json.dumps(links_data, ensure_ascii=False)
 
             if farm_updates:
                 self.repo.update_farm_fields(conn, farm_id, **farm_updates)

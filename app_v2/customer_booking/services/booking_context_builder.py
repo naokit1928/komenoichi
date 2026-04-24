@@ -75,6 +75,7 @@ class BookingContextBuilder:
             label_5kg="5kg",
             label_10kg="10kg",
             label_25kg="25kg",
+            farmer_phone=farm.get("phone"), # ★ 追加: 農家の電話番号
         )
 
         return ctx

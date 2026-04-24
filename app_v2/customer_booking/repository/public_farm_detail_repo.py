@@ -28,6 +28,7 @@ class PublicFarmDetailRow:
     face_image_url: Optional[str]
     cover_image_url: Optional[str]
     pr_images_raw: Optional[str]
+    sns_links_raw: Optional[str]
     pr_title: str
     pr_text: str
 
@@ -73,6 +74,7 @@ class PublicFarmDetailRepository:
                 f.face_image_url        AS face_image_url,
                 f.cover_image_url       AS cover_image_url,
                 f.pr_images_json        AS pr_images_raw,
+                f.sns_links_json        AS sns_links_raw,
                 f.pr_title              AS pr_title,
                 f.pr_text               AS pr_text,
                 f.pickup_time           AS pickup_slot_code,
@@ -111,6 +113,7 @@ class PublicFarmDetailRepository:
             face_image_url=row["face_image_url"],
             cover_image_url=row["cover_image_url"],
             pr_images_raw=row["pr_images_raw"],
+            sns_links_raw=row["sns_links_raw"],
             pr_title=str(row["pr_title"] or ""),
             pr_text=str(row["pr_text"] or ""),
             pickup_slot_code=str(row["pickup_slot_code"] or ""),

@@ -32,8 +32,7 @@ class ReservationBookedViewDTO(BaseModel):
     is_expired: bool
     is_expired_for_display: bool
 
-    # ★ 追加: 受け渡し開始時刻（ISO文字列）
-    # CancelActionCard → CancelConfirmPage の遅延キャンセル判定に使用
+    # ★ CancelActionCard → CancelConfirmPage の遅延キャンセル判定に使用
     event_start_at: Optional[str] = None
 
 
@@ -119,6 +118,7 @@ class ReservationBookedService:
                 rice_subtotal=booking_ctx.rice_subtotal,
                 pickup_code=booking_ctx.pickup_code,
                 cancel_token_exp=cancel_token_exp,
+                farmer_phone=booking_ctx.farmer_phone, # ★ 追加: DTOへ引き継ぎ
             )
 
             if now_utc < cancel_deadline:
@@ -153,5 +153,5 @@ class ReservationBookedService:
             confirmed_at=confirmed_at.isoformat(),
             is_expired=is_expired,
             is_expired_for_display=is_expired_for_display,
-            event_start_at=event_start_at.isoformat(),  # ★ 追加
+            event_start_at=event_start_at.isoformat(),
         )

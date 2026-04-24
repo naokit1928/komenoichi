@@ -27,12 +27,13 @@ _WEEKDAY_JP = ["月", "火", "水", "木", "金", "土", "日"]
 # slot_code parsing
 # ============================================================
 
-def parse_slot_code(slot_code: str) -> Tuple[int, int, int]:
+def parse_slot_code(slot_code: str) -> Tuple[int, int, int, int, int]:
     """
-    pickup_slot_code を解析して (weekday_idx, start_hour, end_hour) を返す。
+    pickup_slot_code を解析して (weekday_idx, start_hour, start_min, end_hour, end_min) を返す。
 
     例:
-        "WED_19_20" / "wed_19_20" -> (2, 19, 20)
+        "WED_1930_1945" -> (2, 19, 30, 19, 45)  # 15分枠
+        "WED_19_20"     -> (2, 19, 0, 20, 0)    # 古い1時間枠（互換性担保）
         weekday_idx: 0=Mon .. 6=Sun
 
     想定外フォーマットの場合:
@@ -45,12 +46,21 @@ def parse_slot_code(slot_code: str) -> Tuple[int, int, int]:
         day_str, start_str, end_str = parts
     except Exception:
         weekday_idx = datetime.now(JST).weekday()
-        return weekday_idx, 0, 1
+        return weekday_idx, 0, 0, 1, 0
 
     weekday_idx = WEEKDAY_MAP.get(day_str.upper(), 0)
-    start_hour = int(start_str)
-    end_hour = int(end_str)
-    return weekday_idx, start_hour, end_hour
+
+    def _parse_hm(s: str) -> Tuple[int, int]:
+        # "1930" のような3桁以上なら [時間, 分] に分割
+        if len(s) >= 3:
+            return int(s[:-2]), int(s[-2:])
+        # "19" のような2桁以下なら [時間, 0分] とする（既存の互換性用）
+        return int(s), 0
+
+    start_hour, start_minute = _parse_hm(start_str)
+    end_hour, end_minute = _parse_hm(end_str)
+
+    return weekday_idx, start_hour, start_minute, end_hour, end_minute
 
 
 # ============================================================
@@ -66,7 +76,7 @@ def calc_base_week_event(
     pickup_slot_code の event_start / event_end を計算する。
     """
     base = base.astimezone(JST)
-    weekday_idx, start_hour, end_hour = parse_slot_code(pickup_slot_code)
+    weekday_idx, start_hour, start_min, end_hour, end_min = parse_slot_code(pickup_slot_code)
 
     # 月曜始まりの週
     week_start_date = base.date() - timedelta(days=base.weekday())
@@ -74,11 +84,11 @@ def calc_base_week_event(
 
     event_start = datetime.combine(
         event_date,
-        time(hour=start_hour, minute=0, tzinfo=JST),
+        time(hour=start_hour, minute=start_min, tzinfo=JST),
     )
     event_end = datetime.combine(
         event_date,
-        time(hour=end_hour, minute=0, tzinfo=JST),
+        time(hour=end_hour, minute=end_min, tzinfo=JST),
     )
     return event_start, event_end
 
@@ -140,7 +150,7 @@ def compute_next_pickup(
     - 受付締切は start - 3時間
     - 今週分が「3時間前ルール」でアウトなら、来週へ
     """
-    weekday_idx, start_hour, _ = parse_slot_code(slot_code)
+    weekday_idx, start_hour, start_min, _end_hour, _end_min = parse_slot_code(slot_code)
 
     today_wd = now.weekday()
     days_ahead = (weekday_idx - today_wd) % 7
@@ -151,7 +161,7 @@ def compute_next_pickup(
         candidate_date.month,
         candidate_date.day,
         start_hour,
-        0,
+        start_min,
         0,
         tzinfo=JST,
     )
@@ -163,7 +173,7 @@ def compute_next_pickup(
             candidate_date.month,
             candidate_date.day,
             start_hour,
-            0,
+            start_min,
             0,
             tzinfo=JST,
         )

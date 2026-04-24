@@ -1,8 +1,9 @@
-// frontend/src/features/farmer-pickup/PickupTimeCard.tsx
+// frontend\src\pages\farmer\FarmerPickupSettings/PickupTimeCard.tsx
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 
-export type TimeSlotOption = "WED_19_20" | "SAT_10_11";
+// ★ 変更: 15分枠に更新（互換性のため古い枠やstringも許容）
+export type TimeSlotOption = "WED_1930_1945" | "SAT_1030_1045" | "WED_19_20" | "SAT_10_11" | string;
 
 type Props = {
   value?: TimeSlotOption | null;
@@ -11,25 +12,23 @@ type Props = {
   saving?: boolean;
   disabled?: boolean;
   className?: string;
-  /** 変更不可の理由をカード内に表示（任意） */
   cannotChangeReason?: string;
 };
 
-/* ===== 時間枠の一覧 ===== */
+/* ===== ★ 新しい時間枠の一覧 ===== */
 const OPTIONS: { id: TimeSlotOption; label: string; subLabel: string }[] = [
   {
-    id: "WED_19_20",
-    label: "毎週水曜 19:00–20:00",
+    id: "WED_1930_1945",
+    label: "毎週水曜 19:30–19:45",
     subLabel: "平日夜に受け取りたい方向け",
   },
   {
-    id: "SAT_10_11",
-    label: "毎週土曜 10:00–11:00",
+    id: "SAT_1030_1045",
+    label: "毎週土曜 10:30–10:45",
     subLabel: "週末の午前中に受け取りたい方向け",
   },
 ];
 
-/* ===== 共通ユーティリティ ===== */
 function useDisableScroll(active: boolean) {
   useEffect(() => {
     if (!active) return;
@@ -58,9 +57,6 @@ const cardTitleStyle: React.CSSProperties = {
   color: "#111827",
 };
 
-/* =====================
-   モーダル（下書き draft を内部に持つ版）
-===================== */
 function PickupTimeModal({
   open,
   initialValue,
@@ -76,12 +72,10 @@ function PickupTimeModal({
 }) {
   useDisableScroll(open);
 
-  // モーダル内だけで使う「仮選択値」
   const [draft, setDraft] = useState<TimeSlotOption | null>(
     initialValue ?? null
   );
 
-  // モーダルを開くたびに initialValue から draft を初期化
   useEffect(() => {
     if (!open) return;
     setDraft(initialValue ?? null);
@@ -93,7 +87,6 @@ function PickupTimeModal({
 
   return ReactDOM.createPortal(
     <>
-      {/* 黒いオーバーレイ（クリックで閉じるだけ／保存しない） */}
       <div
         onClick={onClose}
         style={{
@@ -117,7 +110,6 @@ function PickupTimeModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ヘッダー */}
         <div className="flex items-start justify-between">
           <div
             className="text-gray-800"
@@ -148,7 +140,6 @@ function PickupTimeModal({
           </button>
         </div>
 
-        {/* 説明文 */}
         <p
           style={{
             marginTop: 8,
@@ -157,10 +148,10 @@ function PickupTimeModal({
             lineHeight: 1.6,
           }}
         >
-          毎週の受け取り時間を選んでください。
+          毎週の受け取り時間を選んでください。<br />
+          <span style={{ fontSize: 11, color: "#b91c1c" }}>※農家さんの待ち時間を減らすため、15分間に限定しています。</span>
         </p>
 
-        {/* 選択肢（draft のみ更新） */}
         <div style={{ marginTop: 14 }} className="space-y-3">
           {OPTIONS.map((opt) => {
             const selected = draft === opt.id;
@@ -240,12 +231,11 @@ function PickupTimeModal({
           })}
         </div>
 
-        {/* 保存ボタン（draft が選ばれているときだけ有効） */}
         <div style={{ marginTop: 18 }}>
           <button
             onClick={async () => {
               if (!draft || !canSave) return;
-              await onConfirm(draft); // ← ここでだけ確定保存
+              await onConfirm(draft);
               onClose();
             }}
             disabled={!canSave}
@@ -274,9 +264,6 @@ function PickupTimeModal({
   );
 }
 
-/* =====================
-   カード本体
-===================== */
 const PickupTimeCard: React.FC<Props> = ({
   value = null,
   onChange,
@@ -289,22 +276,27 @@ const PickupTimeCard: React.FC<Props> = ({
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<TimeSlotOption | null>(null);
 
-  // 親からの「確定値」をローカル state に反映
   useEffect(() => {
     setSelected(value ?? null);
   }, [value]);
 
-  const selectedOption =
-    OPTIONS.find((o) => o.id === selected) ?? null;
+  const selectedOption = OPTIONS.find((o) => o.id === selected) ?? null;
 
-  const mainText = selectedOption
-    ? selectedOption.label
-    : "受け取り日時を選択";
+  // ★ 旧枠（1時間のデータ）でクラッシュしないためのフォールバック処理
+  let mainText = "受け取り日時を選択";
+  if (selectedOption) {
+    mainText = selectedOption.label;
+  } else if (selected === "WED_19_20") {
+    mainText = "毎週水曜 19:00–20:00 (旧設定)";
+  } else if (selected === "SAT_10_11") {
+    mainText = "毎週土曜 10:00–11:00 (旧設定)";
+  } else if (selected) {
+    mainText = String(selected);
+  }
 
-  const isPlaceholder = !selectedOption;
+  const isPlaceholder = mainText === "受け取り日時を選択";
 
   const handleConfirm = async (next: TimeSlotOption) => {
-    // 保存ボタンを押したときだけ確定
     setSelected(next);
     onChange?.(next);
     if (onSave) {
@@ -336,13 +328,12 @@ const PickupTimeCard: React.FC<Props> = ({
               fontWeight: selectedOption ? 800 : 500,
               lineHeight: 1.3,
               letterSpacing: "-.01em",
-              color: isPlaceholder ? "#9CA3AF" : "#111827",
+              color: isPlaceholder ? "#9CA3AF" : (selectedOption ? "#111827" : "#b91c1c"),
             }}
           >
             {mainText}
           </div>
 
-          {/* 変更不可理由（赤字） */}
           {cannotChangeReason && (
             <p
               style={{

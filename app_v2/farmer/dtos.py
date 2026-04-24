@@ -76,6 +76,10 @@ class PRImageDTO(BaseModel):
     url: str
     order: int
 
+class SnsLinkDTO(BaseModel):
+    platform: str
+    account_id: str
+    display_label: str
 
 class FarmerSettingsDTO(BaseModel):
     farm_id: int  # ★ ここを追加しました
@@ -95,6 +99,7 @@ class FarmerSettingsDTO(BaseModel):
     cover_image_url: Optional[str] = None
 
     pr_images: List[PRImageDTO] = Field(default_factory=list)
+    sns_links: List[SnsLinkDTO] = Field(default_factory=list)
 
     harvest_year: Optional[int] = None
 

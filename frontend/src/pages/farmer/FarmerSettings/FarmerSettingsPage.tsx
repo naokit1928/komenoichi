@@ -9,6 +9,10 @@ import PublishToggleCard from "./PublishToggleCard";
 import RiceVarietyLabelEditor from "./RiceVarietyLabelEditor";
 import TitleEditor from "./TitleEditor";
 
+// ★ 追加: SnsLinkEditorと型のインポート
+import SnsLinkEditor from "./SnsLinkEditor";
+import type { SnsLink } from "./SnsLinkEditor";
+
 import { API_BASE } from "@/config/api";
 
 type MissingItem = { key: string; label: string; hint: string };
@@ -27,6 +31,7 @@ type SettingsV2 = {
   face_image_url?: string | null;
   cover_image_url?: string | null;
   pr_images?: PrImage[];
+  sns_links?: SnsLink[]; // ★ 追加: SNSリンクデータ
   is_ready_to_publish?: boolean;
   missing_fields?: string[];
   thumbnail_url?: string | null;
@@ -365,23 +370,64 @@ export default function FarmerSettingsPage() {
             onSave={(v) => postMe({ rice_variety_label: v }, "品種（銘柄）を保存しました。")}
           />
 
-          <FaceAvatar
-            faceImageUrl={data?.face_image_url ?? null}
-            uploading={uploadingFace}
-            deleting={deletingFace}
-            onCropOpenChange={setCropOpen}
-            onUpload={async (f) => {
-              setUploadingFace(true);
-              await uploadFaceImage(f);
-              await fetchAll();
-              setUploadingFace(false);
+          {/* ========================================================
+              ★ 修正箇所：プロフィールとSNSリンクを1つのカードに統合
+          ======================================================== */}
+          <div
+            style={{
+              background: "#FFFFFF",
+              border: "1px solid rgba(0, 0, 0, 0.07)",
+              borderRadius: 24,
+              padding: "28px 20px",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.04)",
             }}
-            onDelete={async () => {
-              setDeletingFace(true);
-              await postMe({ face_image_url: "" }, "プロフィール写真を削除しました。");
-              setDeletingFace(false);
+          >
+            <PrTextEditor
+              value={text}
+              saving={busy}
+              onChange={setText}
+              onSave={(v) => postMe({ pr_text: v }, "農家プロフィールを保存しました。")}
+            />
+
+            <hr style={{ border: "none", borderTop: "1px solid #F3F4F6", margin: "12px 0" }} />
+
+            <SnsLinkEditor
+              links={data?.sns_links || []}
+              saving={busy}
+              onSave={(v) => postMe({ sns_links: v }, "SNSリンクを保存しました。")}
+            />
+          </div>
+
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid rgba(0,0,0,0.07)",
+              borderRadius: 24,
+              padding: "28px 20px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.04)"
             }}
-          />
+          >
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", textAlign: "center", marginBottom: 20 }}>
+              プロフィール写真
+            </div>
+            <FaceAvatar
+              faceImageUrl={data?.face_image_url ?? null}
+              uploading={uploadingFace}
+              deleting={deletingFace}
+              onCropOpenChange={setCropOpen}
+              onUpload={async (f) => {
+                setUploadingFace(true);
+                await uploadFaceImage(f);
+                await fetchAll();
+                setUploadingFace(false);
+              }}
+              onDelete={async () => {
+                setDeletingFace(true);
+                await postMe({ face_image_url: "" }, "プロフィール写真を削除しました。");
+                setDeletingFace(false);
+              }}
+            />
+          </div>
 
           <TitleEditor
             value={title}
@@ -390,12 +436,6 @@ export default function FarmerSettingsPage() {
             onSave={(v) => postMe({ pr_title: v }, "タイトルを保存しました。")}
           />
 
-          <PrTextEditor
-            value={text}
-            saving={busy}
-            onChange={setText}
-            onSave={(v) => postMe({ pr_text: v }, "メッセージを保存しました。")}
-          />
         </div>
       </div>
 

@@ -50,6 +50,7 @@ CREATE TABLE farms (
     face_image_url TEXT,
     cover_image_url TEXT,
     pr_images_json TEXT,
+    sns_links_json TEXT,
     monthly_upload_bytes INTEGER DEFAULT 0,
     monthly_upload_limit INTEGER DEFAULT 150000000,
     next_reset_at TEXT,

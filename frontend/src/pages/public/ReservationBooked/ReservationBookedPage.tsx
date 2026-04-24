@@ -80,11 +80,6 @@ const ReservationBookedPage: React.FC = () => {
       ? (data as { reservation_status?: string }).reservation_status
       : undefined;
 
-  const isExpiredForDisplay =
-    typeof data === "object" && data !== null
-      ? (data as { is_expired_for_display?: boolean }).is_expired_for_display
-      : undefined;
-
   if (!data || (reservationStatus && reservationStatus !== "confirmed")) {
     return renderShell(
       <div style={{ padding: "40px 20px", textAlign: "center", maxWidth: 600, margin: "0 auto" }}>
@@ -114,34 +109,6 @@ const ReservationBookedPage: React.FC = () => {
     );
   }
 
-  if (isExpiredForDisplay) {
-    return renderShell(
-      <div style={{ textAlign: "center", padding: "40px 0" }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#1a1108" }}>
-          受け渡しは完了しました
-        </h2>
-        <p style={{ fontSize: 14, color: "#7a6c58", marginBottom: 28 }}>
-          また次回のご利用をお待ちしています。
-        </p>
-        <button
-          onClick={() => navigate("/farms")}
-          style={{
-            padding: "12px 32px",
-            background: "#4b3e2a",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: 9999,
-            fontWeight: 600,
-            fontSize: 15,
-            cursor: "pointer",
-          }}
-        >
-          次の予約を探す
-        </button>
-      </div>
-    );
-  }
-
   const { context } = data;
   const {
     pickup_display,
@@ -157,9 +124,9 @@ const ReservationBookedPage: React.FC = () => {
     rice_subtotal,
     pickup_code,
     cancel_token,
+    farmer_phone,
   } = context;
 
-  // ★ 追加: バックエンドから受け取った受け渡し開始時刻
   const eventStartAt = (data as { event_start_at?: string | null }).event_start_at ?? null;
 
   const items: string[] = [];
@@ -179,13 +146,14 @@ const ReservationBookedPage: React.FC = () => {
         pickupDisplay={pickup_display}
         pickupPlaceName={pickup_place_name}
         pickupMapUrl={pickup_map_url}
+        farmerPhone={farmer_phone}
+        eventStartAt={eventStartAt} // ★ 追加: 3時間前判定のために渡す
       />
       <BookingItemsCard items={items} />
       <PaymentSummaryCard riceSubtotalText={riceSubtotalText} />
       <ReservationCodeCard pickupCode={pickup_code} />
       <MemoCard memo={pickup_detail_memo} />
 
-      {/* ★ eventStartAt を渡す → CancelConfirmPage で3時間以内判定に使用 */}
       <CancelActionCard
         cancelActionUri={cancelActionUri}
         eventStartAt={eventStartAt}

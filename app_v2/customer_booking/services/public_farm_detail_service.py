@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from app_v2.customer_booking.dtos import PublicFarmDetailDTO
+from app_v2.customer_booking.dtos import PublicFarmDetailDTO, SnsLinkDTO
 from app_v2.customer_booking.repository.public_farm_detail_repo import (
     PublicFarmDetailRepository,
     PublicFarmDetailRow,
@@ -55,6 +56,14 @@ class PublicFarmDetailService:
 
         pr_images = _parse_pr_images(row.pr_images_raw)
 
+        sns_links = []
+        if row.sns_links_raw:
+            try:
+                sns_data = json.loads(row.sns_links_raw)
+                sns_links = [SnsLinkDTO(**item) for item in sns_data if isinstance(item, dict)]
+            except Exception:
+                sns_links = []
+
         owner_full_name = f"{row.owner_last_name}{row.owner_first_name}"
         owner_label = f"{owner_full_name}さんのお米"
         owner_address_label = _build_owner_address_label(row.owner_address)
@@ -71,6 +80,7 @@ class PublicFarmDetailService:
             face_image_url=row.face_image_url,
             cover_image_url=row.cover_image_url,
             pr_images=pr_images,
+            sns_links=sns_links,
             rice_variety_label=row.rice_variety_label,
             harvest_year=harvest_year,
             price_5kg=row.price_5kg,

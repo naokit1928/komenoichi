@@ -166,11 +166,12 @@ def _compute_distance_km(
 
 
 def _format_next_pickup_display(start_dt: datetime, slot_code: str) -> str:
-    weekday_idx, start_hour, end_hour = parse_slot_code(slot_code)
+    # ★ 変更: parse_slot_code が 5 つの値を返すようになったため修正
+    weekday_idx, sh, sm, eh, em = parse_slot_code(slot_code)
     return (
         f"{start_dt.month}/{start_dt.day}"
         f"（{WEEKDAY_JP[weekday_idx]}）"
-        f"{start_hour:02d}:00–{end_hour:02d}:00"
+        f"{sh:02d}:{sm:02d}–{eh:02d}:{em:02d}"
     )
 
 

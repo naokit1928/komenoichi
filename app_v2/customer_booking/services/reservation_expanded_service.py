@@ -48,7 +48,14 @@ def _resolve_slot_to_utc_event(base_utc: datetime, pickup_slot_code: str) -> Tup
     try:
         w_str, s_str, e_str = pickup_slot_code.split("_")
         weekday_index = _WEEKDAY_CODE_TO_INDEX[w_str.upper()]
-        start_hour, end_hour = int(s_str), int(e_str)
+        
+        def _parse_hm(s: str) -> Tuple[int, int]:
+            if len(s) >= 3:
+                return int(s[:-2]), int(s[-2:])
+            return int(s), 0
+            
+        start_hour, start_min = _parse_hm(s_str)
+        end_hour, end_min = _parse_hm(e_str)
     except Exception:
         raise ValueError(f"Invalid pickup_slot_code: {pickup_slot_code}")
 
@@ -56,8 +63,8 @@ def _resolve_slot_to_utc_event(base_utc: datetime, pickup_slot_code: str) -> Tup
     week_start_date = base_jst.date() - timedelta(days=base_jst.weekday())
     event_date = week_start_date + timedelta(days=weekday_index)
 
-    event_start_jst = datetime.combine(event_date, time(hour=start_hour), tzinfo=JST)
-    event_end_jst = datetime.combine(event_date, time(hour=end_hour), tzinfo=JST)
+    event_start_jst = datetime.combine(event_date, time(hour=start_hour, minute=start_min), tzinfo=JST)
+    event_end_jst = datetime.combine(event_date, time(hour=end_hour, minute=end_min), tzinfo=JST)
     
     return event_start_jst.astimezone(timezone.utc), event_end_jst.astimezone(timezone.utc)
 

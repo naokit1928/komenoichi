@@ -397,7 +397,11 @@ export default function FarmerRegistrationPage() {
         <ConfirmModal
           values={reg.values}
           pickupTimeLabel={
-            reg.values.pickupTime === "WED_19_20"
+            reg.values.pickupTime === "WED_1930_1945"
+              ? "毎週水曜 19:30–19:45"
+              : reg.values.pickupTime === "SAT_1030_1045"
+              ? "毎週土曜 10:30–10:45"
+              : reg.values.pickupTime === "WED_19_20"
               ? "毎週水曜 19:00–20:00"
               : reg.values.pickupTime === "SAT_10_11"
               ? "毎週土曜 10:00–11:00"

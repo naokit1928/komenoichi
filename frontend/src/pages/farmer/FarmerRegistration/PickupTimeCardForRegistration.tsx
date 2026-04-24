@@ -1,11 +1,11 @@
 import { useState } from "react";
 import ReactDOM from "react-dom";
 
-export type TimeSlotOption = "WED_19_20" | "SAT_10_11";
+export type TimeSlotOption = "WED_1930_1945" | "SAT_1030_1045";
 
 const OPTIONS: { id: TimeSlotOption; label: string; subLabel: string }[] = [
-  { id: "WED_19_20", label: "毎週水曜 19:00–20:00", subLabel: "" },
-  { id: "SAT_10_11", label: "毎週土曜 10:00–11:00", subLabel: "" },
+  { id: "WED_1930_1945", label: "毎週水曜 19:30–19:45", subLabel: "" },
+  { id: "SAT_1030_1045", label: "毎週土曜 10:30–10:45", subLabel: "" },
 ];
 
 export default function PickupTimeCardForRegistration({
@@ -110,6 +110,10 @@ export default function PickupTimeCardForRegistration({
                   </svg>
                 </button>
               </div>
+
+              <p style={{ marginTop: 8, fontSize: 12, color: "#b91c1c", lineHeight: 1.5 }}>
+                ※農家さんの待ち時間を減らすため、15分間に限定しています。
+              </p>
 
               <div style={{ marginTop: 14 }} className="space-y-3">
                 {OPTIONS.map((opt) => {

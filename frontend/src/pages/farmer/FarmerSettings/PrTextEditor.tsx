@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 
 /* ===== 固定ルール（親から変更不可） ===== */
-const MAX_LEN = 500; // 文字上限
+const MAX_LEN = 300; // ★ 500から300に変更
 const MAX_TOTAL_LINES = 28; // 総行数上限
 const MAX_BLANKS = 2; // 空行の連続上限
 
@@ -113,7 +113,7 @@ function PrTextModal({
     el.style.height = Math.min(el.scrollHeight, 360) + "px";
   };
 
-  // ★修正箇所: 「開いた直後だけ」フォーカスして末尾にカーソルを移動する
+  // 「開いた直後だけ」フォーカスして末尾にカーソルを移動する
   useEffect(() => {
     if (!open) return;
     requestAnimationFrame(() => {
@@ -123,9 +123,9 @@ function PrTextModal({
       el.selectionStart = el.selectionEnd = el.value.length;
       autosize(el);
     });
-  }, [open]); // 依存配列から draft を除外！
+  }, [open]);
 
-  // ★修正箇所: テキストが変わった時の高さ自動調整は別で行う
+  // テキストが変わった時の高さ自動調整
   useEffect(() => {
     if (open && taRef.current) {
       autosize(taRef.current);
@@ -176,8 +176,7 @@ function PrTextModal({
 
     setDraft(sanitized);
 
-    // ★修正箇所: サニタイズによって文字が変わった時"だけ"カーソルを強制する
-    // これにより、通常のバックスペースや文字入力時はネイティブのカーソル移動が活きる
+    // サニタイズによって文字が変わった時"だけ"カーソルを強制する
     if (raw !== sanitized) {
       requestAnimationFrame(() => {
         if (!taRef.current) return;
@@ -220,7 +219,8 @@ function PrTextModal({
             className="text-gray-800"
             style={{ fontSize: 16, fontWeight: 700, letterSpacing: ".01em" }}
           >
-            農家からのメッセージ
+            {/* ★ タイトル変更 */}
+            農家プロフィールの編集
           </div>
           <button
             aria-label="閉じる"
@@ -276,13 +276,13 @@ function PrTextModal({
               background: "transparent",
               border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 16,
-              padding: "16px 14px", // 上下の余白を少し増やして見やすく
+              padding: "16px 14px",
               fontSize: 16,
               lineHeight: 1.75,
               color: "#374151",
             }}
             maxLength={MAX_LEN + 200}
-            aria-label="農家からのメッセージを入力"
+            aria-label="農家プロフィールを入力"
           />
         </div>
 
@@ -375,21 +375,18 @@ export default function PrTextEditor({
   };
 
   return (
-    <section className={`w-full ${className}`} style={{ marginTop: 24, marginBottom: 120 }}>
+    <section className={`w-full ${className}`}>
       <button
         type="button"
         onClick={() => !disabled && setOpen(true)}
-        className="w-full bg-white text-left"
+        className="w-full text-left"
         style={{
-          backgroundColor: "#FFFFFF",
-          border: "1px solid rgba(0, 0, 0, 0.07)",
-          borderRadius: 24,
-          padding: "28px 20px",
-          paddingRight: 28,
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.04)",
+          background: "transparent", // ★ SnsLinkEditorと合体させるため外枠の装飾を削除
+          border: "none",
+          padding: "0 0 16px 0",
           cursor: disabled ? "not-allowed" : "pointer",
         }}
-        aria-label="メッセージを編集"
+        aria-label="プロフィールを編集"
       >
         <div className="flex items-start justify-between">
           <span
@@ -400,7 +397,8 @@ export default function PrTextEditor({
               color: "#111827",
             }}
           >
-            農家からのメッセージ
+            {/* ★ タイトル変更 */}
+            農家プロフィール
           </span>
         </div>
 
@@ -421,7 +419,8 @@ export default function PrTextEditor({
         ) : (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 13, color: "#9CA3AF", lineHeight: 1.6 }}>
-              こだわりや栽培方法、農家としての想いなど、アピールしたいことを自由に書いてください。<br />
+              {/* ★ 説明文変更 */}
+              自己紹介やこだわり、栽培方法などを自由に入力してください。<br />
               <span style={{ fontSize: 12, marginTop: 4, display: "inline-block" }}>※記入は任意ですが、お客さんに魅力が伝わりやすくなるため記入をおすすめしています。</span>
             </div>
           </div>

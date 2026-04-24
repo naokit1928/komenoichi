@@ -1,6 +1,5 @@
-# （※ファイルの最初から最後までまるごと上書きしてください）
 from typing import List, Literal, Optional
-from pydantic import BaseModel, HttpUrl, conint
+from pydantic import BaseModel, HttpUrl, conint, Field # ★ Field を追加しました
 
 # ============================================================
 # Public Farm List / Detail DTO
@@ -31,6 +30,11 @@ class PublicFarmListResponse(BaseModel):
     no_farms_within_100km: bool
     farms: List[PublicFarmCardDTO]
 
+class SnsLinkDTO(BaseModel):
+    platform: str
+    account_id: str
+    display_label: str
+
 class PublicFarmDetailDTO(BaseModel):
     farm_id: int
     owner_full_name: str
@@ -40,6 +44,7 @@ class PublicFarmDetailDTO(BaseModel):
     face_image_url: HttpUrl
     cover_image_url: HttpUrl
     pr_images: List[HttpUrl]
+    sns_links: List[SnsLinkDTO] = Field(default_factory=list)
     rice_variety_label: str
     harvest_year: int
     price_5kg: int
@@ -93,7 +98,6 @@ class ReservationResultDTO(BaseModel):
 class ExportEventMetaDTO(BaseModel):
     pickup_slot_code: str
     pickup_display: str
-    # ★ 追加：フロントで「終了5分後」を計算するための終了時刻
     event_end_at: str
 
 class ExportReservationItemDTO(BaseModel):
@@ -108,7 +112,6 @@ class ExportReservationRowDTO(BaseModel):
     created_at: str
     items: List[ExportReservationItemDTO]
     rice_subtotal: int
-    # ★ 追加：フロントで行の色を変えるためのステータス
     status: str
 
 class ExportBundleItemSummaryDTO(BaseModel):
@@ -169,6 +172,7 @@ class ReservationContextDTO(BaseModel):
     pickup_code: str
     cancel_token_exp: int
     cancel_token: Optional[str] = None
+    farmer_phone: Optional[str] = None # ★ 追加
 
 class BookingContextDTO(BaseModel):
     reservation_id: int
@@ -184,3 +188,4 @@ class BookingContextDTO(BaseModel):
     label_25kg: str
     rice_subtotal: int
     pickup_code: str
+    farmer_phone: Optional[str] = None # ★ 追加
